@@ -3,6 +3,7 @@
 // </copyright>
 
 #include "pch.h"
+
 #include <debugapi.h>
 #include <objbase.h>
 #include <sstream>
@@ -88,12 +89,6 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
     {
         RegCloseKey(hKey);
         hKey = nullptr;
-    }
-
-    if (RegCreateKeyExW(HKEY_CLASSES_ROOT, L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
-    {
-        hrReturn = E_FAIL;
-        goto End;
     }
 
     if (RegCreateKeyExW(HKEY_CLASSES_ROOT, L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
