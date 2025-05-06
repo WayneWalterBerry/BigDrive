@@ -1,0 +1,11 @@
+.vs/
+bin/
+obj/
+x64/
+x86/
+ARM/
+ARM64/
+
+*.sln
+*.vcxproj.filters
+*.vcxproj.user
