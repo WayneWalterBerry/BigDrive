@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.EnterpriseServices;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
@@ -29,3 +30,9 @@ using System.Runtime.InteropServices;
 //
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+
+[assembly: ApplicationAccessControl(
+    AccessChecksLevel = AccessChecksLevelOption.Application,
+    Authentication = AuthenticationOption.Call,  // Allows the COM object to authenticate the caller
+    ImpersonationLevel = ImpersonationLevelOption.Impersonate)]  // Enables full impersonation of the user
+
