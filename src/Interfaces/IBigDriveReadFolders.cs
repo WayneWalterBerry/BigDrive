@@ -1,4 +1,4 @@
-﻿// <copyright file="IArmClientManager.cs" company="Wayne Walter Berry">
+﻿// <copyright file="IBigDriveReadFolders.cs" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
