@@ -96,7 +96,7 @@ namespace BigDriveClientTest
 
             // Verify the configuration string
             Assert::IsNotNull(pszConfiguration);
-            Assert::AreEqual(L"Expected Configuration String", pszConfiguration);
+            Assert::AreEqual(L"{\"id\":\"12345678-1234-1234-1234-56789abcdef2\",\"name\":null}", pszConfiguration);
 
             // Clean up
             ::SysFreeString(pszConfiguration);
@@ -119,7 +119,9 @@ namespace BigDriveClientTest
             const std::wstring drivesRegistryPath = L"Software\\BigDrive\\Drives";
 
             // Convert the GUID to a string
-            wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+            wchar_t guidString[39]; 
+            
+            // GUID string format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             hrReturn = StringFromGUID(guid, guidString, ARRAYSIZE(guidString));
             if (FAILED(hrReturn))
             {

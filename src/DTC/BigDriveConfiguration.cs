@@ -7,6 +7,7 @@ namespace BigDrive.ComObjects
     using System;
     using System.Diagnostics;
     using System.EnterpriseServices;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -20,13 +21,17 @@ namespace BigDrive.ComObjects
     [ComVisible(true)] // Make the class visible to COM
     public class BigDriveConfiguration : ServicedComponent, IBigDriveConfiguration
     {
+        private static readonly AssemblyResolver asssemblyResolver;
         private static readonly TraceSource DefaultTraceSource = new TraceSource("BigDrive");
+
+        static BigDriveConfiguration()
+        {
+            asssemblyResolver = AssemblyResolver.Instance;
+        }
 
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)
         {
-            System.Diagnostics.Debugger.Launch();
-
             DefaultTraceSource.TraceInformation("GetConfiguration called with GUID: {0}", guid);
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
@@ -36,7 +41,7 @@ namespace BigDrive.ComObjects
                 // Serialize the configuration to JSON
                 var options = new JsonSerializerOptions
                 {
-                    WriteIndented = true,
+                    WriteIndented = false,
                     Converters =
                     {
                         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
@@ -44,6 +49,8 @@ namespace BigDrive.ComObjects
                 };
 
                 string json = JsonSerializer.Serialize(driveConfiguration, options);
+                json = json.Replace("\r", "").Replace("\n", "");
+
                 return json;
             }
         }
