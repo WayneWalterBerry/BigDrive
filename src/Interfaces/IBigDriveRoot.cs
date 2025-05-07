@@ -17,8 +17,7 @@ namespace BigDrive.Interfaces
         /// Return all the folders in the root.
         /// </summary>
         /// <param name="guid">Registered Drive Identifier</param>
-        /// <param name="cancellationToken">Cancellation Token</param>
         /// <returns>Folder Names</returns>
-        string[] GetFolders(Guid guid, CancellationToken cancellationToken);
+        string[] GetFolders(Guid guid);
     }
 }

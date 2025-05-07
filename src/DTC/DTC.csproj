@@ -86,8 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BigDriveConfiguration.cs" />
-    <Compile Include="BigDriveReadFolders.cs" />
-    <Compile Include="BigDriveRoot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -107,6 +105,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>C:\Windows\Microsoft.NET\Framework\v4.0.30319\regsvcs.exe "$(TargetPath)"</PostBuildEvent>
+    <PostBuildEvent>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe "$(TargetPath)"</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>cmd.exe C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe /u "$(TargetPath)"  || exit /b 0</PreBuildEvent>
   </PropertyGroup>
 </Project>

@@ -17,8 +17,7 @@ namespace BigDrive.Interfaces
         /// Return the configuration for the drive.
         /// </summary>
         /// <param name="guid">Registered Drive Identifier</param>
-        /// <param name="cancellationToken">Cancellation Token</param>
         /// <returns></returns>
-        string GetConfiguration(Guid guid, CancellationToken cancellationToken);
+        string GetConfiguration(Guid guid);
     }
 }
