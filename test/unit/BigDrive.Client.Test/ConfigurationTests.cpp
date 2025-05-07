@@ -10,8 +10,10 @@
 #include "BigDriveClientConfigurationProvider.h"
 #include "BigDriveConfigurationClient.h"
 #include "IBigDriveConfiguration.h"
+#include "GuidUtil.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+using namespace BigDriveClient;
 
 namespace BigDriveClientTest
 {
@@ -19,6 +21,9 @@ namespace BigDriveClientTest
     {
     public:
 
+        /// <summary>
+        /// Make sure that the BigDriveConfiguration COM object is registered correctly.
+        /// </summary>
         TEST_METHOD(VerifyClsids)
         {
             HRESULT hr = S_OK;
@@ -79,9 +84,9 @@ namespace BigDriveClientTest
         TEST_METHOD(GetConfigurationTest)
         {
             // Arrange
+            HRESULT hr = S_OK;
             GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF2 } };
             LPWSTR pszConfiguration = nullptr;
-            HRESULT hr = S_OK;
 
             hr = WriteDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
@@ -115,9 +120,9 @@ namespace BigDriveClientTest
 
             // Convert the GUID to a string
             wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-            if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+            hrReturn = StringFromGUID(guid, guidString, ARRAYSIZE(guidString));
+            if (FAILED(hrReturn))
             {
-                hrReturn = E_FAIL; // Failed to convert GUID to string
                 goto End;
             }
 
@@ -192,7 +197,8 @@ namespace BigDriveClientTest
             }
 
             // Convert the subkey name (GUID string) back to a GUID
-            if (CLSIDFromString(subKeyName, &guid) != S_OK)
+            hrReturn = GUIDFromString(subKeyName, &guid);
+            if (FAILED(hrReturn))
             {
                 hrReturn = E_INVALIDARG; // Failed to parse GUID
                 goto End;
@@ -219,10 +225,9 @@ namespace BigDriveClientTest
 
             // Convert the GUID to a string
             wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-            if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+            hrReturn = StringFromGUID(guid, guidString, ARRAYSIZE(guidString));
             {
                 // Failed to convert GUID to string
-                hrReturn = E_FAIL;
                 goto End;
             }
 
@@ -312,5 +317,6 @@ namespace BigDriveClientTest
 
             return hrReturn;
         }
+        
     };
 }

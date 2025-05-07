@@ -16,8 +16,8 @@ const IID IID_IBigDriveConfiguration = { 0xD3F5A1B2, 0x4C6E, 0x4F8A, { 0x9D, 0x3
 // Define the IBigDriveConfiguration interface
 interface IBigDriveConfiguration : public IUnknown
 {
-    virtual HRESULT __stdcall GetConfiguration(
-        /* [in] */ GUID guid,
-        /* [out, retval] */ BSTR * configuration) = 0;
+    virtual HRESULT STDMETHODCALLTYPE GetConfiguration(
+        /* [in] */ REFGUID guid,
+        /* [out, retval] */  wchar_t** configuration) = 0;
 };
 

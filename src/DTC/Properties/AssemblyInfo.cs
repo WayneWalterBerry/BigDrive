@@ -31,8 +31,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
-[assembly: ApplicationAccessControl(
-    AccessChecksLevel = AccessChecksLevelOption.Application,
-    Authentication = AuthenticationOption.Connect,  // Allows the COM object to authenticate the caller
-    ImpersonationLevel = ImpersonationLevelOption.Identify)]  // Enables full impersonation of the user
-
+[assembly: ApplicationActivation(ActivationOption.Server)]
+[assembly: ApplicationAccessControl(false)] // Optional: Disable role-based security
