@@ -27,7 +27,7 @@ HRESULT BigDriveConfigurationClient::GetConfiguration(GUID guid, LPWSTR *pszConf
     }
 
     // Create an instance of the BigDriveConfiguration COM object
-    hrReturn = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_INPROC_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
+    hrReturn = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_LOCAL_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
     if (FAILED(hrReturn))
     {
         goto End;

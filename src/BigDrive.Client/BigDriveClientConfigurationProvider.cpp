@@ -12,6 +12,9 @@
 #include <combaseapi.h>
 
 #include "BigDriveClientConfigurationProvider.h"
+#include "GuidUtil.h"
+
+using namespace BigDriveClient;
 
 HRESULT BigDriveClientConfigurationProvider::GetDriveGuids(GUID** ppGuids)
 {
@@ -73,7 +76,7 @@ HRESULT BigDriveClientConfigurationProvider::GetDriveGuids(GUID** ppGuids)
     // Copy the strings to the output array
     for (DWORD i = 0; i < size; ++i)
     {
-        if (SUCCEEDED(CLSIDFromString(configurations[i], &(*ppGuids)[i])) == FALSE)
+        if (SUCCEEDED(GUIDFromString(configurations[i], &(*ppGuids)[i])) == FALSE)
         {
             hrReturn = E_INVALIDARG;
             goto End;
