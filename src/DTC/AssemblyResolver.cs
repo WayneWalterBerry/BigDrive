@@ -2,7 +2,7 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-namespace BigDrive.ComObjects
+namespace BigDrive.Service
 {
     using System;
     using System.Reflection;

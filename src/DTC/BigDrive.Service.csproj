@@ -7,8 +7,8 @@
     <ProjectGuid>{73AA6057-5C8A-4E0F-A6D2-6223173FE83C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BigDrive.DTC</RootNamespace>
-    <AssemblyName>BigDrive.DTC</AssemblyName>
+    <RootNamespace>BigDrive.Service</RootNamespace>
+    <AssemblyName>BigDrive.Service</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

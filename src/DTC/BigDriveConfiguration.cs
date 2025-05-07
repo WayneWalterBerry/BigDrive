@@ -2,19 +2,17 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-namespace BigDrive.ComObjects
+namespace BigDrive.Service.ComObjects
 {
     using System;
     using System.Diagnostics;
     using System.EnterpriseServices;
-    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Threading;
     using BigDrive.Interfaces;
     using ConfigProvider;
-    using Microsoft.Win32;
 
     [Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation

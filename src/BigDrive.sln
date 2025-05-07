@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTC", "DTC\DTC.csproj", "{73AA6057-5C8A-4E0F-A6D2-6223173FE83C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service", "DTC\BigDrive.Service.csproj", "{73AA6057-5C8A-4E0F-A6D2-6223173FE83C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interfaces", "Interfaces\Interfaces.csproj", "{28E4ADAF-11B9-4AFB-920E-F8384426E8D1}"
 EndProject
