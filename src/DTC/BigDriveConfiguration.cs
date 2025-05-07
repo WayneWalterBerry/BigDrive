@@ -20,7 +20,7 @@ namespace BigDrive.Service.ComObjects
     public class BigDriveConfiguration : ServicedComponent, IBigDriveConfiguration
     {
         private static readonly AssemblyResolver asssemblyResolver;
-        private static readonly TraceSource DefaultTraceSource = new TraceSource("BigDrive");
+        private static readonly TraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
         static BigDriveConfiguration()
         {
@@ -30,7 +30,7 @@ namespace BigDrive.Service.ComObjects
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)
         {
-            DefaultTraceSource.TraceInformation("GetConfiguration called with GUID: {0}", guid);
+            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", guid);
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
             {
@@ -48,6 +48,8 @@ namespace BigDrive.Service.ComObjects
 
                 string json = JsonSerializer.Serialize(driveConfiguration, options);
                 json = json.Replace("\r", "").Replace("\n", "");
+
+                DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() returned: {0}", json);
 
                 return json;
             }

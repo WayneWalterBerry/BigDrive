@@ -87,6 +87,7 @@
   <ItemGroup>
     <Compile Include="AssemblyResolver.cs" />
     <Compile Include="BigDriveConfiguration.cs" />
+    <Compile Include="BigDriveTraceSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
