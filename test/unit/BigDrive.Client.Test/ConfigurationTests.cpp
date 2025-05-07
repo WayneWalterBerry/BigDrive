@@ -1,17 +1,33 @@
+// <copyright file="ConfigurationTests.cs" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
+
 #include "pch.h"
 #include "CppUnitTest.h"
 
 #include <wtypes.h>
 
 #include "BigDriveClientConfigurationProvider.h"
+#include "BigDriveConfigurationClient.h"
+#include "IBigDriveConfiguration.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace BigDriveClientTest
 {
-    TEST_CLASS(BigDriveClientConfigurationProviderTests)
+    TEST_CLASS(ConfigurationTests)
     {
     public:
+
+        TEST_METHOD(VerifyClsids)
+        {
+            HRESULT hr = S_OK;
+
+            // reg query "HKCR\CLSID\{E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F}"
+            hr = VerifyRegistryPathForClsid(CLSID_BigDriveConfiguration);
+
+            Assert::AreEqual(S_OK, hr);
+        }
 
         TEST_METHOD(WriteDriveGuidTest)
         {
@@ -60,6 +76,29 @@ namespace BigDriveClientTest
             Assert::AreEqual(S_OK, hr);
         }
 
+        TEST_METHOD(GetConfigurationTest)
+        {
+            // Arrange
+            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF2 } };
+            LPWSTR pszConfiguration = nullptr;
+            HRESULT hr = S_OK;
+
+            hr = WriteDriveGuid(testGuid);
+            Assert::AreEqual(S_OK, hr);
+
+            hr = BigDriveConfigurationClient::GetConfiguration(testGuid, &pszConfiguration);
+            Assert::AreEqual(S_OK, hr);
+
+            // Verify the configuration string
+            Assert::IsNotNull(pszConfiguration);
+            Assert::AreEqual(L"Expected Configuration String", pszConfiguration);
+
+            // Clean up
+            ::SysFreeString(pszConfiguration);
+            hr = DeleteDriveGuid(testGuid);
+            Assert::AreEqual(S_OK, hr);
+        }
+
     private:
 
         /// <summary>
@@ -83,7 +122,7 @@ namespace BigDriveClientTest
             }
 
             // Open or create the registry key
-            LONG result = RegCreateKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
+            LONG result = ::RegCreateKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
             if (result != ERROR_SUCCESS)
             {
                 hrReturn = HRESULT_FROM_WIN32(result);
@@ -91,7 +130,15 @@ namespace BigDriveClientTest
             }
 
             // Create a subkey for the GUID
-            result = RegCreateKeyEx(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hSubKey, nullptr);
+            result = ::RegCreateKeyEx(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hSubKey, nullptr);
+            if (result != ERROR_SUCCESS)
+            {
+                hrReturn = HRESULT_FROM_WIN32(result);
+                goto End;
+            }
+
+            // Write the GUID value to the subkey  
+            result = ::RegSetValueEx(hSubKey, L"Id", 0, REG_SZ, reinterpret_cast<const BYTE*>(guidString), (DWORD)((wcslen(guidString) + 1) * sizeof(wchar_t)));
             if (result != ERROR_SUCCESS)
             {
                 hrReturn = HRESULT_FROM_WIN32(result);
@@ -215,6 +262,52 @@ namespace BigDriveClientTest
             if (hKey != nullptr)
             {
                 ::RegCloseKey(hKey);
+            }
+
+            return hrReturn;
+        }
+
+        HRESULT VerifyRegistryPathForClsid(const GUID& guid)
+        {
+            HRESULT hrReturn = S_OK;
+            HKEY hKey = nullptr;
+
+            // Convert the GUID to a string  
+            wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}  
+            if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+            {
+                return E_FAIL; // Failed to convert GUID to string  
+            }
+
+            // Construct the registry path  
+            std::wstring registryPath = L"CLSID\\";
+            registryPath += guidString;
+
+            // Try to open the registry key  
+            LONG result = RegOpenKeyEx(HKEY_CLASSES_ROOT, registryPath.c_str(), 0, KEY_READ, &hKey);
+            if (result == ERROR_SUCCESS)
+            {
+                // The registry key exists  
+                Assert::IsTrue(true, L"Registry path exists.");
+                hrReturn = S_OK;
+            }
+            else if (result == ERROR_FILE_NOT_FOUND)
+            {
+                // The registry key does not exist  
+                Assert::IsTrue(false, L"Registry path does not exist.");
+                hrReturn = S_FALSE;
+            }
+            else
+            {
+                // Some other error occurred  
+                hrReturn = HRESULT_FROM_WIN32(result);
+                Assert::Fail(L"An unexpected error occurred while verifying the registry path.");
+            }
+
+            // Close the registry key if it was opened  
+            if (hKey != nullptr)
+            {
+                RegCloseKey(hKey);
             }
 
             return hrReturn;

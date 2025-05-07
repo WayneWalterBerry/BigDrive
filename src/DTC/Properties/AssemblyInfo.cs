@@ -33,6 +33,6 @@ using System.Runtime.InteropServices;
 
 [assembly: ApplicationAccessControl(
     AccessChecksLevel = AccessChecksLevelOption.Application,
-    Authentication = AuthenticationOption.Call,  // Allows the COM object to authenticate the caller
-    ImpersonationLevel = ImpersonationLevelOption.Impersonate)]  // Enables full impersonation of the user
+    Authentication = AuthenticationOption.Connect,  // Allows the COM object to authenticate the caller
+    ImpersonationLevel = ImpersonationLevelOption.Identify)]  // Enables full impersonation of the user
 

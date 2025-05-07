@@ -15,7 +15,7 @@
 HRESULT BigDriveConfigurationClient::GetConfiguration(GUID guid, LPWSTR *pszConfiguration)
 {
     HRESULT hrReturn = S_OK;
-    IBigDriveConfiguration* pBigDriveConfig = nullptr;
+    IBigDriveConfiguration* pBigDriveConfiguration = nullptr;
 
     BSTR configuration = nullptr;
 
@@ -27,13 +27,13 @@ HRESULT BigDriveConfigurationClient::GetConfiguration(GUID guid, LPWSTR *pszConf
     }
 
     // Create an instance of the BigDriveConfiguration COM object
-    hrReturn = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_INPROC_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfig);
+    hrReturn = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_INPROC_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
     if (FAILED(hrReturn))
     {
         goto End;
     }
 
-    hrReturn = pBigDriveConfig->GetConfiguration(guid, &configuration);
+    hrReturn = pBigDriveConfiguration->GetConfiguration(guid, &configuration);
     if (!SUCCEEDED(hrReturn))
     {
         goto End;
@@ -54,9 +54,9 @@ End:
         ::SysFreeString(configuration);
     }
 
-    if (pBigDriveConfig)
+    if (pBigDriveConfiguration)
     {
-        pBigDriveConfig->Release();
+        pBigDriveConfiguration->Release();
     }
 
     // Uninitialize COM
