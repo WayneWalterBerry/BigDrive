@@ -91,7 +91,7 @@ namespace BigDriveClientTest
             hr = WriteDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
 
-            hr = BigDriveConfigurationClient::GetConfiguration(testGuid, &pszConfiguration);
+            hr = BigDriveConfigurationClient::GetDriveConfiguration(testGuid, &pszConfiguration);
             Assert::AreEqual(S_OK, hr);
 
             // Verify the configuration string

@@ -10,9 +10,11 @@
 #include <objbase.h>
 
 #include "BigDriveConfigurationClient.h" 
+#include "DriveConfiguration.h"
 #include "interfaces/IBigDriveConfiguration.h"
 
-HRESULT BigDriveConfigurationClient::GetConfiguration(GUID guid, LPWSTR *pszConfiguration)
+/// </inheritdoc>
+HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR *pszConfiguration)
 {
     HRESULT hrReturn = S_OK;
     IBigDriveConfiguration* pBigDriveConfiguration = nullptr;
@@ -62,5 +64,25 @@ End:
     // Uninitialize COM
     CoUninitialize();
 
+    return hrReturn;
+}
+
+/// </inheritdoc>
+HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, DriveConfiguration& driveConfiguration)
+{
+    HRESULT hrReturn = S_OK;
+    LPWSTR pszConfiguration = nullptr;
+
+    // Get the configuration from the registry
+    hrReturn = GetDriveConfiguration(guid, &pszConfiguration);
+    if (FAILED(hrReturn))
+    {
+        return hrReturn;
+    }
+
+    driveConfiguration.ParseJson(pszConfiguration);
+    
+    // Clean up
+    ::SysFreeString(pszConfiguration);
     return hrReturn;
 }

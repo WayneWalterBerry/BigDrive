@@ -11,6 +11,7 @@
 
 #include "RegistrationManager.h"
 #include "..\BigDrive.Client\BigDriveClientConfigurationProvider.h"
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
@@ -27,10 +28,19 @@ HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
         goto End;
     }
 
-    // Register each drive GUID
+    // Register each drive
     while (pGuids[index] != GUID_NULL)
     {
-        hrReturn = RegisterShellFolder(pGuids[index]);
+        DriveConfiguration driveConfiguration;
+
+        // Get the configuration for the drive from the COM++ BigDrive.Service
+        hrReturn = GetConfiguration(pGuids[index], driveConfiguration);
+        if (FAILED(hrReturn))
+        {
+            break;
+        }
+
+        hrReturn = RegisterShellFolder(pGuids[index], driveConfiguration.name);
         if (FAILED(hrReturn))
         {
             break;
@@ -49,8 +59,14 @@ End:
     return hrReturn;
 }
 
+/// </inheritdoc>
+HRESULT RegistrationManager::GetConfiguration(GUID guid, DriveConfiguration& driveConfiguration)
+{
+    return BigDriveConfigurationClient::GetDriveConfiguration(guid, driveConfiguration);
+}
+
 /// </ inheritdoc>
-HRESULT RegistrationManager::RegisterShellFolder(GUID guid)
+HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
 {
     HRESULT hrReturn = S_OK;
     wchar_t modulePath[MAX_PATH];
@@ -85,12 +101,12 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid)
         goto End;
     }
 
-    RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath), static_cast<DWORD>((wcslen(modulePath) + 1) * sizeof(wchar_t)));
-    RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Apartment"), sizeof(L"Apartment"));
+    ::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath), static_cast<DWORD>((wcslen(modulePath) + 1) * sizeof(wchar_t)));
+    ::RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Apartment"), sizeof(L"Apartment"));
 
     if (hKey)
     {
-        RegCloseKey(hKey);
+        ::RegCloseKey(hKey);
         hKey = nullptr;
     }
 
@@ -103,7 +119,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid)
     }
 
     // Set a default value (display name for the drive)
-    if (RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Big Drive"), sizeof(L"Big Drive")) != ERROR_SUCCESS)
+    if (RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), sizeof(bstrName)) != ERROR_SUCCESS)
     {
         hrReturn = E_FAIL;
         goto End;
