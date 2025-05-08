@@ -6,5 +6,5 @@
 
 #pragma once
 
-bool LaunchDebugger();  
+bool LaunchDebugger();
 

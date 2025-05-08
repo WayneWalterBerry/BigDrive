@@ -15,6 +15,15 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
+/// <summary>
+/// Static method to get the singleton instance
+/// </summary>
+RegistrationManager& RegistrationManager::GetInstance()
+{
+    static RegistrationManager instance; // Guaranteed to be initialized only once
+    return instance;
+}
+
 HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
 {
     HRESULT hrReturn = S_OK;
@@ -109,7 +118,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
             guid.Data4[0], guid.Data4[1],
             guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
 
-        return E_FAIL; 
+        return E_FAIL;
     }
 
     // Get the full path of the module
@@ -188,7 +197,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
 
     // Add your CLSID as a subkey under "Implementations"
     if (::RegCreateKeyExW(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hClsidKey, nullptr) != ERROR_SUCCESS)
-    {   
+    {
         DWORD dwLastError = GetLastError();
         WriteError(L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
         hrReturn = E_FAIL;
@@ -211,6 +220,60 @@ End:
 
     return hrReturn;
 }
+
+/// </ inheritdoc>
+HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
+{
+    HRESULT hrReturn = S_OK;
+    wchar_t guidString[39];
+    std::wstring clsidPath;
+    std::wstring namespacePath;
+    std::wstring componentCategoryPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
+
+    // Convert the GUID to a string
+    if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+    {
+        WriteError(
+            L"Failed to convert GUID to string: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+            guid.Data1,
+            guid.Data2,
+            guid.Data3,
+            guid.Data4[0], guid.Data4[1],
+            guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
+
+        return E_FAIL;
+    }
+
+    // Delete the CLSID registry key
+    clsidPath = L"CLSID\\" + std::wstring(guidString);
+    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, clsidPath.c_str()) != ERROR_SUCCESS)
+    {
+        DWORD dwLastError = GetLastError();
+        WriteError(L"Failed to delete registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+    }
+
+    // Delete the namespace registry key
+    namespacePath = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\" + std::wstring(guidString);
+    if (::RegDeleteTreeW(HKEY_CURRENT_USER, namespacePath.c_str()) != ERROR_SUCCESS)
+    {
+        DWORD dwLastError = GetLastError();
+        WriteError(L"Failed to delete registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+    }
+
+    // Delete the component category registry key
+    componentCategoryPath += L"\\" + std::wstring(guidString);
+    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath.c_str()) != ERROR_SUCCESS)
+    {
+        DWORD dwLastError = GetLastError();
+        WriteError(L"Failed to delete registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
+        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+    }
+
+    return hrReturn;
+}
+
 
 /// </ inheritdoc>
 HRESULT RegistrationManager::WriteError(LPCWSTR formatter, ...)
