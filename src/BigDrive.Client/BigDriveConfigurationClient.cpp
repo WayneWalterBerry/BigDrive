@@ -80,7 +80,11 @@ HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, DriveConfi
         return hrReturn;
     }
 
-    driveConfiguration.ParseJson(pszConfiguration);
+    hrReturn = driveConfiguration.ParseJson(pszConfiguration);
+    if (FAILED(hrReturn))
+    {
+        return hrReturn;
+    }
     
     // Clean up
     ::SysFreeString(pszConfiguration);

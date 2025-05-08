@@ -25,11 +25,17 @@ public:
         return instance;
     }
 
+    /// <summary>
+    /// Write a error message to the Event Viewer
+    /// </summary>
     HRESULT WriteError(LPCWSTR message)
     {
         return WriteToEventViewer(message, EVENTLOG_ERROR_TYPE);
     }
 
+    /// <summary>
+    /// Write Formatted Error Message to Event Viewer
+    /// </summary>
     HRESULT WriteError(LPCWSTR formatter, ...)
     {
         va_list args;
@@ -43,6 +49,9 @@ public:
         return WriteToEventViewer(buffer, EVENTLOG_ERROR_TYPE);
     }
 
+    /// <summary>
+    /// Write Informational Message To Event Viewer
+    /// </summary>
     HRESULT WriteInfo(LPCWSTR formatter, ...)
     {
         va_list args;
@@ -58,7 +67,9 @@ public:
 
 private:
 
-    // Constructor to initialize the event log handle
+    /// <summary>
+    /// Constructor to initialize the event log handle
+    /// </summary>
     EventLogger()
     {
         LPCWSTR eventSourceName = L"BigDrive.ShellFolder";
@@ -72,7 +83,9 @@ private:
         }
     }
 
-    // Destructor to clean up the event log handle
+    /// <summary>
+    /// Destructor to clean up the event log handle
+    /// </summary>
     ~EventLogger()
     {
         if (hEventLog != nullptr)
@@ -85,7 +98,14 @@ private:
     EventLogger(const EventLogger&) = delete;
     EventLogger& operator=(const EventLogger&) = delete;
 
+    /// <summary>
+    /// Write To the Event Viewer
+    /// </summary>
     HRESULT WriteToEventViewer(LPCWSTR message, WORD eventType = EVENTLOG_INFORMATION_TYPE);
+
+    /// <summary>
+    /// Overload function to WriteToEventViewer with LPCSTR formatter and arguments
+    /// </summary>
     HRESULT WriteToEventViewer(LPCSTR formatter, WORD eventType, ...);
 };
 

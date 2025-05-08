@@ -7,22 +7,26 @@
 #include <windows.h>
 #include <comutil.h> 
 
+#include "GuidUtil.h"
+
+using namespace BigDriveClient;
+
 class DriveConfiguration
 {
 public:
 
     // Properties
-    BSTR id;
+    GUID id;
     BSTR name;
 
     // Constructor
     DriveConfiguration()
-        : id(nullptr), name(nullptr)
+        : id(GUID_NULL), name(nullptr)
     {
     }
 
     DriveConfiguration(LPCWSTR jsonString)
-        : id(nullptr), name(nullptr)
+        : id(GUID_NULL), name(nullptr)
     {
         ParseJson(jsonString);
     }
@@ -30,11 +34,6 @@ public:
     // Destructor to free allocated memory
     ~DriveConfiguration()
     {
-        if (id)
-        {
-            ::SysFreeString(id);
-        }
-
         if (name)
         {
             ::SysFreeString(name);
@@ -42,16 +41,24 @@ public:
     }
 
     // Method to parse the JSON string
-    void ParseJson(LPCWSTR jsonString)
+    HRESULT ParseJson(LPCWSTR jsonString)
     {
+        HRESULT hrReturn = S_OK;
+
         if (!jsonString)
         {
-            return;
+            return E_INVALIDARG;
         }
 
-        // Extract "id" value
         LPCWSTR idKey = L"\"id\":\"";
         LPCWSTR idStart = ::wcsstr(jsonString, idKey);
+
+        LPCWSTR nameKey = L"\"name\":";
+        LPCWSTR nameStart = ::wcsstr(jsonString, nameKey);
+
+        BSTR szId = nullptr;
+
+        // Extract "id" value
         if (idStart)
         {
             idStart += ::wcslen(idKey);
@@ -59,13 +66,18 @@ public:
             if (idEnd)
             {
                 size_t idLength = idEnd - idStart;
-                id = ::SysAllocStringLen(idStart, static_cast<UINT>(idLength));
+                szId = ::SysAllocStringLen(idStart, static_cast<UINT>(idLength));
+
+                // Convert string to GUID
+                hrReturn = GUIDFromString(szId, &id);
+                if (FAILED(hrReturn))
+                {
+                    goto End;
+                }
             }
         }
 
         // Extract "name" value
-        LPCWSTR nameKey = L"\"name\":";
-        LPCWSTR nameStart = ::wcsstr(jsonString, nameKey);
         if (nameStart)
         {
             nameStart += ::wcslen(nameKey);
@@ -84,12 +96,15 @@ public:
                 }
             }
         }
-    }
 
-    // Method to display the parsed properties
-    void DisplayProperties() const
-    {
-        ::wprintf(L"ID: %s\n", id ? id : L"(null)");
-        ::wprintf(L"Name: %s\n", name ? name : L"(null)");
+    End:
+
+        if(szId)
+        {
+            ::SysFreeString(szId);
+            szId = nullptr;
+        }
+
+        return hrReturn;
     }
 };

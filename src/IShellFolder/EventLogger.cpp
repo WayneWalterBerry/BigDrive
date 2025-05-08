@@ -9,7 +9,7 @@
 
 #include "EventLogger.h"
 
-// Static method to write to the Event Viewer
+/// </ inheritdoc>
 HRESULT EventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
 {
     // Define the event source name
@@ -31,7 +31,7 @@ HRESULT EventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
     return S_OK;
 }
 
-// Overload function to WriteToEventViewer with LPCSTR formatter and arguments
+/// </ inheritdoc>
 HRESULT EventLogger::WriteToEventViewer(LPCSTR formatter, WORD eventType, ...)
 {
     // Buffer to hold the formatted message
