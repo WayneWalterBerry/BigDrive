@@ -28,4 +28,16 @@ private:
     /// <param name="guid">Drive Guid</param>
     /// <param name="bstrName">Display name</param>
     HRESULT RegisterShellFolder(GUID guid, BSTR bstrName);
+
+    /// <summary>
+    /// Write a formatted error message to the Event Viewer
+    /// </summary>
+    /// <param name="formatter">printf style formatter</param>
+    HRESULT WriteError(LPCWSTR formatter, ...);
+
+    /// <summary>
+    /// Write a formatted info message to the Event Viewer
+    /// </summary>
+    /// <param name="formatter">printf style formatter</param>
+    HRESULT WriteInfo(LPCWSTR formatter, ...);
 };
