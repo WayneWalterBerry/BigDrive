@@ -45,7 +45,7 @@ namespace BigDrive.Setup
         private void ClearLogs()
         {
             Console.WriteLine($"Clearing all logs for event source: {eventSource}...");
-            using (EventLog eventLog = new EventLog(logName) { Source = eventSource })
+            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
             {
                 eventLog.Clear();
             }
@@ -53,7 +53,7 @@ namespace BigDrive.Setup
 
         private void DeleteEventSource()
         {
-            if (DoesSourceExist())
+            if (EventLog.SourceExists(this.eventSource))
             {
                 Console.WriteLine($"Deleting Event Source: {eventSource}...");
                 EventLog.DeleteEventSource(eventSource);
@@ -87,9 +87,8 @@ namespace BigDrive.Setup
                         StartEventLogService();
                     }
 
-                    // RegisterEventLog();
 
-                    if (!this.DoesSourceExist())
+                    if (!EventLog.SourceExists(this.eventSource))
                     {
                         try
                         {
@@ -98,6 +97,8 @@ namespace BigDrive.Setup
                         }
                         catch (ArgumentException exception) when (exception.Message.Contains("already exists"))
                         {
+                            // What this means is that the source already exists in another
+                            // location then under the log name.
                             Console.WriteLine(exception.Message);
                         }
                     }
@@ -136,7 +137,7 @@ namespace BigDrive.Setup
             // Execute the retry policy
             retryPolicy.Execute(() =>
             {
-                if (!DoesSourceExist())
+                if (!EventLog.SourceExists(this.eventSource))
                 {
                     throw new InvalidOperationException($"Event Source '{eventSource}' doesn't exist.");
                 }
@@ -147,7 +148,7 @@ namespace BigDrive.Setup
 
         private void VerifyLogging()
         {
-            if (!DoesSourceExist())
+            if (!EventLog.SourceExists(this.eventSource))
             {
                 throw new Exception(message: $"Event Source '{eventSource}' does not exist.");
             }
@@ -158,19 +159,24 @@ namespace BigDrive.Setup
 
             Guid activityId = Guid.NewGuid();
 
-            EventLogTraceListener eventLogListener = new EventLogTraceListener(source: "BigDrive.Service");
-            Trace.Listeners.Add(eventLogListener);
+            using (EventLogTraceListener eventLogListener = new EventLogTraceListener(source: this.eventSource))
+            {
+                Trace.Listeners.Add(eventLogListener);
 
-            Trace.CorrelationManager.ActivityId = activityId;
-            Trace.TraceInformation($"Activity ID: {activityId} - Test Message.");
-            Trace.Flush();
-            Trace.Close();
+                Trace.CorrelationManager.ActivityId = activityId;
 
-            eventLogListener.Flush();
+                // Ensure that the trace is flushed after each write
+                Trace.AutoFlush = true; 
+                Trace.TraceInformation($"Activity ID: {activityId} - Test Message.");
+                Trace.Flush();
+                Trace.Close();
+
+                eventLogListener.Flush();
+            }
 
             Console.WriteLine($"Verifying Event Source: {eventSource}...");
 
-            using (EventLog eventLog = new EventLog(logName) { Source = eventSource })
+            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
             {
                 foreach (EventLogEntry entry in eventLog.Entries)
                 {
@@ -363,6 +369,7 @@ namespace BigDrive.Setup
         /// Register the Event Log in the Windows Registry.
         /// </summary>
         /// <param name="logName">The name of the event source to register.</param>
+        [Obsolete("This method is obsolete and should not be used. Event logs are automatically registered when created using EventLog.CreateEventSource().", true)]
         private void RegisterEventLog()
         {
             string logPath = $@"SYSTEM\CurrentControlSet\Services\EventLog\{logName}";
@@ -443,78 +450,45 @@ namespace BigDrive.Setup
             }
         }
 
-        /// <summary>
-        /// Does Event Source Exist
-        /// </summary>
-        /// <param name="eventSource">Event Source</param>
-        /// <returns>True if Exists Otherwise False</returns>
-        /// <exception cref="UnauthorizedAccessException"></exception>
-        private bool DoesSourceExist()
+        private bool SourceExists()
         {
-            Console.WriteLine($"Checking if event source '{eventSource}' exists...");
-
             string registryPath = @"SYSTEM\CurrentControlSet\Services\EventLog";
 
-            // EventLog.SourceExists requires read access to
-            // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog
-            if (!CheckRegistryReadAccess(registryPath))
-            {
-                throw new UnauthorizedAccessException($"Unauthorized Access To: {registryPath}");
-            }
-
             try
             {
-                if (!CheckRegistryReadAccess($@"{registryPath}\{logName}"))
+                using (RegistryKey eventLogKey = Registry.LocalMachine.OpenSubKey(registryPath, false))
                 {
-                    throw new UnauthorizedAccessException($"Unauthorized Access To: {registryPath}\\{logName}");
-                }
-            }
-            catch (KeyNotFoundException)
-            {
-                // Log Doesn't Exist
-                return false;
-            }
-
-            return EventLog.SourceExists(this.eventSource);
-        }
-
-        private bool CheckRegistryReadAccess(string subKeyPath)
-        {
-            try
-            {
-                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(subKeyPath, false)) // Open in read-only mode
-                {
-                    if (key == null)
+                    if (eventLogKey == null)
                     {
-                        throw new KeyNotFoundException($"Registry key '{subKeyPath}' not found.");
+                        Console.WriteLine($"Registry path '{registryPath}' not found.");
+                        return false;
                     }
 
-                    RegistrySecurity security = key.GetAccessControl();
-                    AuthorizationRuleCollection rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier));
-
-                    WindowsIdentity identity = WindowsIdentity.GetCurrent();
-                    WindowsPrincipal principal = new WindowsPrincipal(identity);
-
-                    foreach (RegistryAccessRule rule in rules)
+                    foreach (string subKeyName in eventLogKey.GetSubKeyNames())
                     {
-                        if (identity.User.Equals(rule.IdentityReference) ||
-                            principal.IsInRole(rule.IdentityReference.Value))
+                        using (RegistryKey subKey = eventLogKey.OpenSubKey(subKeyName, false))
                         {
-                            if ((rule.RegistryRights & RegistryRights.ReadKey) != 0)
+                            if (subKey != null && subKey.GetSubKeyNames().Contains(this.eventSource))
                             {
-                                // Read access granted
+                                Console.WriteLine($"Event source '{this.eventSource}' found under '{subKeyName}'.");
                                 return true;
                             }
                         }
                     }
                 }
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine("Unauthorized access exception.");
+                Console.WriteLine($"Unauthorized access to registry path '{registryPath}'. {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while searching for the event source: {ex.Message}");
                 throw;
             }
 
+            Console.WriteLine($"Event source '{this.eventSource}' not found.");
             return false;
         }
     }
