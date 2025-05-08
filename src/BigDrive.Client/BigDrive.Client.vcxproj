@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="BigDriveClientConfigurationProvider.h" />
     <ClInclude Include="BigDriveConfigurationClient.h" />
+    <ClInclude Include="DriveConfiguration.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />

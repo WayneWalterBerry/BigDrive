@@ -2,10 +2,12 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-#pragma once  
+#pragma once
 
-#include <string>  
+#include <string>
 #include <wtypes.h>
+
+#include "DriveConfiguration.h"
 
 class BigDriveConfigurationClient
 {
@@ -16,6 +18,13 @@ public:
     /// </summary>
     /// <param name="guid">Drive Guid</param>
     /// <param name="pszConfiguration">Configuration</param>
-    static HRESULT GetConfiguration(GUID guid, LPWSTR* pszConfiguration);
+    static HRESULT GetDriveConfiguration(GUID guid, LPWSTR* pszConfiguration);
+
+    /// <summary>
+    /// Gets the configuration from the registry by calling the BigDriveConfiguration COM object.
+    /// </summary>
+    /// <param name="guid">Drive Guid</param>
+    /// <param name="pDriveConfiguration">Configuration</param>
+    static HRESULT GetDriveConfiguration(GUID guid, DriveConfiguration& driveConfiguration);
 
 };

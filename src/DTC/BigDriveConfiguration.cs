@@ -2,7 +2,7 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-namespace BigDrive.ComObjects
+namespace BigDrive.Service.ComObjects
 {
     using System;
     using System.Diagnostics;
@@ -13,21 +13,24 @@ namespace BigDrive.ComObjects
     using System.Threading;
     using BigDrive.Interfaces;
     using ConfigProvider;
-    using Microsoft.Win32;
 
     [Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
     [ComVisible(true)] // Make the class visible to COM
     public class BigDriveConfiguration : ServicedComponent, IBigDriveConfiguration
     {
-        private static readonly TraceSource DefaultTraceSource = new TraceSource("BigDrive");
+        private static readonly AssemblyResolver asssemblyResolver;
+        private static readonly TraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+
+        static BigDriveConfiguration()
+        {
+            asssemblyResolver = AssemblyResolver.Instance;
+        }
 
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)
         {
-            System.Diagnostics.Debugger.Launch();
-
-            DefaultTraceSource.TraceInformation("GetConfiguration called with GUID: {0}", guid);
+            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", guid);
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
             {
@@ -36,7 +39,7 @@ namespace BigDrive.ComObjects
                 // Serialize the configuration to JSON
                 var options = new JsonSerializerOptions
                 {
-                    WriteIndented = true,
+                    WriteIndented = false,
                     Converters =
                     {
                         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
@@ -44,6 +47,10 @@ namespace BigDrive.ComObjects
                 };
 
                 string json = JsonSerializer.Serialize(driveConfiguration, options);
+                json = json.Replace("\r", "").Replace("\n", "");
+
+                DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() returned: {0}", json);
+
                 return json;
             }
         }

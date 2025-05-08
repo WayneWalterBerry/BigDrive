@@ -7,13 +7,37 @@
 #include <CommCtrl.h>
 #include <guiddef.h>
 
+#include "DriveConfiguration.h"
+
 class RegistrationManager
 {
+public:
+
     HRESULT RegisterShellFoldersFromRegistry();
+
+private:
+
+    /// <summary>
+    /// Gets the configuration from the registry by calling the BigDriveConfiguration COM object.
+    /// </summary>
+    HRESULT GetConfiguration(GUID guid, DriveConfiguration& driveConfiguration);
 
     /// <summary>
     /// Register the shell folder with the given GUID.
     /// </summary>
     /// <param name="guid">Drive Guid</param>
-    HRESULT RegisterShellFolder(GUID guid);
+    /// <param name="bstrName">Display name</param>
+    HRESULT RegisterShellFolder(GUID guid, BSTR bstrName);
+
+    /// <summary>
+    /// Write a formatted error message to the Event Viewer
+    /// </summary>
+    /// <param name="formatter">printf style formatter</param>
+    HRESULT WriteError(LPCWSTR formatter, ...);
+
+    /// <summary>
+    /// Write a formatted info message to the Event Viewer
+    /// </summary>
+    /// <param name="formatter">printf style formatter</param>
+    HRESULT WriteInfo(LPCWSTR formatter, ...);
 };

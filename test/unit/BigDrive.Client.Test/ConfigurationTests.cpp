@@ -36,27 +36,33 @@ namespace BigDriveClientTest
 
         TEST_METHOD(WriteDriveGuidTest)
         {
-            // Arrange
-            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 } };
             HRESULT hr = S_OK;
 
-            hr = WriteDriveGuid(testGuid);
+            // Arrange
+            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 } };
+            BSTR testName = ::SysAllocString(L"TestDrive");
+
+            hr = WriteDriveGuid(testGuid, testName);
             Assert::AreEqual(S_OK, hr);
 
             hr = ReadDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
 
             // Clean up
+            ::SysFreeString(testName);
+
             hr = DeleteDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
         }
 
         TEST_METHOD(GetDriveGuidsTest)
         {
-            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF1 } };
             HRESULT hr = S_OK;
 
-            hr = WriteDriveGuid(testGuid);
+            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF1 } };
+            BSTR testName = ::SysAllocString(L"TestDrive");
+
+            hr = WriteDriveGuid(testGuid, testName);
             Assert::AreEqual(S_OK, hr);
 
             GUID* pGuids = nullptr;
@@ -77,6 +83,8 @@ namespace BigDriveClientTest
             Assert::IsTrue(guidFound, L"testGuid was not found in the array pGuids.");
 
             // Clean up
+            ::SysFreeString(testName);
+
             hr = DeleteDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
         }
@@ -85,21 +93,52 @@ namespace BigDriveClientTest
         {
             // Arrange
             HRESULT hr = S_OK;
+
             GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF2 } };
+            BSTR testName = ::SysAllocString(L"TestDrive");
+
             LPWSTR pszConfiguration = nullptr;
 
-            hr = WriteDriveGuid(testGuid);
+            hr = WriteDriveGuid(testGuid, testName);
             Assert::AreEqual(S_OK, hr);
 
-            hr = BigDriveConfigurationClient::GetConfiguration(testGuid, &pszConfiguration);
+            hr = BigDriveConfigurationClient::GetDriveConfiguration(testGuid, &pszConfiguration);
             Assert::AreEqual(S_OK, hr);
 
             // Verify the configuration string
             Assert::IsNotNull(pszConfiguration);
-            Assert::AreEqual(L"Expected Configuration String", pszConfiguration);
+            Assert::AreEqual(L"{\"id\":\"12345678-1234-1234-1234-56789abcdef2\",\"name\":\"TestDrive\"}", pszConfiguration);
 
             // Clean up
+            ::SysFreeString(testName);
+
             ::SysFreeString(pszConfiguration);
+            hr = DeleteDriveGuid(testGuid);
+            Assert::AreEqual(S_OK, hr);
+        }
+
+        TEST_METHOD(GetDriveConfigurationTest)
+        {
+            // Arrange
+            HRESULT hr = S_OK;
+            GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF2 } };
+            BSTR testName = ::SysAllocString(L"TestDrive");
+
+            DriveConfiguration driveConfiguration;
+
+            hr = WriteDriveGuid(testGuid, testName);
+            Assert::AreEqual(S_OK, hr);
+
+            hr = BigDriveConfigurationClient::GetDriveConfiguration(testGuid, driveConfiguration);
+            Assert::AreEqual(S_OK, hr);
+
+            // Verify the configuration string
+            Assert::IsTrue(IsEqualGUID(driveConfiguration.id, testGuid));
+            Assert::IsTrue(::wcscmp(testName, driveConfiguration.name) == 0);
+
+            // Clean up
+            ::SysFreeString(testName);
+
             hr = DeleteDriveGuid(testGuid);
             Assert::AreEqual(S_OK, hr);
         }
@@ -109,7 +148,7 @@ namespace BigDriveClientTest
         /// <summary>
         /// Helper function to write a drive GUID to the registry.
         /// </summary>
-        HRESULT WriteDriveGuid(const GUID& guid)
+        HRESULT WriteDriveGuid(const GUID& guid, BSTR szName)
         {
             HRESULT hrReturn = S_OK;
             HKEY hKey = nullptr;
@@ -119,7 +158,9 @@ namespace BigDriveClientTest
             const std::wstring drivesRegistryPath = L"Software\\BigDrive\\Drives";
 
             // Convert the GUID to a string
-            wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+            wchar_t guidString[39]; 
+            
+            // GUID string format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             hrReturn = StringFromGUID(guid, guidString, ARRAYSIZE(guidString));
             if (FAILED(hrReturn))
             {
@@ -142,8 +183,16 @@ namespace BigDriveClientTest
                 goto End;
             }
 
-            // Write the GUID value to the subkey  
+            // Write the GUID value to the subkey
             result = ::RegSetValueEx(hSubKey, L"Id", 0, REG_SZ, reinterpret_cast<const BYTE*>(guidString), (DWORD)((wcslen(guidString) + 1) * sizeof(wchar_t)));
+            if (result != ERROR_SUCCESS)
+            {
+                hrReturn = HRESULT_FROM_WIN32(result);
+                goto End;
+            }
+
+            /// Write the name value to the subkey
+            result = ::RegSetValueEx(hSubKey, L"Name", 0, REG_SZ, reinterpret_cast<const BYTE*>(szName), (DWORD)((wcslen(szName) + 1) * sizeof(wchar_t)));
             if (result != ERROR_SUCCESS)
             {
                 hrReturn = HRESULT_FROM_WIN32(result);

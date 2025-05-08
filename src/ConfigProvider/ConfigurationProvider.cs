@@ -73,7 +73,24 @@ namespace ConfigProvider
                     if (registryValue != null)
                     {
                         // Convert the registry value to the property type and set it
-                        property.SetValue(driveConfiguration, Convert.ChangeType(registryValue, property.PropertyType));
+                        if (property.PropertyType == typeof(Guid))
+                        {
+                            property.SetValue(driveConfiguration, Guid.Parse(registryValue.ToString()));
+                        }
+                        else if (property.PropertyType == typeof(string))
+                        {
+                            property.SetValue(driveConfiguration, registryValue.ToString());
+                        }
+                        else if (property.PropertyType.IsEnum)
+                        {
+                            property.SetValue(driveConfiguration, Enum.Parse(property.PropertyType, registryValue.ToString()));
+                        }
+                        else
+                        {
+                            // For other types, use Convert.ChangeType This may need to be adjusted for specific types
+                            // such as DateTime or custom types
+                            property.SetValue(driveConfiguration, Convert.ChangeType(registryValue, property.PropertyType));
+                        }
                     }
                 }
 
