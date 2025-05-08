@@ -274,7 +274,6 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     return hrReturn;
 }
 
-
 /// </ inheritdoc>
 HRESULT RegistrationManager::WriteError(LPCWSTR formatter, ...)
 {
