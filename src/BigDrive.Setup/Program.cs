@@ -9,6 +9,8 @@ namespace BigDrive.Setup
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Security.Principal;
+    using System.ServiceProcess;
+    using System.Threading;
     using Microsoft.Win32;
 
     internal class Program
@@ -56,19 +58,60 @@ namespace BigDrive.Setup
                 key.SetValue("MaxSize", 1024000); // Set max log size (1MB)
             }
 
+            VerifyEventLogServiceIsRunning();
+
             if (EventLog.SourceExists(eventSource))
             {
+                Console.WriteLine($"Deleting Event Source: {eventSource}...");
                 EventLog.DeleteEventSource(eventSource);
             }
 
+            Console.WriteLine($"Creating Event Source: {eventSource}...");
+
             EventLog.CreateEventSource(eventSource, logName: nestedPath);
+
+            // Retry logic to ensure the source is recognized
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            int retries = 5;
+            while (retries > 0)
+            {
+                if (EventLog.SourceExists(eventSource))
+                {
+                    Console.WriteLine($"Event Source '{eventSource}' Created.");
+                    break;
+                }
+
+                Console.WriteLine("Waiting for event source to be created...");
+
+                Thread.Sleep(1000); // Wait 1 second
+
+                retries--;
+            }
+
+            if (retries == 0)
+            {
+                throw new InvalidOperationException($"Event Source '{eventSource}' Failed To Be Created in {stopwatch.Elapsed.TotalSeconds} Seconds.");
+            }
 
             VerifyLogging(eventSource);
         }
 
         private static void VerifyLogging(string eventSource)
         {
-            Console.WriteLine($"Verifying Event Source: {eventSource}...");
+            if (!EventLog.SourceExists(eventSource))
+            {
+                throw new Exception(message: $"Event Source '{eventSource}' does not exist.");
+            }
+
+            Console.WriteLine($"Clearing all logs for event source: {eventSource}...");
+            using (EventLog eventLog = new EventLog { Source = eventSource })
+            {
+                eventLog.Clear();
+            }
+
+            Console.WriteLine($"Writing To Event Source: {eventSource}...");
 
             Guid activityId = Guid.NewGuid();
 
@@ -80,10 +123,9 @@ namespace BigDrive.Setup
             Trace.Flush();
             Trace.Close();
 
-            if (!EventLog.SourceExists(eventSource))
-            {
-                throw new Exception(message: $"Event Source '{eventSource}' does not exist.");
-            }
+            eventLogListener.Flush();
+
+            Console.WriteLine($"Verifying Event Source: {eventSource}...");
 
             using (EventLog eventLog = new EventLog { Source = eventSource })
             {
@@ -98,6 +140,38 @@ namespace BigDrive.Setup
             }
 
             throw new Exception(message: $"Log entry not found in the custom event source {eventSource}.");
+        }
+
+        private static void VerifyEventLogServiceIsRunning()
+        {
+            string serviceName = "EventLog"; // The name of the Windows Event Log service
+
+            Console.WriteLine("VErify the Windows Event Log service is running...");
+
+            try
+            {
+                using (ServiceController serviceController = new ServiceController(serviceName))
+                {
+                    if (serviceController.Status == ServiceControllerStatus.Running)
+                    {
+                        Console.WriteLine("The Windows Event Log service is running.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"The Windows Event Log service is not running. Current status: {serviceController.Status}");
+                    }
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Error: The service '{serviceName}' could not be found. {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                throw;
+            }
         }
     }
 }
