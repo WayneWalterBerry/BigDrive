@@ -12,7 +12,7 @@
 #include "RegistrationManager.h"
 #include "..\BigDrive.Client\BigDriveClientConfigurationProvider.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
-#include <EventLogger.h>
+#include "..\Shared\EventLogger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
