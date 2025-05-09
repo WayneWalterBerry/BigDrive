@@ -30,10 +30,12 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
                 if (testKey != null)
                 {
                     Guid driveGuid = Guid.NewGuid();
+                    Guid clsid = Guid.NewGuid();
                     using (RegistryKey subKey = testKey.CreateSubKey(driveGuid.ToString("B")))
                     {
                         subKey.SetValue("id", driveGuid.ToString());
                         subKey.SetValue("name", "TestDrive");
+                        subKey.SetValue("clsid", clsid.ToString());
                     }
                 }
             }
@@ -80,18 +82,22 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         [TestMethod]
         public void ReadConfiguration_ValidInput_ReturnsConfiguration()
         {
-            Guid testGuid = Guid.NewGuid();
-            string subFolderRegistryPath = $@"{TestRegistryPath}\{testGuid:B}";
+            Guid driveGuid = Guid.NewGuid();
+            Guid clsid = Guid.NewGuid();
+
+            string subFolderRegistryPath = $@"{TestRegistryPath}\{driveGuid:B}";
             using (RegistryKey subKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
             {
-                subKey.SetValue("id", testGuid.ToString());
+                subKey.SetValue("id", driveGuid.ToString());
                 subKey.SetValue("name", "TestDrive");
+                subKey.SetValue("clsid", clsid);
             }
             CancellationToken cancellationToken = CancellationToken.None;
-            var configuration = BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(testGuid, cancellationToken);
+            var configuration = BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(driveGuid, cancellationToken);
             Assert.IsNotNull(configuration);
-            Assert.AreEqual(testGuid, configuration.Id);
+            Assert.AreEqual(driveGuid, configuration.Id);
             Assert.AreEqual("TestDrive", configuration.Name);
+            Assert.AreEqual(clsid, configuration.CLSID);
         }
 
         /// <summary>
@@ -119,6 +125,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             {
                 subKey.SetValue("id", Guid.NewGuid().ToString());
                 subKey.SetValue("name", "TestDrive");
+                subKey.SetValue("clsid", Guid.NewGuid().ToString());
             }
             CancellationToken cancellationToken = CancellationToken.None;
             BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(testGuid, cancellationToken);
@@ -144,8 +151,10 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             var driveConfig = new DriveConfiguration
             {
                 Id = Guid.NewGuid(),
-                Name = "TestDrive"
+                Name = "TestDrive",
+                CLSID = Guid.NewGuid()
             };
+
             CancellationToken cancellationToken = CancellationToken.None;
             BigDrive.ConfigProvider.ConfigurationProvider.WriteConfiguration(driveConfig, cancellationToken);
             string subFolderRegistryPath = $@"{TestRegistryPath}\{driveConfig.Id:B}";
@@ -154,6 +163,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
                 Assert.IsNotNull(subKey);
                 Assert.AreEqual(driveConfig.Id.ToString(), subKey.GetValue("id"));
                 Assert.AreEqual(driveConfig.Name, subKey.GetValue("name"));
+                Assert.AreEqual(driveConfig.CLSID.ToString(), subKey.GetValue("clsid"));
             }
         }
 
