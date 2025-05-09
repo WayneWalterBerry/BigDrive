@@ -24,6 +24,7 @@
     <ProjectGuid>{ca6d72a1-fedf-4040-8ccf-9793437dad97}</ProjectGuid>
     <RootNamespace>IShellFolder</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>BigDrive.ShellFolder</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
