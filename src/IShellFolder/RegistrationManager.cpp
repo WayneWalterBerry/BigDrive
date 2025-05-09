@@ -12,8 +12,11 @@
 #include "RegistrationManager.h"
 #include "..\BigDrive.Client\BigDriveClientConfigurationProvider.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+#include <EventLogger.h>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
+
+EventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
 
 /// <summary>
 /// Static method to get the singleton instance
@@ -283,7 +286,7 @@ HRESULT RegistrationManager::WriteError(LPCWSTR formatter, ...)
     ::vswprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), formatter, args);
     va_end(args);
 
-    return EventLogger::GetInstance().WriteError(buffer, EVENTLOG_ERROR_TYPE);
+    return s_eventLogger.WriteError(buffer, EVENTLOG_ERROR_TYPE);
 }
 
 /// </ inheritdoc>
@@ -295,5 +298,5 @@ HRESULT RegistrationManager::WriteInfo(LPCWSTR formatter, ...)
     ::vswprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), formatter, args);
     va_end(args);
 
-    return EventLogger::GetInstance().WriteError(buffer, EVENTLOG_ERROR_TYPE);
+    return s_eventLogger.WriteInfo(buffer, EVENTLOG_ERROR_TYPE);
 }

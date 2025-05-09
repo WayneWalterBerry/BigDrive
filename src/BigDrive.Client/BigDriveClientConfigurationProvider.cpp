@@ -12,9 +12,13 @@
 #include <combaseapi.h>
 
 #include "BigDriveClientConfigurationProvider.h"
+
+#include <EventLogger.h>
 #include "GuidUtil.h"
 
 using namespace BigDriveClient;
+
+EventLogger BigDriveClientConfigurationProvider::s_eventLogger(L"BigDrive.ShellFolder");
 
 HRESULT BigDriveClientConfigurationProvider::GetDriveGuids(GUID** ppGuids)
 {
