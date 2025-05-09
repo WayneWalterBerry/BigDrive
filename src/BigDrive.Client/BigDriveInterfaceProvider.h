@@ -13,6 +13,7 @@
 
 // Local
 #include "Interfaces/IBigDriveConfiguration.h"
+#include "DriveConfiguration.h"
 
 /// <summary>
 /// Provides functionality to retrieve all interface IDs (IIDs) supported by a given COM+ class ID (CLSID).
@@ -26,6 +27,11 @@ private:
     /// </summary>
     static EventLogger s_eventLogger;
 
+    /// <summary>
+    /// The CLSID of the COM+ class.
+    /// </summary>
+    CLSID m_clsid;
+
 public:
 
     /// <summary>
@@ -34,14 +40,18 @@ public:
     /// <param name="clsid">The CLSID of the COM+ class.</param>
     BigDriveInterfaceProvider(const CLSID& clsid);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified DriveConfiguration.
+    /// </summary>
+    /// <param name="driveConfiguration">Drive Configuration</param>
+    BigDriveInterfaceProvider(DriveConfiguration& driveConfiguration);
+
     HRESULT GetInterface(const IID& iid, IUnknown** ppv);
 
     HRESULT GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration);
 
-private:
+private: 
 
-    /// <summary>
-    /// The CLSID of the COM+ class.
-    /// </summary>
-    CLSID m_clsid;
+    HRESULT WriteError(LPCWSTR message);
+    HRESULT WriteErrorFormmated(LPCWSTR formatter, ...);
 };
