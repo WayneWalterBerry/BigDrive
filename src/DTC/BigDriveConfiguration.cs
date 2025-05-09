@@ -8,11 +8,11 @@ namespace BigDrive.Service.ComObjects
     using System.Diagnostics;
     using System.EnterpriseServices;
     using System.Runtime.InteropServices;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
     using System.Threading;
-    using BigDrive.Interfaces;
     using ConfigProvider;
+    using BigDrive.ConfigProvider.Extensions;
+    using BigDrive.ConfigProvider.Model;
+    using BigDrive.Interfaces;
 
     [Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
@@ -34,20 +34,9 @@ namespace BigDrive.Service.ComObjects
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
             {
-                var driveConfiguration = ConfigurationProvider.ReadConfiguration(guid, cancellationTokenSource.Token);
+                DriveConfiguration driveConfiguration = ConfigurationProvider.ReadConfiguration(guid, cancellationTokenSource.Token);
 
-                // Serialize the configuration to JSON
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = false,
-                    Converters =
-                    {
-                        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-                    }
-                };
-
-                string json = JsonSerializer.Serialize(driveConfiguration, options);
-                json = json.Replace("\r", "").Replace("\n", "");
+                string json = driveConfiguration.ToJson();
 
                 DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() returned: {0}", json);
 

@@ -18,14 +18,14 @@ namespace BigDriveClientTest
         {
             // Arrange
             GUID testGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 } };
-            wchar_t guidWithoutBraces[37]; // GUID without braces is 36 characters + null terminator
+            wchar_t guidWithoutBraces[39]; // GUID without braces is 36 characters + null terminator, + two brackets
 
             // Act
             HRESULT hr = StringFromGUID(testGuid, guidWithoutBraces, ARRAYSIZE(guidWithoutBraces));
 
             // Assert
             Assert::AreEqual(S_OK, hr);
-            Assert::AreEqual(L"12345678-1234-1234-1234-56789ABCDEF0", guidWithoutBraces);
+            Assert::AreEqual(L"{12345678-1234-1234-1234-56789ABCDEF0}", guidWithoutBraces);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace BigDriveClientTest
         TEST_METHOD(TestGUIDFromString)
         {
             // Arrange
-            const wchar_t* guidString = L"12345678-1234-1234-1234-56789abcdef0";
+            const wchar_t* guidString = L"{12345678-1234-1234-1234-56789abcdef0}";
             GUID expectedGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 } };
             GUID actualGuid;
 
@@ -73,6 +73,23 @@ namespace BigDriveClientTest
 
             // Act
             HRESULT hr = GUIDFromString(invalidGuidString, &actualGuid);
+
+            // Assert
+            Assert::AreEqual(E_FAIL, hr);
+        }
+
+        /// <summary>
+        /// Tests the GUIDFromString method to ensure it correctly converts a string to a GUID.
+        /// </summary>
+        TEST_METHOD(TestGUIDFromStringNoBrackets)
+        {
+            // Arrange
+            const wchar_t* guidString = L"12345678-1234-1234-1234-56789abcdef0";
+            GUID expectedGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 } };
+            GUID actualGuid;
+
+            // Act
+            HRESULT hr = GUIDFromString(guidString, &actualGuid);
 
             // Assert
             Assert::AreEqual(E_FAIL, hr);

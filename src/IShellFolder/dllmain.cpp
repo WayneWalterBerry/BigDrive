@@ -44,9 +44,11 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
-    ::LaunchDebugger();
+    // ::LaunchDebugger();
 
-    return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
+    // return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
+
+    return S_OK;
 }
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()

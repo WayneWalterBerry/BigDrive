@@ -1,6 +1,8 @@
+// <copyright file="DriveConfiguration.cs" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
 
-
-namespace ConfigProvider
+namespace BigDrive.ConfigProvider
 {
     using System;
     using System.Collections.Generic;
@@ -8,6 +10,7 @@ namespace ConfigProvider
     using System.Linq;
     using System.Text.Json.Serialization;
     using System.Threading;
+    using BigDrive.ConfigProvider.Model;
     using Microsoft.Win32;
 
     public static class ConfigurationProvider
@@ -42,8 +45,13 @@ namespace ConfigProvider
         /// <param name="cancellationToken">Cancellation Token</param>
         public static DriveConfiguration ReadConfiguration(Guid guid, CancellationToken cancellationToken)
         {
+            if (guid== Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(guid), "Guid cannot be empty.");
+            }
+
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{guid}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{guid:B}";
 
             using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath))
             {
@@ -104,15 +112,21 @@ namespace ConfigProvider
                 return driveConfiguration;
             }
         }
+
         /// <summary>
         /// Writes a DriveConfiguration to the registry under the specified subfolder name.
         /// </summary>
         /// <param name="driveConfig">The DriveConfiguration object to write.</param>
         /// <param name="cancellationToken">Cancellation Token</param>
-        private static void WriteConfiguration(DriveConfiguration driveConfig, CancellationToken cancellationToken)
+        public static void WriteConfiguration(DriveConfiguration driveConfig, CancellationToken cancellationToken)
         {
+            if (driveConfig == null)
+            {
+                throw new ArgumentNullException(nameof(driveConfig), "DriveConfiguration cannot be null.");
+            }
+
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{driveConfig.Id}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{{{driveConfig.Id}}}";
 
             using (RegistryKey subFolderKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
             {
