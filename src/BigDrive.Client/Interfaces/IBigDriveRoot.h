@@ -29,7 +29,7 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     virtual HRESULT STDMETHODCALLTYPE GetRootFolders(
         /* [in] */ REFGUID guid,
-        /* [out] */ std::vector<std::wstring>& folders) = 0;
+        /* [out] */ SAFEARRAY** folders) = 0;
 };
 
 
