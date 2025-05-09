@@ -29,7 +29,7 @@ HRESULT BigDriveInterfaceProvider::GetSupportedInterfaceIDs(std::vector<IID>& in
     IUnknown* pUnknown = nullptr;
 
     // Create an instance of the COM class
-    hr = CoCreateInstance(m_clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown, reinterpret_cast<void**>(&pUnknown));
+    hr = ::CoCreateInstance(m_clsid, nullptr, CLSCTX_LOCAL_SERVER, IID_IUnknown, reinterpret_cast<void**>(&pUnknown));
     if (FAILED(hr))
     {
         std::wcerr << L"Failed to create COM instance. HRESULT: " << hr << std::endl;
