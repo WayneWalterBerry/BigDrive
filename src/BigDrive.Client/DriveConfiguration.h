@@ -11,28 +11,50 @@
 
 using namespace BigDriveClient;
 
+/// <summary>
+/// Represents the configuration for a drive, including its unique identifier, name, and CLSID.
+/// Provides functionality to parse configuration data from a JSON string.
+/// </summary>
 class DriveConfiguration
 {
 public:
 
-    // Properties
+    /// <summary>
+    /// The unique identifier (GUID) of the drive.
+    /// </summary>
     GUID id;
+
+    /// <summary>
+    /// The name of the drive.
+    /// </summary>
     BSTR name;
+
+    /// <summary>
+    /// The CLSID (Class Identifier) associated with the drive.
+    /// </summary>
     GUID clsid;
 
-    // Constructor
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DriveConfiguration"/> class with default values.
+    /// </summary>
     DriveConfiguration()
         : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DriveConfiguration"/> class by parsing a JSON string.
+    /// </summary>
+    /// <param name="jsonString">The JSON string containing the drive configuration.</param>
     DriveConfiguration(LPCWSTR jsonString)
         : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
         ParseJson(jsonString);
     }
 
-    // Destructor to free allocated memory
+    /// <summary>
+    /// Destructor to clean up allocated memory for the drive name.
+    /// </summary>
     ~DriveConfiguration()
     {
         if (name)
@@ -41,133 +63,10 @@ public:
         }
     }
 
-    // Method to parse the JSON string
-    HRESULT ParseJson(LPCWSTR jsonString)
-    {
-        HRESULT hrReturn = S_OK;
-
-        if (!jsonString)
-        {
-            return E_INVALIDARG;
-        }
-
-        LPCWSTR idKey = L"\"id\":\"";
-        LPCWSTR idStart = ::wcsstr(jsonString, idKey);
-
-        LPCWSTR nameKey = L"\"name\":";
-        LPCWSTR nameStart = ::wcsstr(jsonString, nameKey);
-
-        LPCWSTR clsidKey = L"\"clsid\":";
-        LPCWSTR clsidStart = ::wcsstr(jsonString, clsidKey);
-
-        BSTR szId = nullptr;
-
-        // Extract "id" value
-        if (idStart)
-        {
-            idStart += ::wcslen(idKey);
-            LPCWSTR idEnd = ::wcschr(idStart, L'"');
-            if (idEnd)
-            {
-                size_t idLength = idEnd - idStart;
-
-                // Allocate a single BSTR with space for the brackets, Json formatting
-                // for GUIDs doesn't include the brackes, but GUIDFromString requires
-                // the brackets to be present in the string.
-                BSTR szIdWithBrackets = ::SysAllocStringLen(nullptr, static_cast<UINT>(idLength + 2));
-                if (szIdWithBrackets)
-                {
-                    szIdWithBrackets[0] = L'{';
-                    ::wcsncpy_s(szIdWithBrackets + 1, idLength + 1, idStart, idLength);
-                    szIdWithBrackets[idLength + 1] = L'}';
-                    szIdWithBrackets[idLength + 2] = L'\0';
-
-                    // Pass the modified string to GUIDFromString
-                    hrReturn = GUIDFromString(szIdWithBrackets, &id);
-
-                    // Free the allocated memory for szIdWithBrackets
-                    ::SysFreeString(szIdWithBrackets);
-                    szIdWithBrackets = nullptr;
-                }
-                else
-                {
-                    hrReturn = E_OUTOFMEMORY;
-                }
-
-                if (FAILED(hrReturn))
-                {
-                    goto End;
-                }
-            }
-        }
-
-        // Extract "name" value
-        if (nameStart)
-        {
-            nameStart += ::wcslen(nameKey);
-            if (::wcsncmp(nameStart, L"null", 4) == 0)
-            {
-                name = ::SysAllocString(L"null");
-            }
-            else if (*nameStart == L'"')
-            {
-                nameStart++;
-                LPCWSTR nameEnd = ::wcschr(nameStart, L'"');
-                if (nameEnd)
-                {
-                    size_t nameLength = nameEnd - nameStart;
-                    name = ::SysAllocStringLen(nameStart, static_cast<UINT>(nameLength));
-                }
-            }
-        }
-
-        // Extract "clsid" value
-        if (clsidStart)
-        {
-            clsidStart += ::wcslen(clsidKey);
-            LPCWSTR clsidEnd = ::wcschr(clsidStart, L'"');
-            if (clsidEnd)
-            {
-                size_t clsidLength = clsidEnd - clsidStart;
-
-                // Allocate a single BSTR with space for the brackets
-                BSTR szClsidWithBrackets = ::SysAllocStringLen(nullptr, static_cast<UINT>(clsidLength + 2));
-                if (szClsidWithBrackets)
-                {
-                    szClsidWithBrackets[0] = L'{';
-                    ::wcsncpy_s(szClsidWithBrackets + 1, clsidLength + 1, clsidStart, clsidLength);
-                    szClsidWithBrackets[clsidLength + 1] = L'}';
-                    szClsidWithBrackets[clsidLength + 2] = L'\0';
-
-                    // Pass the modified string to GUIDFromString
-                    hrReturn = GUIDFromString(szClsidWithBrackets, &clsid);
-
-                    // Free the allocated memory for szClsidWithBrackets
-                    ::SysFreeString(szClsidWithBrackets);
-                    szClsidWithBrackets = nullptr;
-                }
-                else
-                {
-                    hrReturn = E_OUTOFMEMORY;
-                }
-
-                if (FAILED(hrReturn))
-                {
-                    goto End;
-                }
-            }
-        }
-
-
-
-    End:
-
-        if(szId)
-        {
-            ::SysFreeString(szId);
-            szId = nullptr;
-        }
-
-        return hrReturn;
-    }
+    /// <summary>
+    /// Parses a JSON string to populate the drive configuration properties.
+    /// </summary>
+    /// <param name="jsonString">The JSON string containing the drive configuration.</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+    HRESULT ParseJson(LPCWSTR jsonString);
 };

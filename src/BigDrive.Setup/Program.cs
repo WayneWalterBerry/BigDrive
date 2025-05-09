@@ -34,6 +34,7 @@ namespace BigDrive.Setup
         {
             BoostrapBigDriveEventLog("Service");
             BoostrapBigDriveEventLog("ShellFolder");
+            BoostrapBigDriveEventLog("Client");
         }
 
         private static void BoostrapBigDriveEventLog(string application)

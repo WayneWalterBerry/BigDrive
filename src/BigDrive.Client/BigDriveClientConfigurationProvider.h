@@ -6,7 +6,7 @@
 
 #include <wtypes.h>
 
-#include <EventLogger.h>
+#include "..\Shared\EventLogger.h"
 
 /// <summary>
 /// Provides functionality to interact with the BigDrive client configuration,
@@ -15,6 +15,7 @@
 class BigDriveClientConfigurationProvider
 {
 private:
+
     /// <summary>
     /// Static instance of EventLogger for logging events.
     /// </summary>

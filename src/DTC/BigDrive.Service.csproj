@@ -100,9 +100,9 @@
       <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
       <Name>BigDrive.ConfigProvider</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Interfaces\Interfaces.csproj">
+    <ProjectReference Include="..\Interfaces\BigDrive.Interfaces.csproj">
       <Project>{28e4adaf-11b9-4afb-920e-f8384426e8d1}</Project>
-      <Name>Interfaces</Name>
+      <Name>BigDrive.Interfaces</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
