@@ -8,9 +8,14 @@
 #include <guiddef.h>
 
 #include "DriveConfiguration.h"
+#include <EventLogger.h>
 
 class RegistrationManager
 {
+private:
+
+    static EventLogger s_eventLogger;
+
 public:
 
     /// <summary>

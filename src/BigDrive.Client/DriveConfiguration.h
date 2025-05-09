@@ -18,15 +18,16 @@ public:
     // Properties
     GUID id;
     BSTR name;
+    GUID clsid;
 
     // Constructor
     DriveConfiguration()
-        : id(GUID_NULL), name(nullptr)
+        : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
     }
 
     DriveConfiguration(LPCWSTR jsonString)
-        : id(GUID_NULL), name(nullptr)
+        : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
         ParseJson(jsonString);
     }
@@ -55,6 +56,9 @@ public:
 
         LPCWSTR nameKey = L"\"name\":";
         LPCWSTR nameStart = ::wcsstr(jsonString, nameKey);
+
+        LPCWSTR clsidKey = L"\"clsid\":";
+        LPCWSTR clsidStart = ::wcsstr(jsonString, clsidKey);
 
         BSTR szId = nullptr;
 
@@ -116,6 +120,45 @@ public:
                 }
             }
         }
+
+        // Extract "clsid" value
+        if (clsidStart)
+        {
+            clsidStart += ::wcslen(clsidKey);
+            LPCWSTR clsidEnd = ::wcschr(clsidStart, L'"');
+            if (clsidEnd)
+            {
+                size_t clsidLength = clsidEnd - clsidStart;
+
+                // Allocate a single BSTR with space for the brackets
+                BSTR szClsidWithBrackets = ::SysAllocStringLen(nullptr, static_cast<UINT>(clsidLength + 2));
+                if (szClsidWithBrackets)
+                {
+                    szClsidWithBrackets[0] = L'{';
+                    ::wcsncpy_s(szClsidWithBrackets + 1, clsidLength + 1, clsidStart, clsidLength);
+                    szClsidWithBrackets[clsidLength + 1] = L'}';
+                    szClsidWithBrackets[clsidLength + 2] = L'\0';
+
+                    // Pass the modified string to GUIDFromString
+                    hrReturn = GUIDFromString(szClsidWithBrackets, &clsid);
+
+                    // Free the allocated memory for szClsidWithBrackets
+                    ::SysFreeString(szClsidWithBrackets);
+                    szClsidWithBrackets = nullptr;
+                }
+                else
+                {
+                    hrReturn = E_OUTOFMEMORY;
+                }
+
+                if (FAILED(hrReturn))
+                {
+                    goto End;
+                }
+            }
+        }
+
+
 
     End:
 
