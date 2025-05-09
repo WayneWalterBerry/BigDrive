@@ -107,7 +107,7 @@ namespace BigDriveClientTest
 
             // Verify the configuration string
             Assert::IsNotNull(pszConfiguration);
-            Assert::AreEqual(L"{\"id\":\"12345678-1234-1234-1234-56789abcdef2\",\"name\":\"TestDrive\"}", pszConfiguration);
+            Assert::AreEqual(L"{\"id\":\"{12345678-1234-1234-1234-56789abcdef2}\",\"name\":\"TestDrive\"}", pszConfiguration);
 
             // Clean up
             ::SysFreeString(testName);

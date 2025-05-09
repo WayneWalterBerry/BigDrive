@@ -5,20 +5,12 @@
 namespace BigDrive.Setup
 {
     using System;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Runtime.InteropServices;
     using System.Security.Principal;
-    using System.ServiceProcess;
-    using System.Threading;
-    using Microsoft.Win32;
 
     internal class Program
     {
         static void Main(string[] args)
         {
-            System.Diagnostics.Debugger.Launch();
-
             if (!IsRunningElevated())
             {
                 Console.WriteLine("Administrative Rights Required.");
