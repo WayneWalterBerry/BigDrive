@@ -57,7 +57,7 @@ public:
         LPCWSTR nameKey = L"\"name\":";
         LPCWSTR nameStart = ::wcsstr(jsonString, nameKey);
 
-        LPCWSTR clsidKey = L"\"clsid\":";
+        LPCWSTR clsidKey = L"\"clsid\":\"";
         LPCWSTR clsidStart = ::wcsstr(jsonString, clsidKey);
 
         BSTR szId = nullptr;

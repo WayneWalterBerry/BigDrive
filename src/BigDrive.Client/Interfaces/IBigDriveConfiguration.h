@@ -2,6 +2,8 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
+#pragma once
+
 #include <iostream>
 #include <windows.h>
 #include <comdef.h>

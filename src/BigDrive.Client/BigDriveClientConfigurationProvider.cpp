@@ -19,7 +19,7 @@
 using namespace BigDriveClient;
 
 // Initialize the static EventLogger instance
-EventLogger BigDriveClientConfigurationProvider::s_eventLogger(L"BigDrive.ShellFolder");
+EventLogger BigDriveClientConfigurationProvider::s_eventLogger(L"BigDrive.Client");
 
 /// <summary>
 /// Retrieves the GUIDs of all drives managed by the BigDrive client.

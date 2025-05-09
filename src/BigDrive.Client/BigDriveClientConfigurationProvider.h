@@ -15,6 +15,7 @@
 class BigDriveClientConfigurationProvider
 {
 private:
+
     /// <summary>
     /// Static instance of EventLogger for logging events.
     /// </summary>

@@ -5,6 +5,9 @@
 #pragma once
 
 #include "BigDriveInterfaceProvider.h"
+
+#include "..\Shared\EventLogger.h"
+
 #include "DriveConfiguration.h"
 
 /// <summary>
@@ -13,6 +16,7 @@
 class BigDriveInterfaceProviderFactory
 {
 public:
+
     /// <summary>
     /// Retrieves the singleton instance of the factory.
     /// </summary>

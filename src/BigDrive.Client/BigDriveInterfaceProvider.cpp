@@ -1,13 +1,21 @@
-// <copyright file="BigDriveInterfaceProvider.h" company="Wayne Walter Berry">
+// <copyright file="BigDriveInterfaceProvider.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
 #include "pch.h"
 
+// System
 #include <comdef.h>
 #include <iostream>
 
+// Header
 #include "BigDriveInterfaceProvider.h"
+
+// Shared
+#include "..\Shared\EventLogger.h"
+
+// Initialize the static EventLogger instance
+EventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
 
 /// <summary>
 /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified CLSID.
@@ -18,71 +26,61 @@ BigDriveInterfaceProvider::BigDriveInterfaceProvider(const CLSID& clsid)
 {
 }
 
-/// <summary>
-/// Retrieves all interface IDs (IIDs) supported by the stored CLSID.
-/// </summary>
-/// <param name="interfaceIDs">A vector to store the supported interface IDs.</param>
-/// <returns>HRESULT indicating success or failure.</returns>
-HRESULT BigDriveInterfaceProvider::GetSupportedInterfaceIDs(std::vector<IID>& interfaceIDs) const
+HRESULT BigDriveInterfaceProvider::GetInterface(const IID& iid, IUnknown** ppIUnknown)
 {
-    HRESULT hr = S_OK;
-    IUnknown* pUnknown = nullptr;
+    HRESULT hrReturn = S_OK;
+    IUnknown* pIUnknown = nullptr;
+
+    if (ppIUnknown == nullptr)
+    {
+        return E_POINTER; // Return an appropriate error code
+    }
 
     // Create an instance of the COM class
-    hr = ::CoCreateInstance(m_clsid, nullptr, CLSCTX_LOCAL_SERVER, IID_IUnknown, reinterpret_cast<void**>(&pUnknown));
-    if (FAILED(hr))
+    hrReturn = ::CoCreateInstance(m_clsid, nullptr, CLSCTX_LOCAL_SERVER, iid, reinterpret_cast<void**>(&pIUnknown));
+    if (FAILED(hrReturn))
     {
-        std::wcerr << L"Failed to create COM instance. HRESULT: " << hr << std::endl;
-        return hr;
+        s_eventLogger.WriteErrorFormmated(L"Failed to create COM instance. HRESULT: 0x%08X", hrReturn);
+        goto End;
     }
 
-    // Query for supported interfaces
-    ITypeInfo* pTypeInfo = nullptr;
-    ITypeLib* pTypeLib = nullptr;
-    TYPEATTR* pTypeAttr = nullptr;
-
-    // Get the ITypeInfo for the class
-    hr = pUnknown->QueryInterface(IID_IProvideClassInfo, reinterpret_cast<void**>(&pTypeInfo));
-    if (SUCCEEDED(hr))
+    // Query for the requested interface
+    hrReturn = pIUnknown->QueryInterface(iid, reinterpret_cast<void**>(ppIUnknown));
+    if (FAILED(hrReturn))
     {
-        hr = pTypeInfo->GetContainingTypeLib(&pTypeLib, nullptr);
-        if (SUCCEEDED(hr))
-        {
-            hr = pTypeInfo->GetTypeAttr(&pTypeAttr);
-            if (SUCCEEDED(hr))
-            {
-                // Iterate through the implemented interfaces
-                for (UINT i = 0; i < pTypeAttr->cImplTypes; ++i)
-                {
-                    HREFTYPE hRefType;
-                    hr = pTypeInfo->GetRefTypeOfImplType(i, &hRefType);
-                    if (SUCCEEDED(hr))
-                    {
-                        ITypeInfo* pRefTypeInfo = nullptr;
-                        hr = pTypeInfo->GetRefTypeInfo(hRefType, &pRefTypeInfo);
-                        if (SUCCEEDED(hr))
-                        {
-                            TYPEATTR* pRefTypeAttr = nullptr;
-                            hr = pRefTypeInfo->GetTypeAttr(&pRefTypeAttr);
-                            if (SUCCEEDED(hr))
-                            {
-                                // Add the IID to the list
-                                interfaceIDs.push_back(pRefTypeAttr->guid);
-                                pRefTypeInfo->ReleaseTypeAttr(pRefTypeAttr);
-                            }
-                            pRefTypeInfo->Release();
-                        }
-                    }
-                }
-                pTypeInfo->ReleaseTypeAttr(pTypeAttr);
-            }
-            pTypeLib->Release();
-        }
-        pTypeInfo->Release();
+        hrReturn = S_FALSE;
+        goto End;
     }
 
-    // Release the COM object
-    pUnknown->Release();
+End:
 
-    return hr;
+    // Release the IUnknown pointer
+    if (pIUnknown)
+    {
+        pIUnknown->Release();
+        pIUnknown = nullptr;
+    }
+
+    return hrReturn;
+}
+
+HRESULT BigDriveInterfaceProvider::GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration)
+{
+    HRESULT hrReturn = S_OK;
+
+    if (ppBigDriveConfiguration == nullptr)
+    {
+        return E_POINTER; // Return an appropriate error code
+    }
+
+    // Get the IBigDriveConfiguration interface
+    hrReturn = GetInterface(IID_IBigDriveConfiguration, reinterpret_cast<IUnknown**>(ppBigDriveConfiguration));
+    if (FAILED(hrReturn))
+    {
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveConfiguration interface. HRESULT: 0x%08X", hrReturn);
+        goto End;
+    }
+
+End:
+    return hrReturn;
 }
