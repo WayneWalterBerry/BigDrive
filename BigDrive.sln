@@ -5,7 +5,7 @@ VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service", "src\DTC\BigDrive.Service.csproj", "{73AA6057-5C8A-4E0F-A6D2-6223173FE83C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interfaces", "src\Interfaces\Interfaces.csproj", "{28E4ADAF-11B9-4AFB-920E-F8384426E8D1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Interfaces", "src\Interfaces\BigDrive.Interfaces.csproj", "{28E4ADAF-11B9-4AFB-920E-F8384426E8D1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IShellFolder", "src\IShellFolder\IShellFolder.vcxproj", "{CA6D72A1-FEDF-4040-8CCF-9793437DAD97}"
 EndProject

@@ -13,6 +13,7 @@
 
 // Local
 #include "Interfaces/IBigDriveConfiguration.h"
+#include "Interfaces/IBigDriveRoot.h"
 #include "DriveConfiguration.h"
 
 /// <summary>
@@ -49,6 +50,7 @@ public:
     HRESULT GetInterface(const IID& iid, IUnknown** ppv);
 
     HRESULT GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration);
+    HRESULT GetIBigDriveRoot(IBigDriveRoot** ppBigDriveRoot);
 
 private: 
 

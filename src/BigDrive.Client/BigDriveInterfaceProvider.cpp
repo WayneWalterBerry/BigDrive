@@ -14,6 +14,10 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
+// Local
+#include "Interfaces/IBigDriveConfiguration.h"
+#include "Interfaces/IBigDriveRoot.h"
+
 // Initialize the static EventLogger instance
 EventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
 
@@ -114,13 +118,44 @@ End:
 }
 
 /// <summary>
+/// Retrieves the IBigDriveRoot interface from the COM+ class instance.
+/// </summary>
+/// <param name="ppBigDriveConfiguration">A pointer to the IBigDriveRoot interface pointer to be populated.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT BigDriveInterfaceProvider::BigDriveInterfaceProvider::GetIBigDriveRoot(IBigDriveRoot** ppBigDriveRoot)
+{
+    HRESULT hrReturn = S_OK;
+    if (ppBigDriveRoot == nullptr)
+    {
+        return E_POINTER; // Return an appropriate error code
+    }
+    // Get the IBigDriveRoot interface
+    hrReturn = GetInterface(IID_IBigDriveRoot, reinterpret_cast<IUnknown**>(ppBigDriveRoot));
+    switch (hrReturn)
+    {
+    case S_OK:
+        // Successfully retrieved the interface
+        break;
+    case S_FALSE:
+        WriteError(L"Doesn't implement IBigDriveRoot");
+        hrReturn = E_NOINTERFACE;
+        break;
+    default:
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveRoot interface. HRESULT: 0x%08X", hrReturn);
+        goto End;
+    }
+End:
+    return hrReturn;
+}
+
+/// <summary>
 /// Logs an error message with the CLSID of the provider.
 /// </summary>
 /// <param name="message">The error message to log.</param>
 /// <returns>HRESULT indicating success or failure of the logging operation.</returns>
 HRESULT BigDriveInterfaceProvider::WriteError(LPCWSTR message)
 {
-    s_eventLogger.WriteErrorFormmated(
+    return s_eventLogger.WriteErrorFormmated(
         L"Provider: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X} %s",
         m_clsid.Data1,
         m_clsid.Data2,
