@@ -81,7 +81,6 @@
     <Compile Include="ConfigurationProvider.cs" />
     <Compile Include="Extensions\DriveConfigurationExtensions.cs" />
     <Compile Include="Model\DriveConfiguration.cs" />
-    <Compile Include="GuidWithBracketsConverter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

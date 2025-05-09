@@ -30,7 +30,6 @@ namespace BigDrive.ConfigProvider.Extensions
                 Converters =
                 {
                     new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
-                    new GuidWithBracketsConverter() // Add the custom converter here
                 }
             };
 

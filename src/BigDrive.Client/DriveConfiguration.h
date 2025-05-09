@@ -66,10 +66,30 @@ public:
             if (idEnd)
             {
                 size_t idLength = idEnd - idStart;
-                szId = ::SysAllocStringLen(idStart, static_cast<UINT>(idLength));
 
-                // Convert string to GUID
-                hrReturn = GUIDFromString(szId, &id);
+                // Allocate a single BSTR with space for the brackets, Json formatting
+                // for GUIDs doesn't include the brackes, but GUIDFromString requires
+                // the brackets to be present in the string.
+                BSTR szIdWithBrackets = ::SysAllocStringLen(nullptr, static_cast<UINT>(idLength + 2));
+                if (szIdWithBrackets)
+                {
+                    szIdWithBrackets[0] = L'{';
+                    ::wcsncpy_s(szIdWithBrackets + 1, idLength + 1, idStart, idLength);
+                    szIdWithBrackets[idLength + 1] = L'}';
+                    szIdWithBrackets[idLength + 2] = L'\0';
+
+                    // Pass the modified string to GUIDFromString
+                    hrReturn = GUIDFromString(szIdWithBrackets, &id);
+
+                    // Free the allocated memory for szIdWithBrackets
+                    ::SysFreeString(szIdWithBrackets);
+                    szIdWithBrackets = nullptr;
+                }
+                else
+                {
+                    hrReturn = E_OUTOFMEMORY;
+                }
+
                 if (FAILED(hrReturn))
                 {
                     goto End;
