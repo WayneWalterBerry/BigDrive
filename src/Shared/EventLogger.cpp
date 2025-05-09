@@ -2,8 +2,6 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-#include "pch.h"
-
 #include "EventLogger.h"
 #include <iostream>
 
@@ -44,7 +42,7 @@ HRESULT EventLogger::WriteError(LPCWSTR message)
 /// <summary>
 /// Write a formatted error message to the Event Viewer.
 /// </summary>
-HRESULT EventLogger::WriteError(LPCWSTR formatter, ...)
+HRESULT EventLogger::WriteErrorFormmated(LPCWSTR formatter, ...)
 {
     va_list args;
     va_start(args, formatter);

@@ -286,7 +286,7 @@ HRESULT RegistrationManager::WriteError(LPCWSTR formatter, ...)
     ::vswprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), formatter, args);
     va_end(args);
 
-    return s_eventLogger.WriteError(buffer, EVENTLOG_ERROR_TYPE);
+    return s_eventLogger.WriteErrorFormmated(buffer, EVENTLOG_ERROR_TYPE);
 }
 
 /// </ inheritdoc>

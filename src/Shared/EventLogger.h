@@ -38,7 +38,7 @@ public:
     /// <summary>
     /// Write a formatted error message to the Event Viewer.
     /// </summary>
-    HRESULT WriteError(LPCWSTR formatter, ...);
+    HRESULT WriteErrorFormmated(LPCWSTR formatter, ...);
 
     /// <summary>
     /// Write an informational message to the Event Viewer.

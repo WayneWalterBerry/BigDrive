@@ -152,7 +152,9 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Shared\EventLogger.cpp" />
+    <ClCompile Include="..\Shared\EventLogger.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="BigDriveClientConfigurationProvider.cpp" />
     <ClCompile Include="BigDriveConfigurationClient.cpp" />
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
