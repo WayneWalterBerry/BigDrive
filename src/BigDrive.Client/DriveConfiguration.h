@@ -22,12 +22,12 @@ public:
 
     // Constructor
     DriveConfiguration()
-        : id(GUID_NULL), name(nullptr)
+        : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
     }
 
     DriveConfiguration(LPCWSTR jsonString)
-        : id(GUID_NULL), name(nullptr)
+        : id(GUID_NULL), name(nullptr), clsid(GUID_NULL)
     {
         ParseJson(jsonString);
     }

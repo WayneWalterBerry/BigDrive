@@ -13,12 +13,22 @@
 class BigDriveInterfaceProvider
 {
 public:
-
     /// <summary>
-    /// Retrieves all interface IDs (IIDs) supported by a given CLSID.
+    /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified CLSID.
     /// </summary>
     /// <param name="clsid">The CLSID of the COM+ class.</param>
+    BigDriveInterfaceProvider(const CLSID& clsid);
+
+    /// <summary>
+    /// Retrieves all interface IDs (IIDs) supported by the stored CLSID.
+    /// </summary>
     /// <param name="interfaceIDs">A vector to store the supported interface IDs.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
-    static HRESULT GetSupportedInterfaceIDs(const CLSID& clsid, std::vector<IID>& interfaceIDs);
+    HRESULT GetSupportedInterfaceIDs(std::vector<IID>& interfaceIDs) const;
+
+private:
+    /// <summary>
+    /// The CLSID of the COM+ class.
+    /// </summary>
+    CLSID m_clsid;
 };
