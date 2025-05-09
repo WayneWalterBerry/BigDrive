@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="BigDriveClientConfigurationProvider.h" />
     <ClInclude Include="BigDriveConfigurationClient.h" />
+    <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="DriveConfiguration.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GuidUtil.h" />
@@ -150,6 +151,7 @@
   <ItemGroup>
     <ClCompile Include="BigDriveClientConfigurationProvider.cpp" />
     <ClCompile Include="BigDriveConfigurationClient.cpp" />
+    <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
