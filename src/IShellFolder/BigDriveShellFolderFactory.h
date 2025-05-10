@@ -1,4 +1,4 @@
-// <copyright file="dllmain.cpp" company="Wayne Walter Berry">
+// <copyright file="BigDriveShellFolderFactory.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -7,24 +7,35 @@
 #include "BigDriveShellFolder.h" // For BigDriveFolder
 
 class BigDriveShellFolderFactory : public IClassFactory {
+
 private:
-    LONG m_refCount; // Reference count for COM object
+
+    // Reference count for COM object
+    LONG m_refCount; 
+
+    // CLSID associated with this factory
+    CLSID m_driveGuid;
 
 public:
-    BigDriveShellFolderFactory() : m_refCount(1) {}
+
+    BigDriveShellFolderFactory(const CLSID& driveGuid) : m_refCount(1), m_driveGuid(driveGuid) {}
 
     // IUnknown methods
-    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override {
-        if (riid == IID_IUnknown || riid == IID_IClassFactory) {
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override 
+    {
+        if (riid == IID_IUnknown || riid == IID_IClassFactory) 
+        {
             *ppvObject = static_cast<IClassFactory*>(this);
             AddRef();
             return S_OK;
         }
+
         *ppvObject = nullptr;
         return E_NOINTERFACE;
     }
 
-    ULONG __stdcall AddRef() override {
+    ULONG __stdcall AddRef() override 
+    {
         return InterlockedIncrement(&m_refCount);
     }
 
@@ -37,14 +48,15 @@ public:
     }
 
     // IClassFactory methods
-    HRESULT __stdcall CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override {
+    HRESULT __stdcall CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override 
+    {
         if (pUnkOuter != nullptr) {
             // Aggregation is not supported
             return CLASS_E_NOAGGREGATION;
         }
 
         // Create an instance of BigDriveFolder
-        BigDriveFolder* pFolder = new (std::nothrow) BigDriveFolder();
+        BigDriveShellFolder* pFolder = new (std::nothrow) BigDriveShellFolder();
         if (!pFolder) {
             return E_OUTOFMEMORY;
         }

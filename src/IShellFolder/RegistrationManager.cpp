@@ -89,6 +89,49 @@ End:
     return hrReturn;
 }
 
+/// <summary>
+/// Drive Ids are stored in the registry as GUIDs. This function retrieves the GUIDs
+/// of all registered drives, which are the same as the CLSIDs of the shell folders.
+/// </summary>
+HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
+{
+    HRESULT hrReturn = S_OK;
+    GUID* pGuids = nullptr;
+    DWORD index = 0;
+
+    // Get the Drive GUIDs from the registry
+    hrReturn = BigDriveClientConfigurationProvider::GetDriveGuids(&pGuids);
+    if (FAILED(hrReturn))
+    {
+        goto End;
+    }
+
+    // Convert GUIDs to CLSIDs
+    *ppClsids = static_cast<CLSID*>(::CoTaskMemAlloc(sizeof(CLSID) * (index + 1)));
+    if (*ppClsids == nullptr)
+    {
+        hrReturn = E_OUTOFMEMORY;
+        goto End;
+    }
+
+    for (DWORD i = 0; i < index; ++i)
+    {
+        (*ppClsids)[i] = pGuids[i];
+    }
+
+    // Null-terminate the array
+    (*ppClsids)[index] = GUID_NULL; 
+
+End:
+
+    if (pGuids)
+    {
+        ::CoTaskMemFree(pGuids);
+    }
+
+    return hrReturn;
+}
+
 /// </inheritdoc>
 HRESULT RegistrationManager::GetConfiguration(GUID guid, DriveConfiguration& driveConfiguration)
 {

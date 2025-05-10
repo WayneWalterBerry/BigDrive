@@ -25,6 +25,8 @@ public:
 
     HRESULT RegisterShellFoldersFromRegistry();
 
+    HRESULT GetRegisteredCLSIDs(CLSID** ppClsids);
+
 private:
 
     // Private constructor to prevent direct instantiation

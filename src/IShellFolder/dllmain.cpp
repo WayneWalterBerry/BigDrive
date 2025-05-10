@@ -44,11 +44,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
-    // ::LaunchDebugger();
+    ::LaunchDebugger();
 
-    // return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
-
-    return S_OK;
+    return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
 }
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
@@ -63,26 +61,82 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
     return E_FAIL;
 }
 
+/// <summary>
+/// Retrieves a class object from a DLL for the specified CLSID.
+/// This function is typically implemented in a DLL that provides COM objects,
+/// allowing clients to obtain an IShellFolder instance.
+/// 
+/// Usage:
+/// Clients call DllGetClassObject() to retrieve an IClassFactory for IShellFolder,
+/// which is then used to instantiate the requested shell folder object.
+/// </summary>
+/// <param name="rclsid">The CLSID of the object to retrieve.</param>
+/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
+/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
 STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
 {
-    if (ppv == nullptr) {
+    HRESULT hrReturn = S_OK;
+
+    ::LaunchDebugger();
+
+    if (ppv == nullptr) 
+    {
         return E_POINTER;
     }
 
-    *ppv = nullptr; // Ensure the output pointer is initialized to nullptr.
+    // Ensure the output pointer is initialized to nullptr.
+    *ppv = nullptr;
 
-    if (rclsid == CLSID_BigDriveShellFolder) {
-        BigDriveShellFolderFactory* pFactory = new (std::nothrow) BigDriveShellFolderFactory();
-        if (!pFactory) {
-            return E_OUTOFMEMORY;
-        }
+    CLSID* pclsid = nullptr;
+    BigDriveShellFolderFactory* pFactory = nullptr;
 
-        HRESULT hr = pFactory->QueryInterface(riid, ppv);
-        pFactory->Release(); // Release the initial reference held by the factory
-        return hr;
+    hrReturn = RegistrationManager::GetInstance().GetRegisteredCLSIDs(&pclsid);
+    if (FAILED(hrReturn))
+    {
+        return hrReturn;
     }
 
-    return CLASS_E_CLASSNOTAVAILABLE;
+    for (int i = 0; pclsid[i] != GUID_NULL; i++)
+    {
+        if (pclsid[i] == rclsid)
+        {
+            // The CLSID matches, create the factory, with the CLSID as the GUID
+            pFactory = new BigDriveShellFolderFactory(rclsid);
+            if (!pFactory) 
+            {
+                return E_OUTOFMEMORY;
+            }
+
+            hrReturn = pFactory->QueryInterface(riid, ppv);
+            if (FAILED(hrReturn))
+            {
+                goto End;
+            }
+
+            goto End;
+        }
+    }
+
+    hrReturn = CLASS_E_CLASSNOTAVAILABLE;
+
+End:
+
+    // Clean Up
+
+    if (pFactory)
+    {
+        pFactory->Release();
+        pFactory = nullptr;
+    }
+
+    if (pclsid)
+    {
+        CoTaskMemFree(pclsid);
+        pclsid = nullptr;
+    }
+
+    return hrReturn;
 }
 
 
