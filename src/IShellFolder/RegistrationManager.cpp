@@ -4,14 +4,23 @@
 
 #include "pch.h"
 
+// System
 #include <debugapi.h>
 #include <objbase.h>
 #include <sstream>
 #include <windows.h>
 
+// Header
 #include "RegistrationManager.h"
+ 
+// Local
+#include "LaunchDebugger.h"
+
+// BigDrive.Client
 #include "..\BigDrive.Client\BigDriveClientConfigurationProvider.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+
+// Shared
 #include "..\Shared\EventLogger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
@@ -50,31 +59,18 @@ HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
         hrReturn = GetConfiguration(guid, driveConfiguration);
         if (FAILED(hrReturn))
         {
-            WriteError(L"Failed to get drive configuration for drive: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-                guid.Data1,
-                guid.Data2,
-                guid.Data3,
-                guid.Data4[0], guid.Data4[1],
-                guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
+            WriteError(guid, L"Failed to get drive configuration for drive");
             break;
         }
 
         hrReturn = RegisterShellFolder(pGuids[index], driveConfiguration.name);
         if (FAILED(hrReturn))
         {
-            WriteError(
-                L"Failed to get drive configuration for drive: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-                guid.Data1,
-                guid.Data2,
-                guid.Data3,
-                guid.Data4[0], guid.Data4[1],
-                guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
+            WriteError(guid, L"Failed to register shell folder for drive.");
             break;
         }
 
-        WriteInfo(
-            L"Drive[{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}] Named: %s Regsitered As An IShellFolder",
-            driveConfiguration.name);
+        WriteInfoFormmated(guid, L"Named: %s Regsitered As An IShellFolder", driveConfiguration.name);
 
         ++index;
     }
@@ -84,6 +80,7 @@ End:
     if (pGuids)
     {
         ::CoTaskMemFree(pGuids);
+        pGuids = nullptr;
     }
 
     return hrReturn;
@@ -103,6 +100,7 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
     hrReturn = BigDriveClientConfigurationProvider::GetDriveGuids(&pGuids);
     if (FAILED(hrReturn))
     {
+        s_eventLogger.WriteErrorFormmated(L"Failed to get drive GUIDs from registry. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
@@ -110,6 +108,7 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
     *ppClsids = static_cast<CLSID*>(::CoTaskMemAlloc(sizeof(CLSID) * (index + 1)));
     if (*ppClsids == nullptr)
     {
+        s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for CLSIDs");
         hrReturn = E_OUTOFMEMORY;
         goto End;
     }
@@ -120,13 +119,14 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
     }
 
     // Null-terminate the array
-    (*ppClsids)[index] = GUID_NULL; 
+    (*ppClsids)[index] = GUID_NULL;
 
 End:
 
     if (pGuids)
     {
         ::CoTaskMemFree(pGuids);
+        pGuids = nullptr;
     }
 
     return hrReturn;
@@ -154,16 +154,9 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     std::wstring componentCategoryPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
 
     // Convert the GUID to a string
-    if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+    if (StringFromGUID(guid, guidString, ARRAYSIZE(guidString)) == 0)
     {
-        WriteError(
-            L"Failed to convert GUID to string: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-            guid.Data1,
-            guid.Data2,
-            guid.Data3,
-            guid.Data4[0], guid.Data4[1],
-            guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
-
+        WriteErrorFormmated(guid, L"Failed to convert GUID to string");
         return E_FAIL;
     }
 
@@ -171,7 +164,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (!GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), modulePath, MAX_PATH))
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to get module file name: %s, Error: %u", modulePath, dwLastError);
+        WriteErrorFormmated(guid, L"Failed to get module file name: %s, Error: %u", modulePath, dwLastError);
         return HRESULT_FROM_WIN32(dwLastError);
     }
 
@@ -181,7 +174,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -189,7 +182,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath), static_cast<DWORD>((wcslen(modulePath) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS))
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to set registry value: %s, Error: %u", modulePath, dwLastError);
+        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", modulePath, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -197,7 +190,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Apartment"), sizeof(L"Apartment")) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
+        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -213,7 +206,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -222,7 +215,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), sizeof(bstrName)) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
+        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -236,7 +229,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, componentCategoryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to create registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -245,7 +238,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hClsidKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
+        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -279,14 +272,7 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     // Convert the GUID to a string
     if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
     {
-        WriteError(
-            L"Failed to convert GUID to string: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-            guid.Data1,
-            guid.Data2,
-            guid.Data3,
-            guid.Data4[0], guid.Data4[1],
-            guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
-
+        WriteError(guid, L"Failed to convert GUID to string");
         return E_FAIL;
     }
 
@@ -295,7 +281,7 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, clsidPath.c_str()) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to delete registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
         hrReturn = HRESULT_FROM_WIN32(dwLastError);
     }
 
@@ -304,7 +290,7 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     if (::RegDeleteTreeW(HKEY_CURRENT_USER, namespacePath.c_str()) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to delete registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
         hrReturn = HRESULT_FROM_WIN32(dwLastError);
     }
 
@@ -313,33 +299,111 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath.c_str()) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteError(L"Failed to delete registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
         hrReturn = HRESULT_FROM_WIN32(dwLastError);
     }
 
     return hrReturn;
 }
 
-/// </ inheritdoc>
-HRESULT RegistrationManager::WriteError(LPCWSTR formatter, ...)
+/// <summary>
+/// Logs a formatted info message with the Drive Guid
+/// </summary>
+/// <param name="formatter">The format string for the error message.</param>
+/// <param name="...">The arguments for the format string.</param>
+/// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+HRESULT RegistrationManager::WriteInfoFormmated(GUID guid, LPCWSTR formatter, ...)
 {
     va_list args;
+
     va_start(args, formatter);
     wchar_t buffer[1024];
     ::vswprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), formatter, args);
     va_end(args);
 
-    return s_eventLogger.WriteErrorFormmated(buffer, EVENTLOG_ERROR_TYPE);
+    // Format the GUID components
+    wchar_t guidBuffer[128];
+    swprintf(
+        guidBuffer,
+        sizeof(guidBuffer) / sizeof(wchar_t),
+        L"[RegistrationManager] - Drive: {%08lX-%04X-%04X-%02X%02X-%02X%02X-%02X%02X-%02X%02X} ",
+        guid.Data1,
+        guid.Data2,
+        guid.Data3,
+        guid.Data4[0], guid.Data4[1],
+        guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
+    );
+
+    // Prepend the GUID to the error message
+    wchar_t finalBuffer[1024];
+    swprintf(
+        finalBuffer,
+        sizeof(finalBuffer) / sizeof(wchar_t),
+        L"%s%s",
+        guidBuffer,
+        buffer
+    );
+
+    return s_eventLogger.WriteInfo(finalBuffer);
 }
 
-/// </ inheritdoc>
-HRESULT RegistrationManager::WriteInfo(LPCWSTR formatter, ...)
+/// <summary>
+/// Logs an error message with the CLSID of the provider.
+/// </summary>
+/// <param name="message">The error message to log.</param>
+/// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+HRESULT RegistrationManager::WriteError(GUID guid, LPCWSTR message)
+{
+    return s_eventLogger.WriteErrorFormmated(
+        L"[RegistrationManager] - Provider: {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X} %s",
+        guid.Data1,
+        guid.Data2,
+        guid.Data3,
+        guid.Data4[0], guid.Data4[1],
+        guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7],
+        message);
+}
+
+/// <summary>
+/// Logs a formatted error message with the Drive Guid
+/// </summary>
+/// <param name="formatter">The format string for the error message.</param>
+/// <param name="...">The arguments for the format string.</param>
+/// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+HRESULT RegistrationManager::WriteErrorFormmated(GUID guid, LPCWSTR formatter, ...)
 {
     va_list args;
+
     va_start(args, formatter);
     wchar_t buffer[1024];
     ::vswprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), formatter, args);
     va_end(args);
 
-    return s_eventLogger.WriteInfo(buffer, EVENTLOG_ERROR_TYPE);
+    // Format the GUID components
+    wchar_t guidBuffer[128];
+    swprintf(
+        guidBuffer,
+        sizeof(guidBuffer) / sizeof(wchar_t),
+        L"[RegistrationManager] - Drive: {%08lX-%04X-%04X-%02X%02X-%02X%02X-%02X%02X-%02X%02X} ",
+        guid.Data1,
+        guid.Data2,
+        guid.Data3,
+        guid.Data4[0], guid.Data4[1],
+        guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
+    );
+
+    // Prepend the GUID to the error message
+    wchar_t finalBuffer[1024];
+    swprintf(
+        finalBuffer,
+        sizeof(finalBuffer) / sizeof(wchar_t),
+        L"%s%s",
+        guidBuffer,
+        buffer
+    );
+
+    return s_eventLogger.WriteError(finalBuffer);
 }
+
+
+

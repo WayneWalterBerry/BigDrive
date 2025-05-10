@@ -4,11 +4,16 @@
 
 #include "pch.h"
 
+// System
 #include <debugapi.h>
 #include <objbase.h>
 #include <sstream>
 #include <windows.h>
 
+// Header
+#include "dllmain.h"
+
+/// Local
 #include "BigDriveShellFolderFactory.h"
 #include "CLSIDs.h"
 #include "LaunchDebugger.h"
@@ -44,9 +49,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
-    ::LaunchDebugger();
+    // HRESULT hrReturn = RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
 
-    return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
+    return S_OK;
 }
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
@@ -74,7 +79,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv) 
 {
     HRESULT hrReturn = S_OK;
 
@@ -139,4 +144,16 @@ End:
     return hrReturn;
 }
 
+/// <summary>
+/// Retrieves a class object from the DLL for the specified CLSID.
+/// </summary>
+/// <param name="rclsid">The CLSID of the object to retrieve.</param>
+/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
+/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+
+extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObjectExport(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+{
+    return DllGetClassObject(rclsid, riid, ppv);
+}
 

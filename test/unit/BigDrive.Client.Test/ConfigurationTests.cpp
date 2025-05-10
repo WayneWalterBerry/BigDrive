@@ -43,7 +43,7 @@ namespace BigDriveClientTest
             GUID clsid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0x01, 0xF2 } };
             BSTR testName = ::SysAllocString(L"TestDrive");
 
-            hr = WriteDriveGuid(driveGuid, testName, clsid);
+            hr = BigDriveClientConfigurationProvider::WriteDriveGuid(driveGuid, testName, clsid);
             Assert::AreEqual(S_OK, hr);
 
             hr = ReadDriveGuid(driveGuid);
@@ -64,7 +64,7 @@ namespace BigDriveClientTest
             GUID clsid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0x01, 0xF2 } };
             BSTR testName = ::SysAllocString(L"TestDrive");
 
-            hr = WriteDriveGuid(driveGuid, testName, clsid);
+            hr = BigDriveClientConfigurationProvider::WriteDriveGuid(driveGuid, testName, clsid);
             Assert::AreEqual(S_OK, hr);
 
             GUID* pGuids = nullptr;
@@ -102,7 +102,7 @@ namespace BigDriveClientTest
 
             LPWSTR pszConfiguration = nullptr;
 
-            hr = WriteDriveGuid(driveGuid, testName, clsid);
+            hr = BigDriveClientConfigurationProvider::WriteDriveGuid(driveGuid, testName, clsid);
             Assert::AreEqual(S_OK, hr);
 
             hr = BigDriveConfigurationClient::GetDriveConfiguration(driveGuid, &pszConfiguration);
@@ -134,7 +134,7 @@ namespace BigDriveClientTest
 
             DriveConfiguration driveConfiguration;
 
-            hr = WriteDriveGuid(driveGuid, testName, clsid);
+            hr = BigDriveClientConfigurationProvider::WriteDriveGuid(driveGuid, testName, clsid);
             Assert::AreEqual(S_OK, hr);
 
             hr = BigDriveConfigurationClient::GetDriveConfiguration(driveGuid, driveConfiguration);
@@ -152,93 +152,6 @@ namespace BigDriveClientTest
         }
 
     private:
-
-        /// <summary>
-        /// Helper function to write a drive GUID to the registry.
-        /// </summary>
-        HRESULT WriteDriveGuid(const GUID& driveGuid, BSTR szName, const GUID& providerGuid)
-        {
-            HRESULT hrReturn = S_OK;
-            HKEY hKey = nullptr;
-            HKEY hSubKey = nullptr;
-
-            // Define the registry path
-            const std::wstring drivesRegistryPath = L"Software\\BigDrive\\Drives";
-
-            // Convert the GUID to a string
-            wchar_t szDriveGuid[39]; 
-            wchar_t szProviderId[39];
-
-            
-            // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-            hrReturn = StringFromGUID(driveGuid, szDriveGuid, ARRAYSIZE(szDriveGuid));
-            if (FAILED(hrReturn))
-            {
-                goto End;
-            }
-
-            // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-            hrReturn = StringFromGUID(providerGuid, szProviderId, ARRAYSIZE(szProviderId));
-            if (FAILED(hrReturn))
-            {
-                goto End;
-            }
-
-            // Open or create the registry key
-            LONG result = ::RegCreateKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
-            if (result != ERROR_SUCCESS)
-            {
-                hrReturn = HRESULT_FROM_WIN32(result);
-                goto End;
-            }
-
-            // Create a subkey for the GUID
-            result = ::RegCreateKeyEx(hKey, szDriveGuid, 0, nullptr, 0, KEY_WRITE, nullptr, &hSubKey, nullptr);
-            if (result != ERROR_SUCCESS)
-            {
-                hrReturn = HRESULT_FROM_WIN32(result);
-                goto End;
-            }
-
-            // Write the GUID value to the subkey
-            result = ::RegSetValueEx(hSubKey, L"Id", 0, REG_SZ, reinterpret_cast<const BYTE*>(szDriveGuid), (DWORD)((wcslen(szDriveGuid) + 1) * sizeof(wchar_t)));
-            if (result != ERROR_SUCCESS)
-            {
-                hrReturn = HRESULT_FROM_WIN32(result);
-                goto End;
-            }
-
-            /// Write the name value to the subkey
-            result = ::RegSetValueEx(hSubKey, L"Name", 0, REG_SZ, reinterpret_cast<const BYTE*>(szName), (DWORD)((wcslen(szName) + 1) * sizeof(wchar_t)));
-            if (result != ERROR_SUCCESS)
-            {
-                hrReturn = HRESULT_FROM_WIN32(result);
-                goto End;
-            }
-
-            /// Write the name value to the subkey
-            result = ::RegSetValueEx(hSubKey, L"CLSID", 0, REG_SZ, reinterpret_cast<const BYTE*>(szProviderId), (DWORD)((wcslen(szProviderId) + 1) * sizeof(wchar_t)));
-            if (result != ERROR_SUCCESS)
-            {
-                hrReturn = HRESULT_FROM_WIN32(result);
-                goto End;
-            }
-
-        End:
-
-            // Close the keys
-            if (hSubKey != nullptr)
-            {
-                ::RegCloseKey(hSubKey);
-            }
-
-            if (hKey != nullptr)
-            {
-                ::RegCloseKey(hKey);
-            }
-
-            return S_OK;
-        }
 
         /// <summary>
         /// Helper function to read drive GUID from the registry.

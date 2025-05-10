@@ -10,7 +10,7 @@
 /// <summary>
 /// Provides functionality to log messages to the Windows Event Viewer.
 /// </summary>
-class EventLogger
+class __declspec(dllexport) EventLogger
 {
 private:
     /// <summary>

@@ -20,7 +20,7 @@ namespace BigDrive.Service.ComObjects
     public class BigDriveConfiguration : ServicedComponent, IBigDriveConfiguration
     {
         private static readonly AssemblyResolver asssemblyResolver;
-        private static readonly TraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+        private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
         static BigDriveConfiguration()
         {
@@ -34,7 +34,22 @@ namespace BigDrive.Service.ComObjects
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
             {
-                DriveConfiguration driveConfiguration = ConfigurationProvider.ReadConfiguration(guid, cancellationTokenSource.Token);
+                DriveConfiguration driveConfiguration = default(DriveConfiguration);
+
+                try
+                {
+                    driveConfiguration = ConfigurationProvider.ReadConfiguration(guid, cancellationTokenSource.Token);
+                }
+                catch (InvalidOperationException)
+                {
+                    DefaultTraceSource.TraceError("BigDriveConfiguration::GetConfiguration() failed to read configuration for drive: {0}", guid);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    DefaultTraceSource.TraceError("BigDriveConfiguration::GetConfiguration() failed with exception: {0}", ex);
+                    throw;
+                }
 
                 string json = driveConfiguration.ToJson();
 

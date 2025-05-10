@@ -1,4 +1,4 @@
-// <copyright file="RegistrationManager.cpp" company="Wayne Walter Berry">
+// <copyright file="RegistrationManager.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -7,10 +7,13 @@
 #include <CommCtrl.h>
 #include <guiddef.h>
 
+// Local
 #include "DriveConfiguration.h"
-#include <EventLogger.h>
 
-class RegistrationManager
+// Shared
+#include "..\Shared\EventLogger.h"
+
+class __declspec(dllexport) RegistrationManager
 {
 private:
 
@@ -23,30 +26,33 @@ public:
     /// </summary>
     static RegistrationManager& GetInstance();
 
+    /// <summary>
+    /// Reads the registry to get all the drives and registers them as shell folders.
+    /// </summary>
+    /// <returns>HRESULT indicating success or failure</returns>
     HRESULT RegisterShellFoldersFromRegistry();
 
+    /// <summary>
+    /// Reads the Registry to get the CLSIDs of all registered shell folders.
+    /// </summary>
+    /// <param name="ppClsids">Return the CLSIDS to use for ShellFolders</param>
+    /// <returns>HRESULT indicating success or failure</returns>
     HRESULT GetRegisteredCLSIDs(CLSID** ppClsids);
 
+    /// <summary>
+    /// Register the shell folder with the given drive Guid.
+    /// </summary>
+    /// <param name="guid">Drive Guid</param>
+    /// <param name="bstrName">Display name</param>
+      /// <returns>HRESULT indicating success or failure</returns>
+    HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName);
+
 private:
-
-    // Private constructor to prevent direct instantiation
-    RegistrationManager() = default;
-
-    // Delete copy constructor and assignment operator to prevent copying
-    RegistrationManager(const RegistrationManager&) = delete;
-    RegistrationManager& operator=(const RegistrationManager&) = delete;
 
     /// <summary>
     /// Gets the configuration from the registry by calling the BigDriveConfiguration COM object.
     /// </summary>
     HRESULT GetConfiguration(GUID guid, DriveConfiguration& driveConfiguration);
-
-    /// <summary>
-    /// Register the shell folder with the given GUID.
-    /// </summary>
-    /// <param name="guid">Drive Guid</param>
-    /// <param name="bstrName">Display name</param>
-    HRESULT RegisterShellFolder(GUID guid, BSTR bstrName);
 
     /// <summary>
     /// Unregister the shell folder with the given GUID.
@@ -56,14 +62,28 @@ private:
     HRESULT UnregisterShellFolder(GUID guid);
 
     /// <summary>
-    /// Write a formatted error message to the Event Viewer
+    /// Logs a formatted info message with the Drive Guid
     /// </summary>
-    /// <param name="formatter">printf style formatter</param>
-    HRESULT WriteError(LPCWSTR formatter, ...);
+    /// <param name="guid">Drive Guid</param>
+    /// <param name="formatter">The format string for the error message.</param>
+    /// <param name="...">The arguments for the format string.</param>
+    /// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+    HRESULT WriteInfoFormmated(GUID guid, LPCWSTR formatter, ...);
 
     /// <summary>
-    /// Write a formatted info message to the Event Viewer
+    /// Logs a error message with the Drive Guid
     /// </summary>
-    /// <param name="formatter">printf style formatter</param>
-    HRESULT WriteInfo(LPCWSTR formatter, ...);
+    /// <param name="guid">Drive Guid</param>
+    /// <param name="message">The format string for the error message.</param>
+    /// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+    HRESULT WriteError(GUID guid, LPCWSTR message);
+
+    /// <summary>
+    /// Logs a formatted error message with the Drive Guid
+    /// </summary>
+    /// <param name="guid">Drive Guid</param>
+    /// <param name="formatter">The format string for the error message.</param>
+    /// <param name="...">The arguments for the format string.</param>
+    /// <returns>HRESULT indicating success or failure of the logging operation.</returns>
+    HRESULT WriteErrorFormmated(GUID guid, LPCWSTR formatter, ...);
 };
