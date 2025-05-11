@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service", "src\DTC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Interfaces", "src\Interfaces\BigDrive.Interfaces.csproj", "{28E4ADAF-11B9-4AFB-920E-F8384426E8D1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IShellFolder", "src\IShellFolder\IShellFolder.vcxproj", "{CA6D72A1-FEDF-4040-8CCF-9793437DAD97}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigDrive.ShellFolder", "src\IShellFolder\IShellFolder.vcxproj", "{CA6D72A1-FEDF-4040-8CCF-9793437DAD97}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.ConfigProvider", "src\ConfigProvider\BigDrive.ConfigProvider.csproj", "{5ECE5398-2C9B-4C69-87ED-3358F5722C0F}"
 EndProject
@@ -22,6 +22,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service.Test", "test\unit\BigDrive.Service.Test\BigDrive.Service.Test.csproj", "{BFCE7EB1-40A6-4EE2-BBA6-402AFFE4D05D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Sample", "src\BigDrive.Provider.Sample\BigDrive.Provider.Sample.csproj", "{F0FA4A78-1D5C-431F-B95D-1B112BFB939B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigDrive.ShellFolder.Test", "test\unit\BigDrive.ShellFolder.Test\BigDrive.ShellFolder.Test.vcxproj", "{99C46967-93A5-1213-D5E5-E33ECA04506E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -153,6 +155,18 @@ Global
 		{F0FA4A78-1D5C-431F-B95D-1B112BFB939B}.Release|x64.Build.0 = Release|Any CPU
 		{F0FA4A78-1D5C-431F-B95D-1B112BFB939B}.Release|x86.ActiveCfg = Release|Any CPU
 		{F0FA4A78-1D5C-431F-B95D-1B112BFB939B}.Release|x86.Build.0 = Release|Any CPU
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|Any CPU.Build.0 = Debug|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|x64.ActiveCfg = Debug|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|x64.Build.0 = Debug|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|x86.ActiveCfg = Debug|Win32
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Debug|x86.Build.0 = Debug|Win32
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|Any CPU.ActiveCfg = Release|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|Any CPU.Build.0 = Release|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|x64.ActiveCfg = Release|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|x64.Build.0 = Release|x64
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|x86.ActiveCfg = Release|Win32
+		{99C46967-93A5-1213-D5E5-E33ECA04506E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

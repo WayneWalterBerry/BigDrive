@@ -57,7 +57,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         public void ReadConfigurations_ValidInput_ReturnsConfigurations()
         {
             CancellationToken cancellationToken = CancellationToken.None;
-            var configurations = BigDrive.ConfigProvider.ConfigurationProvider.ReadConfigurations(cancellationToken);
+            var configurations = BigDrive.ConfigProvider.DriveManager.ReadConfigurations(cancellationToken);
             Assert.IsNotNull(configurations);
             Assert.IsTrue(configurations.GetEnumerator().MoveNext());
         }
@@ -71,7 +71,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         {
             Registry.CurrentUser.DeleteSubKeyTree(TestRegistryPath, false);
             CancellationToken cancellationToken = CancellationToken.None;
-            var configurations = BigDrive.ConfigProvider.ConfigurationProvider.ReadConfigurations(cancellationToken);
+            var configurations = BigDrive.ConfigProvider.DriveManager.ReadConfigurations(cancellationToken);
             Assert.IsNotNull(configurations);
             Assert.IsFalse(configurations.GetEnumerator().MoveNext());
         }
@@ -93,7 +93,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
                 subKey.SetValue("clsid", clsid);
             }
             CancellationToken cancellationToken = CancellationToken.None;
-            var configuration = BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(driveGuid, cancellationToken);
+            var configuration = BigDrive.ConfigProvider.DriveManager.ReadConfiguration(driveGuid, cancellationToken);
             Assert.IsNotNull(configuration);
             Assert.AreEqual(driveGuid, configuration.Id);
             Assert.AreEqual("TestDrive", configuration.Name);
@@ -109,7 +109,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         {
             Guid testGuid = Guid.NewGuid();
             CancellationToken cancellationToken = CancellationToken.None;
-            BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(testGuid, cancellationToken);
+            BigDrive.ConfigProvider.DriveManager.ReadConfiguration(testGuid, cancellationToken);
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
                 subKey.SetValue("clsid", Guid.NewGuid().ToString());
             }
             CancellationToken cancellationToken = CancellationToken.None;
-            BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(testGuid, cancellationToken);
+            BigDrive.ConfigProvider.DriveManager.ReadConfiguration(testGuid, cancellationToken);
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         public void ReadConfiguration_NullGuid_ThrowsException()
         {
             CancellationToken cancellationToken = CancellationToken.None;
-            BigDrive.ConfigProvider.ConfigurationProvider.ReadConfiguration(Guid.Empty, cancellationToken);
+            BigDrive.ConfigProvider.DriveManager.ReadConfiguration(Guid.Empty, cancellationToken);
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             };
 
             CancellationToken cancellationToken = CancellationToken.None;
-            BigDrive.ConfigProvider.ConfigurationProvider.WriteConfiguration(driveConfig, cancellationToken);
+            BigDrive.ConfigProvider.DriveManager.WriteConfiguration(driveConfig, cancellationToken);
             string subFolderRegistryPath = $@"{TestRegistryPath}\{driveConfig.Id:B}";
             using (RegistryKey subKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath))
             {
@@ -175,7 +175,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
         public void WriteConfiguration_NullDriveConfig_ThrowsException()
         {
             CancellationToken cancellationToken = CancellationToken.None;
-            BigDrive.ConfigProvider.ConfigurationProvider.WriteConfiguration(null, cancellationToken);
+            BigDrive.ConfigProvider.DriveManager.WriteConfiguration(null, cancellationToken);
         }
     }
 }

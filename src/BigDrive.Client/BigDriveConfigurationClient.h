@@ -4,13 +4,25 @@
 
 #pragma once
 
+// System
 #include <string>
 #include <wtypes.h>
 
+// Shared
+#include "..\Shared\EventLogger.h"
+
+// Local
 #include "DriveConfiguration.h"
 
 class BigDriveConfigurationClient
 {
+private:
+
+    /// <summary>
+    /// Static instance of EventLogger for logging events.
+    /// </summary>
+    static EventLogger s_eventLogger;
+
 public:
 
     /// <summary>

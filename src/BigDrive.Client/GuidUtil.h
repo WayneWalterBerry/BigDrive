@@ -41,7 +41,10 @@ namespace BigDriveClient
     HRESULT GUIDFromString(const wchar_t* wideStr, GUID* pGuid)
     {
         if (!wideStr || !pGuid)
-            return E_INVALIDARG;  // Return error if input is null
+        {
+            // Return error if input is null
+            return E_INVALIDARG;  
+        }
 
         // Parse GUID components manually
         int result = swscanf_s(wideStr, L"{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}",

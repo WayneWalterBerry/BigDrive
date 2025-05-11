@@ -13,13 +13,15 @@ namespace BigDrive.ConfigProvider
     using BigDrive.ConfigProvider.Model;
     using Microsoft.Win32;
 
-    public static class ConfigurationProvider
+    public static class DriveManager
     {
         /// <summary>
         /// Reads the Drives subfolder in the registry and iterates all subfolders, calling LoadConfiguration for each.
         /// </summary>
         public static IEnumerable<DriveConfiguration> ReadConfigurations(CancellationToken cancellationToken)
         {
+            System.Diagnostics.Debugger.Launch();
+
             string drivesRegistryPath = Path.Combine("Software\\BigDrive", "Drives");
 
             using (RegistryKey drivesKey = Registry.CurrentUser.OpenSubKey(@"Software\BigDrive\Drives"))
@@ -45,6 +47,8 @@ namespace BigDrive.ConfigProvider
         /// <param name="cancellationToken">Cancellation Token</param>
         public static DriveConfiguration ReadConfiguration(Guid guid, CancellationToken cancellationToken)
         {
+            System.Diagnostics.Debugger.Launch();
+
             if (guid== Guid.Empty)
             {
                 throw new ArgumentNullException(nameof(guid), "Guid cannot be empty.");

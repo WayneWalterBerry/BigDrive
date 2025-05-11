@@ -20,9 +20,9 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
-    <ProjectGuid>{0305FE5C-2AA3-DD6A-735E-60010E1E0428}</ProjectGuid>
+    <ProjectGuid>{99C46967-93A5-1213-D5E5-E33ECA04506E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>BigDriveClientTest</RootNamespace>
+    <RootNamespace>BigDriveShellFolderTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectSubType>NativeUnitTestProject</ProjectSubType>
   </PropertyGroup>
@@ -92,14 +92,15 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\BigDrive\src\BigDrive.Client;D:\BigDrive\src\BigDrive.Client\Interfaces\;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\BigDrive\src\BigDrive.Client\Interfaces;D:\BigDrive\src\BigDrive.Client;D:\BigDrive\src\IShellFolder;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\BigDrive\x64\Debug;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>BigDrive.Client.lib;BigDrive.ShellFolder.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -156,18 +157,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BigDriveConfigurationClientTests.cpp" />
-    <ClCompile Include="BigDriveInterfaceProviderTests.cpp" />
-    <ClCompile Include="BigDriveClientConfigurationManagerTests.cpp" />
-    <ClCompile Include="DriveConfigurationTests.cpp" />
-    <ClCompile Include="GuidUtilTests.cpp" />
+    <ClCompile Include="DllGetClassObjectTests.cpp" />
+    <ClCompile Include="DllRegisterServerTests.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="SampleProviderTests.cpp" />
+    <ClCompile Include="RegistrationManagerTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -175,6 +173,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\BigDrive.Client\BigDrive.Client.vcxproj">
       <Project>{9c7a549e-dcd2-4c94-809f-202063596f0d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\src\IShellFolder\IShellFolder.vcxproj">
+      <Project>{ca6d72a1-fedf-4040-8ccf-9793437dad97}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

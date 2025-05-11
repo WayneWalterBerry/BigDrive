@@ -51,7 +51,7 @@ namespace BigDrive.Unit.Service.Test
             CancellationToken cancellationToken = CancellationToken.None;
 
             // Write the configuration to the registry
-            ConfigurationProvider.WriteConfiguration(driveConfig, cancellationToken);
+            DriveManager.WriteConfiguration(driveConfig, cancellationToken);
 
             // Act
             var bigDriveConfiguration = new BigDriveConfiguration();

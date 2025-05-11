@@ -4,11 +4,16 @@
 
 #include "pch.h"
 
+// System
 #include <debugapi.h>
 #include <objbase.h>
 #include <sstream>
 #include <windows.h>
 
+// Header
+#include "dllmain.h"
+
+/// Local
 #include "BigDriveShellFolderFactory.h"
 #include "CLSIDs.h"
 #include "LaunchDebugger.h"
@@ -44,45 +49,104 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
-    // ::LaunchDebugger();
-
-    // return RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
+    // HRESULT hrReturn = RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
 
     return S_OK;
 }
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 {
-    // Unregister from My Computer namespace - CHANGED TO USE HKEY_CURRENT_USER
-    RegDeleteKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\{D4E5F6A7-B8C9-0123-4567-89ABCDEF1234}");
-
-    // Unregister CLSID_BigDriveShellFolder  
-    if (RegDeleteTreeW(HKEY_CLASSES_ROOT, L"CLSID\\D4E5F6A7-B8C9-0123-4567-89ABCDEF1234") == ERROR_SUCCESS) {
-        return S_OK;
-    }
-    return E_FAIL;
+    return S_OK;
 }
 
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+/// <summary>
+/// Retrieves a class object from a DLL for the specified CLSID.
+/// This function is typically implemented in a DLL that provides COM objects,
+/// allowing clients to obtain an IShellFolder instance.
+/// 
+/// Usage:
+/// Clients call DllGetClassObject() to retrieve an IClassFactory for IShellFolder,
+/// which is then used to instantiate the requested shell folder object.
+/// </summary>
+/// <param name="rclsid">The CLSID of the object to retrieve.</param>
+/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
+/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv) 
 {
-    if (ppv == nullptr) {
+    HRESULT hrReturn = S_OK;
+    CLSID* pclsid = nullptr;
+    DWORD dwSize = 0;
+    BigDriveShellFolderFactory* pFactory = nullptr;
+
+    ::LaunchDebugger();
+
+    if (ppv == nullptr) 
+    {
         return E_POINTER;
     }
 
-    *ppv = nullptr; // Ensure the output pointer is initialized to nullptr.
+    // Ensure the output pointer is initialized to nullptr.
+    *ppv = nullptr;
 
-    if (rclsid == CLSID_BigDriveShellFolder) {
-        BigDriveShellFolderFactory* pFactory = new (std::nothrow) BigDriveShellFolderFactory();
-        if (!pFactory) {
-            return E_OUTOFMEMORY;
-        }
-
-        HRESULT hr = pFactory->QueryInterface(riid, ppv);
-        pFactory->Release(); // Release the initial reference held by the factory
-        return hr;
+    hrReturn = RegistrationManager::GetInstance().GetRegisteredCLSIDs(&pclsid, dwSize);
+    if (FAILED(hrReturn))
+    {
+        return hrReturn;
     }
 
-    return CLASS_E_CLASSNOTAVAILABLE;
+    for (int i = 0; pclsid[i] != GUID_NULL; i++)
+    {
+        if (pclsid[i] == rclsid)
+        {
+            // The CLSID matches, create the factory, with the CLSID as the GUID
+            pFactory = new BigDriveShellFolderFactory(rclsid);
+            if (!pFactory) 
+            {
+                return E_OUTOFMEMORY;
+            }
+
+            hrReturn = pFactory->QueryInterface(riid, ppv);
+            if (FAILED(hrReturn))
+            {
+                goto End;
+            }
+
+            goto End;
+        }
+    }
+
+    hrReturn = CLASS_E_CLASSNOTAVAILABLE;
+
+End:
+
+    // Clean Up
+
+    if (pFactory)
+    {
+        pFactory->Release();
+        pFactory = nullptr;
+    }
+
+    if (pclsid)
+    {
+        CoTaskMemFree(pclsid);
+        pclsid = nullptr;
+    }
+
+    return hrReturn;
 }
 
+/// <summary>
+/// Retrieves a class object from the DLL for the specified CLSID.
+/// </summary>
+/// <param name="rclsid">The CLSID of the object to retrieve.</param>
+/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
+/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+
+extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObjectExport(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+{
+    return DllGetClassObject(rclsid, riid, ppv);
+}
 

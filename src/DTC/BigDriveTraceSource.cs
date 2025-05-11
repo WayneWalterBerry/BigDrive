@@ -38,5 +38,15 @@ namespace BigDrive.Service
             : base(SourceName)
         {
         }
+
+        /// <summary>
+        /// Trace a message with the specified event type and event ID.
+        /// </summary>
+        /// <param name="message">Message with Formatter</param>
+        /// <param name="args">Arguements to Formatter</param>
+        public void TraceError(string message, params object[] args)
+        {
+            TraceEvent(TraceEventType.Error, 0, message, args);
+        }
     }
 }
