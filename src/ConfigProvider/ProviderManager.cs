@@ -12,7 +12,7 @@ namespace BigDrive.ConfigProvider
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class ProviderManager
+    public class ProviderManager
     {
         /// <summary>
         /// Writes a ProviderConfiguration to the registry under the specified subfolder name.
@@ -37,7 +37,7 @@ namespace BigDrive.ConfigProvider
                 }
 
                 // Use reflection to get all properties of the ProviderConfiguration class
-                var properties = typeof(DriveConfiguration).GetProperties();
+                var properties = typeof(ProviderConfiguration).GetProperties();
 
                 foreach (var property in properties)
                 {
@@ -56,6 +56,25 @@ namespace BigDrive.ConfigProvider
                         // Write the value to the registry
                         subFolderKey.SetValue(registryValueName, propertyValue.ToString());
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads unregisters the provider.
+        /// </summary>
+        /// <param name="guidProvider">Provider Guid</param>
+        /// <param name="cancellationToken">Cancellation Token</param>
+        public static void UnRegisterProvider(Guid guidProvider, CancellationToken cancellationToken)
+        {
+            // Define the registry path for the specific subfolder
+            string subFolderRegistryPath = $@"Software\BigDrive\Provider\{{{guidProvider}}}";
+            using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath, true))
+            {
+                if (subFolderKey != null)
+                {
+                    // Delete the subfolder from the registry
+                    Registry.CurrentUser.DeleteSubKeyTree(subFolderRegistryPath, false);
                 }
             }
         }
