@@ -1,4 +1,4 @@
-// <copyright file="RegistrationManager.cpp" company="Wayne Walter Berry">
+﻿// <copyright file="RegistrationManager.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -154,9 +154,11 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     HRESULT hrReturn = S_OK;
     LSTATUS lResult;
 
-    wchar_t modulePath[MAX_PATH];
+    wchar_t szModulePath[MAX_PATH];
     HKEY hKey = nullptr;
     HKEY hClsidKey = nullptr;
+    const BYTE* lpData = nullptr;
+    DWORD cbSize = 0;
 
     // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
     wchar_t guidString[39];
@@ -169,15 +171,15 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     hrReturn = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
     if (FAILED(hrReturn))
     {
-        WriteErrorFormmated(guidDrive, L"Failed to convert GUID to string");
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", guidString);
         return hrReturn;
     }
 
     // Get the full path of the module
-    hrReturn = GetModuleFileNameW(modulePath, MAX_PATH);
+    hrReturn = GetModuleFileNameW(szModulePath, MAX_PATH);
     if (FAILED(hrReturn))
     {
-        WriteErrorFormmated(guidDrive, L"Failed to get module file name: %s, HRESULT: 0x%08X", modulePath, hrReturn);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to get module file name: %s, HRESULT: 0x%08X", szModulePath, hrReturn);
         return hrReturn;
     }
 
@@ -185,15 +187,18 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
 
-    if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath), static_cast<DWORD>((wcslen(modulePath) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS))
+    cbSize = static_cast<DWORD>((wcslen(szModulePath) + 1) * sizeof(wchar_t));
+    lpData = reinterpret_cast<const BYTE*>(szModulePath);
+    lResult = ::RegSetValueExW(hKey, nullptr, 0, REG_SZ, lpData, cbSize);
+    if (lResult != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", modulePath, dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", szModulePath, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -201,7 +206,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     if (::RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Apartment"), sizeof(L"Apartment")) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -217,7 +222,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -226,7 +231,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), sizeof(bstrName)) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -237,7 +242,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
         hKey = nullptr;
     }
 
-    lResult = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, 
+    lResult = ::RegOpenKeyExW(HKEY_CLASSES_ROOT,
         L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations",
         0, KEY_WRITE | KEY_WOW64_64KEY, &hKey);
     switch (lResult)
@@ -246,17 +251,42 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
         break;
     case ERROR_FILE_NOT_FOUND:
 
-        lResult = ::RegCreateKeyExW(HKEY_CLASSES_ROOT, 
-            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", 
+        lResult = ::RegCreateKeyExW(HKEY_CLASSES_ROOT,
+            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations",
             0, nullptr, 0, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr);
         switch (lResult)
         {
         case ERROR_SUCCESS:
             break;
         case ERROR_ACCESS_DENIED:
+            /// The TrustedInstaller is a built-in Windows security principal responsible 
+            /// for managing system files and updates. It is part of the Windows Modules 
+            /// Installer service and controls permissions for core operating system files.
+            /// 
+            /// Key Functions:
+            /// - Protects critical system files from unauthorized modifications.
+            /// - Manages Windows Update installations.
+            /// - Ensures system stability by restricting access to key components.
+            ///
+            /// Why It Restricts Access:
+            /// - Many system files are "owned" by TrustedInstaller.
+            /// - Even administrators may need to take ownership to modify certain files.
+            /// - Altering TrustedInstaller-protected files can lead to system instability.
+            ///
+            /// Changing Ownership (If Necessary):
+            /// - Right-click the file → Properties → Security tab → Advanced.
+            /// - Change Owner to an administrator or your user account.
+            /// - Grant Full Control permissions before modifying.
+            ///
+            /// Modifying files controlled by TrustedInstaller should be done cautiously, 
+            /// as improper changes can break Windows functionality.
+            WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Access Denied -- Failed to create registry key: %s, Error: %u",
+                L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", lResult);
+            hrReturn = E_FAIL;
+            goto End;
         default:
             DWORD dwLastError = GetLastError();
-            WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", 
+            WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u",
                 L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
             hrReturn = E_FAIL;
             goto End;
@@ -266,7 +296,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 
     default:
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to open registry key: %s, Error: %u", 
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to open registry key: %s, Error: %u",
             L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
         hrReturn = E_FAIL;
         goto End;
@@ -276,7 +306,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     if (::RegCreateKeyExW(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hClsidKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", guidString, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -383,10 +413,10 @@ HRESULT RegistrationManager::UnregisterShellFolders()
             result = ::RegQueryValueEx(hSubKey, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(inprocServerPath), &valueSize);
             if (result == ERROR_SUCCESS)
             {
-                // Check if the value contains "BigDrive"
-                if (wcsstr(inprocServerPath, L"BigDrive") != nullptr)
+                // Check if the value contains "BigDrive.ShellFolder"
+                if (wcsstr(inprocServerPath, L"BigDrive.ShellFolder") != nullptr)
                 {
-                    GUID guid;
+                    GUID guid = GUID_NULL;
 
                     hrReturn = GUIDFromString(szClsid, &guid);
                     if (FAILED(hrReturn))
@@ -398,7 +428,7 @@ HRESULT RegistrationManager::UnregisterShellFolders()
                     hrReturn = UnregisterShellFolder(guid);
                     if (FAILED(hrReturn))
                     {
-                        WriteErrorFormmated(guid, L"UnregisterShellFolder() failed to convert CLSID to GUID");
+                        WriteErrorFormmated(guid, L"UnregisterShellFolder() failed.");
                         break;
                     }
                 }
