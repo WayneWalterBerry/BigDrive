@@ -47,6 +47,10 @@ public:
       /// <returns>HRESULT indicating success or failure</returns>
     HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName);
 
+    HRESULT GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize);
+
+    HRESULT UnregisterShellFolders();
+
 private:
 
     /// <summary>

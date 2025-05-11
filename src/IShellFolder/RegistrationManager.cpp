@@ -91,7 +91,7 @@ End:
 /// Drive Ids are stored in the registry as GUIDs. This function retrieves the GUIDs
 /// of all registered drives, which are the same as the CLSIDs of the shell folders.
 /// </summary>
-HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids, DWORD &dwSize)
+HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids, DWORD& dwSize)
 {
     HRESULT hrReturn = S_OK;
     GUID* pGuids = nullptr;
@@ -135,10 +135,25 @@ HRESULT RegistrationManager::GetConfiguration(GUID guid, DriveConfiguration& dri
     return BigDriveConfigurationClient::GetDriveConfiguration(guid, driveConfiguration);
 }
 
+HRESULT RegistrationManager::GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize)
+{
+    // Get the full path of the module
+    if (!::GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), szModulePath, dwSize))
+    {
+        DWORD dwLastError = GetLastError();
+        s_eventLogger.WriteErrorFormmated(L"Failed to get module file name: %s, Error: %u", szModulePath, dwLastError);
+        return HRESULT_FROM_WIN32(dwLastError);
+    }
+
+    return S_OK;
+}
+
 /// </ inheritdoc>
-HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
+HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 {
     HRESULT hrReturn = S_OK;
+    LSTATUS lResult;
+
     wchar_t modulePath[MAX_PATH];
     HKEY hKey = nullptr;
     HKEY hClsidKey = nullptr;
@@ -151,27 +166,26 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     std::wstring componentCategoryPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
 
     // Convert the GUID to a string
-    if (StringFromGUID(guid, guidString, ARRAYSIZE(guidString)) == 0)
+    hrReturn = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
+    if (FAILED(hrReturn))
     {
-        WriteErrorFormmated(guid, L"Failed to convert GUID to string");
-        return E_FAIL;
+        WriteErrorFormmated(guidDrive, L"Failed to convert GUID to string");
+        return hrReturn;
     }
 
     // Get the full path of the module
-    if (!GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), modulePath, MAX_PATH))
+    hrReturn = GetModuleFileNameW(modulePath, MAX_PATH);
+    if (FAILED(hrReturn))
     {
-        DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to get module file name: %s, Error: %u", modulePath, dwLastError);
-        return HRESULT_FROM_WIN32(dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to get module file name: %s, HRESULT: 0x%08X", modulePath, hrReturn);
+        return hrReturn;
     }
-
-    // Register CLSID_BigDriveShellFolder
 
     clsidPath = L"CLSID\\" + std::wstring(guidString) + L"\\InprocServer32";
     if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -179,7 +193,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath), static_cast<DWORD>((wcslen(modulePath) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS))
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", modulePath, dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", modulePath, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -187,7 +201,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>(L"Apartment"), sizeof(L"Apartment")) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -203,7 +217,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -212,7 +226,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), sizeof(bstrName)) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -223,10 +237,37 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
         hKey = nullptr;
     }
 
-    if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, componentCategoryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
+    lResult = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, 
+        L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations",
+        0, KEY_WRITE | KEY_WOW64_64KEY, &hKey);
+    switch (lResult)
     {
+    case ERROR_SUCCESS:
+        break;
+    case ERROR_FILE_NOT_FOUND:
+
+        lResult = ::RegCreateKeyExW(HKEY_CLASSES_ROOT, 
+            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", 
+            0, nullptr, 0, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr);
+        switch (lResult)
+        {
+        case ERROR_SUCCESS:
+            break;
+        case ERROR_ACCESS_DENIED:
+        default:
+            DWORD dwLastError = GetLastError();
+            WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", 
+                L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
+            hrReturn = E_FAIL;
+            goto End;
+        }
+
+        break;
+
+    default:
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to open registry key: %s, Error: %u", 
+            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -235,7 +276,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guid, BSTR bstrName)
     if (::RegCreateKeyExW(hKey, guidString, 0, nullptr, 0, KEY_WRITE, nullptr, &hClsidKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
+        WriteErrorFormmated(guidDrive, L"Failed to create registry key: %s, Error: %u", guidString, dwLastError);
         hrReturn = E_FAIL;
         goto End;
     }
@@ -302,6 +343,90 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
 
     return hrReturn;
 }
+
+/// <summary>
+/// Iterate All Shell Folders and remove the BigDrive ones.
+/// </summary>
+/// <returns></returns>
+HRESULT RegistrationManager::UnregisterShellFolders()
+{
+    HRESULT hrReturn = S_OK;
+
+    HKEY hKey = nullptr;
+    DWORD index = 0;
+    WCHAR szClsid[256];
+    DWORD subKeyNameSize = ARRAYSIZE(szClsid);
+
+    // Open the CLSID registry key
+    LONG result = RegOpenKeyEx(HKEY_CLASSES_ROOT, L"CLSID", 0, KEY_READ, &hKey);
+    if (result != ERROR_SUCCESS)
+    {
+        return HRESULT_FROM_WIN32(result);
+    }
+
+    // Enumerate all subkeys under CLSID
+    while (::RegEnumKeyEx(hKey, index, szClsid, &subKeyNameSize, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS)
+    {
+        HKEY hSubKey = nullptr;
+        WCHAR inprocServerPath[512];
+        DWORD valueSize = sizeof(inprocServerPath);
+
+        // Construct the path to the InprocServer32 subkey
+        WCHAR inprocServerKeyPath[512];
+        swprintf_s(inprocServerKeyPath, ARRAYSIZE(inprocServerKeyPath), L"CLSID\\%s\\InprocServer32", szClsid);
+
+        // Open the InprocServer32 subkey
+        result = ::RegOpenKeyEx(HKEY_CLASSES_ROOT, inprocServerKeyPath, 0, KEY_READ, &hSubKey);
+        if (result == ERROR_SUCCESS)
+        {
+            // Query the default value of the InprocServer32 subkey
+            result = ::RegQueryValueEx(hSubKey, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(inprocServerPath), &valueSize);
+            if (result == ERROR_SUCCESS)
+            {
+                // Check if the value contains "BigDrive"
+                if (wcsstr(inprocServerPath, L"BigDrive") != nullptr)
+                {
+                    GUID guid;
+
+                    hrReturn = GUIDFromString(szClsid, &guid);
+                    if (FAILED(hrReturn))
+                    {
+                        WriteErrorFormmated(guid, L"CleanUpShellFolders() failed to convert CLSID to GUID");
+                        break;
+                    }
+
+                    hrReturn = UnregisterShellFolder(guid);
+                    if (FAILED(hrReturn))
+                    {
+                        WriteErrorFormmated(guid, L"UnregisterShellFolder() failed to convert CLSID to GUID");
+                        break;
+                    }
+                }
+            }
+
+            // Close the subkey
+            if (hSubKey)
+            {
+                ::RegCloseKey(hSubKey);
+                hSubKey = nullptr;
+            }
+        }
+
+        // Reset the subKeyNameSize and increment the index
+        subKeyNameSize = ARRAYSIZE(szClsid);
+        ++index;
+    }
+
+    // Close the CLSID key
+    if (hKey)
+    {
+        ::RegCloseKey(hKey);
+        hKey = nullptr;
+    }
+
+    return hrReturn;
+}
+
 
 /// <summary>
 /// Logs a formatted info message with the Drive Guid

@@ -56,14 +56,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 {
-    // Unregister from My Computer namespace - CHANGED TO USE HKEY_CURRENT_USER
-    RegDeleteKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\{D4E5F6A7-B8C9-0123-4567-89ABCDEF1234}");
-
-    // Unregister CLSID_BigDriveShellFolder  
-    if (RegDeleteTreeW(HKEY_CLASSES_ROOT, L"CLSID\\D4E5F6A7-B8C9-0123-4567-89ABCDEF1234") == ERROR_SUCCESS) {
-        return S_OK;
-    }
-    return E_FAIL;
+    return S_OK;
 }
 
 /// <summary>
