@@ -7,6 +7,7 @@ namespace BigDrive.Provider.Sample
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
     using BigDrive.ConfigProvider.Model;
@@ -15,10 +16,13 @@ namespace BigDrive.Provider.Sample
     {
        public static BigDrive.ConfigProvider.Model.ProviderConfiguration Create()
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            AssemblyTitleAttribute titleAttribute = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
+
             return new ProviderConfiguration
             {
                 Id = Provider.CLSID,
-                Name = typeof(Provider).Name
+                Name = titleAttribute.Title
             };
         }
     }

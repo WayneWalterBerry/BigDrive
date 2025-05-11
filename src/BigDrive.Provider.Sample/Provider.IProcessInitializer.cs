@@ -17,12 +17,19 @@ namespace BigDrive.Provider.Sample
     {
         static ProviderConfiguration providerConfiguration = ProviderConfigurationFactory.Create();
 
+        /// <summary>
+        /// This method is called when the COM++  Service shutdown the provider
+        /// </summary>
+        /// <param name="punkProcessControl">In Microsoft Windows XP, a pointer to the IUnknown interface of the COM component starting up. In Microsoft Windows 2000, this argument is always null.
+        /// </param>
         public void Startup(object punkProcessControl)
         {
-            System.Diagnostics.Debugger.Launch();
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
         }
 
+        /// <summary>
+        /// This method is called when the COM++ Service shutdown the provider
+        /// </summary>
         public void Shutdown()
         {
             ProviderManager.UnRegisterProvider(providerConfiguration.Id, CancellationToken.None);

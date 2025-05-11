@@ -47,8 +47,6 @@ namespace BigDrive.ConfigProvider
         /// <param name="cancellationToken">Cancellation Token</param>
         public static DriveConfiguration ReadConfiguration(Guid guid, CancellationToken cancellationToken)
         {
-            System.Diagnostics.Debugger.Launch();
-
             if (guid== Guid.Empty)
             {
                 throw new ArgumentNullException(nameof(guid), "Guid cannot be empty.");

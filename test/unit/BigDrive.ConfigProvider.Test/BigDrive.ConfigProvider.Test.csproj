@@ -52,8 +52,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConfigurationProviderTests.cs" />
+    <Compile Include="DriveManagerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProviderManagerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

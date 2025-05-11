@@ -15,7 +15,7 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
     /// to manage drive configurations.
     /// </summary>
     [TestClass]
-    public class ConfigurationProviderTests
+    public class DriveManagerTests
     {
         private const string TestRegistryPath = @"Software\BigDrive\Drives";
 

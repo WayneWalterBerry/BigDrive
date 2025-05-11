@@ -19,6 +19,8 @@ namespace BigDrive.ConfigProvider
         /// </summary>
         /// <param name="providerConfig">The Provider object to write.</param>
         /// <param name="cancellationToken">Cancellation Token</param>
+        /// <remarks>The BigDrive Shell Folder implementation reads the Software\BigDrive\Provider register subkeys to determine if the COM++ 
+        /// object is installed.  These providers are called by the BigDrive Shell Folder implementation.</remarks>
         public static void RegisterProvider(ProviderConfiguration providerConfig, CancellationToken cancellationToken)
         {
             if (providerConfig == null)
@@ -27,7 +29,7 @@ namespace BigDrive.ConfigProvider
             }
 
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Provider\{{{providerConfig.Id}}}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{providerConfig.Id}}}";
 
             using (RegistryKey subFolderKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
             {
@@ -68,7 +70,7 @@ namespace BigDrive.ConfigProvider
         public static void UnRegisterProvider(Guid guidProvider, CancellationToken cancellationToken)
         {
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Provider\{{{guidProvider}}}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{guidProvider}}}";
             using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath, true))
             {
                 if (subFolderKey != null)
