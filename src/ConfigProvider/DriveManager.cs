@@ -13,7 +13,7 @@ namespace BigDrive.ConfigProvider
     using BigDrive.ConfigProvider.Model;
     using Microsoft.Win32;
 
-    public static class ConfigurationProvider
+    public static class DriveManager
     {
         /// <summary>
         /// Reads the Drives subfolder in the registry and iterates all subfolders, calling LoadConfiguration for each.

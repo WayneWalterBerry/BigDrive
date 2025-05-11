@@ -37,7 +37,7 @@ public:
     /// </summary>
     /// <param name="ppClsids">Return the CLSIDS to use for ShellFolders</param>
     /// <returns>HRESULT indicating success or failure</returns>
-    HRESULT GetRegisteredCLSIDs(CLSID** ppClsids);
+    HRESULT GetRegisteredCLSIDs(CLSID** ppClsids, DWORD& dwSize);
 
     /// <summary>
     /// Register the shell folder with the given drive Guid.

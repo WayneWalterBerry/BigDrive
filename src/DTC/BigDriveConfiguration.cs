@@ -38,7 +38,7 @@ namespace BigDrive.Service.ComObjects
 
                 try
                 {
-                    driveConfiguration = ConfigurationProvider.ReadConfiguration(guid, cancellationTokenSource.Token);
+                    driveConfiguration = DriveManager.ReadConfiguration(guid, cancellationTokenSource.Token);
                 }
                 catch (InvalidOperationException)
                 {

@@ -82,6 +82,9 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv) 
 {
     HRESULT hrReturn = S_OK;
+    CLSID* pclsid = nullptr;
+    DWORD dwSize = 0;
+    BigDriveShellFolderFactory* pFactory = nullptr;
 
     ::LaunchDebugger();
 
@@ -93,10 +96,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
     // Ensure the output pointer is initialized to nullptr.
     *ppv = nullptr;
 
-    CLSID* pclsid = nullptr;
-    BigDriveShellFolderFactory* pFactory = nullptr;
-
-    hrReturn = RegistrationManager::GetInstance().GetRegisteredCLSIDs(&pclsid);
+    hrReturn = RegistrationManager::GetInstance().GetRegisteredCLSIDs(&pclsid, dwSize);
     if (FAILED(hrReturn))
     {
         return hrReturn;

@@ -12,12 +12,12 @@
 
 // Header
 #include "RegistrationManager.h"
- 
+
 // Local
 #include "LaunchDebugger.h"
 
 // BigDrive.Client
-#include "..\BigDrive.Client\BigDriveClientConfigurationProvider.h"
+#include "..\BigDrive.Client\BigDriveClientConfigurationManager.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 
 // Shared
@@ -40,17 +40,18 @@ HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
 {
     HRESULT hrReturn = S_OK;
     GUID* pGuids = nullptr;
+    DWORD dwSize = 0;
     DWORD index = 0;
 
     // Get the drive GUIDs from the registry
-    hrReturn = BigDriveClientConfigurationProvider::GetDriveGuids(&pGuids);
+    hrReturn = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
     if (FAILED(hrReturn))
     {
         goto End;
     }
 
     // Register each drive
-    while (pGuids[index] != GUID_NULL)
+    for (DWORD i = 0; i < dwSize; ++i)
     {
         GUID guid = pGuids[index];
         DriveConfiguration driveConfiguration;
@@ -90,14 +91,13 @@ End:
 /// Drive Ids are stored in the registry as GUIDs. This function retrieves the GUIDs
 /// of all registered drives, which are the same as the CLSIDs of the shell folders.
 /// </summary>
-HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
+HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids, DWORD &dwSize)
 {
     HRESULT hrReturn = S_OK;
     GUID* pGuids = nullptr;
-    DWORD index = 0;
 
     // Get the Drive GUIDs from the registry
-    hrReturn = BigDriveClientConfigurationProvider::GetDriveGuids(&pGuids);
+    hrReturn = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to get drive GUIDs from registry. HRESULT: 0x%08X", hrReturn);
@@ -105,7 +105,7 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
     }
 
     // Convert GUIDs to CLSIDs
-    *ppClsids = static_cast<CLSID*>(::CoTaskMemAlloc(sizeof(CLSID) * (index + 1)));
+    *ppClsids = static_cast<CLSID*>(::CoTaskMemAlloc(sizeof(CLSID) * dwSize));
     if (*ppClsids == nullptr)
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for CLSIDs");
@@ -113,13 +113,10 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids)
         goto End;
     }
 
-    for (DWORD i = 0; i < index; ++i)
+    for (DWORD i = 0; i < dwSize; ++i)
     {
         (*ppClsids)[i] = pGuids[i];
     }
-
-    // Null-terminate the array
-    (*ppClsids)[index] = GUID_NULL;
 
 End:
 
