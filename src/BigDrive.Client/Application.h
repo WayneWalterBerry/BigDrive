@@ -8,32 +8,20 @@
 #include <comdef.h>
 
 // Local
-#include "COM.h"
+#include "Dispatch.h"
 
-class Application : COM
+class Application : Dispatch
 {
-private:
-
-    LPDISPATCH m_pDispatch;
 
 public:
 
     Application(LPDISPATCH pDispatch)
-        : m_pDispatch(pDispatch)
+        : Dispatch(pDispatch)
     {
-        if (m_pDispatch)
-        {
-            m_pDispatch->AddRef();
-        }
     }
 
     ~Application()
     {
-        if (m_pDispatch)
-        {
-            m_pDispatch->Release();
-            m_pDispatch = nullptr;
-        }
     }
 
     HRESULT GetAppId(BSTR& bstrString);

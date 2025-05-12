@@ -64,7 +64,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
     dwSize = 0;
 
     // Populate the Applications collection
-    hrReturn = Populate(m_pDispatch);
+    hrReturn = Populate(m_pIDispatch);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -73,7 +73,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
 
     // Retrieve the count of applications
     LONG lCount;
-    hrReturn = COM::GetLongProperty(m_pDispatch, L"Count", lCount);
+    hrReturn = GetLongProperty(L"Count", lCount);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to retrieve application count. HRESULT: 0x%08X", hrReturn);
@@ -96,7 +96,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
         const OLECHAR* szMethodName = L"Item";
 
         // Get the DISPID for the Item property
-        hrReturn = m_pDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
+        hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get DISPID for Item property. HRESULT: 0x%08X", hrReturn);
@@ -113,7 +113,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
         VariantInit(&vtCollection);
 
         // Invoke the Item property to retrieve the application
-        hrReturn = m_pDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
+        hrReturn = m_pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to invoke Item property for index %ld. HRESULT: 0x%08X", i, hrReturn);

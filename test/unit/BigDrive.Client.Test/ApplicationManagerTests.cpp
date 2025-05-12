@@ -16,7 +16,7 @@
 #include "BigDriveConfigurationClient.h"
 #include "IBigDriveConfiguration.h"
 #include "GuidUtil.h"
-#include "COM.h"
+#include "Dispatch.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace BigDriveClient;

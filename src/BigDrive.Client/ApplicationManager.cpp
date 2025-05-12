@@ -14,7 +14,7 @@
 #include "ApplicationManager.h"
 
 // Local
-#include "COM.h"
+#include "Dispatch.h"
 
 // Initialize the static EventLogger instance
 EventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");

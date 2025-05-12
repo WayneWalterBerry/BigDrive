@@ -12,7 +12,7 @@
 
 // Local
 #include "Application.h"
-#include "COM.h"
+#include "Dispatch.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationCollectionTests.h"
@@ -20,7 +20,7 @@
 /// <summary>
 /// Collection of COM+ applications.
 /// </summary>
-class ApplicationCollection : COM
+class ApplicationCollection : Dispatch
 {
 private:
 
@@ -29,34 +29,22 @@ private:
     /// </summary>
     static EventLogger s_eventLogger;
 
-    LPDISPATCH  m_pDispatch;
-
     /// <summary>
     /// Array of Applications
     /// </summary>
-    Application **m_ppApplications;
+    Application **m_ppApplications = nullptr;
     DWORD       m_dwSize = 0;
 
 public:
 
     ApplicationCollection(LPDISPATCH pDispatch)
-        : m_pDispatch(pDispatch), m_ppApplications(nullptr)
+        : Dispatch(pDispatch), m_ppApplications(nullptr)
     {
-        if (m_pDispatch)
-        {
-            m_pDispatch->AddRef();
-        }
     }
 
     ~ApplicationCollection()
     {
-        if (m_pDispatch)
-        {
-            m_pDispatch->Release();
-            m_pDispatch = nullptr;
-        }
-
-        if (*m_ppApplications != nullptr)
+        if (m_ppApplications != nullptr)
         {
             for (DWORD j = 0; j < m_dwSize; j++)
             {
@@ -73,6 +61,33 @@ public:
 
     HRESULT Initialize();
 
+    /// <summary>
+    /// Returns The Count Of Applications In The Collection 
+    /// </summary>
+    HRESULT GetCount(LONG& lCount)
+    {
+        HRESULT hrReturn = Populate(m_pIDispatch);
+        if (FAILED(hrReturn))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+            return hrReturn;
+        }
+
+        return GetLongProperty(L"Count", lCount);
+    }
+
+    HRESULT GetName(BSTR& bstrName)
+    {
+        HRESULT hrReturn = Populate(m_pIDispatch);
+        if (FAILED(hrReturn))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+            return hrReturn;
+        }
+
+        return GetStringProperty(L"Name", bstrName);
+    }
+
     friend class BigDriveClientTest::ApplicationCollectionTests;
 
 private :
@@ -82,33 +97,6 @@ private :
     /// </summary>
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
     static HRESULT Populate(LPDISPATCH pDispatch);
-
-    /// <summary>
-    /// Returns The Count Of Applications In The Collection 
-    /// </summary>
-    HRESULT GetCount(LONG& lCount)
-    {
-        HRESULT hrReturn = Populate(m_pDispatch);
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-            return hrReturn;
-        }
-
-        return COM::GetLongProperty(m_pDispatch, L"Count", lCount);
-    }
-
-    HRESULT GetName(BSTR& bstrName)
-    {
-        HRESULT hrReturn = Populate(m_pDispatch);
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-            return hrReturn;
-        }
-
-        return COM::GetStringProperty(m_pDispatch, L"Name", bstrName);
-    }
 
     HRESULT GetApplications(Application*** pppApplications, DWORD& dwSize);
 };

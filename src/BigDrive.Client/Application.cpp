@@ -9,5 +9,5 @@
 
 HRESULT Application::GetAppId(BSTR& bstrString)
 {
-    return COM::GetStringProperty(m_pDispatch, L"AppID", bstrString);
+    return GetStringProperty(L"AppID", bstrString);
 }

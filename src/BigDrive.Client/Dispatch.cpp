@@ -1,4 +1,4 @@
-// <copyright file="COM.cpp" company="Wayne Walter Berry">
+// <copyright file="Dispatch.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -8,13 +8,13 @@
 #include <comdef.h>
 
 // Header
-#include "COM.h"
+#include "Dispatch.h"
 
-HRESULT COM::GetProperty(IDispatch* pIDispatch, LPCWSTR szName, VARIANT* pValue)
+HRESULT Dispatch::GetProperty(LPCWSTR szName, VARIANT* pValue)
 {
     HRESULT hrReturn = S_OK;
 
-    if (!pIDispatch || !szName || !pValue)
+    if (!szName || !pValue)
     {
         return E_POINTER;
     }
@@ -28,13 +28,13 @@ HRESULT COM::GetProperty(IDispatch* pIDispatch, LPCWSTR szName, VARIANT* pValue)
     // Get the property name
     LPOLESTR pOleStrName = ::SysAllocString(szName);
 
-    hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&pOleStrName), 1, LOCALE_USER_DEFAULT, &dispid);
+    hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&pOleStrName), 1, LOCALE_USER_DEFAULT, &dispid);
     if (FAILED(hrReturn))
     {
         goto End;
     }
     // Invoke the property
-    hrReturn = pIDispatch->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &vtResult, nullptr, nullptr);
+    hrReturn = m_pIDispatch->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &vtResult, nullptr, nullptr);
     if (FAILED(hrReturn))
     {
         goto End;
@@ -54,12 +54,12 @@ End:
     return hrReturn;
 }
 
-HRESULT COM::GetStringProperty(IDispatch* pIDispatch, LPCWSTR szName, BSTR& bstrString)
+HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
 {
     HRESULT hrReturn = S_OK;
     VARIANT vtValue;
 
-    if (!pIDispatch || !szName || !bstrString)
+    if (!szName || !bstrString)
     {
         return E_POINTER;
     }
@@ -67,7 +67,7 @@ HRESULT COM::GetStringProperty(IDispatch* pIDispatch, LPCWSTR szName, BSTR& bstr
     ::VariantInit(&vtValue);
 
     // Get the property value
-    hrReturn = GetProperty(pIDispatch, szName, &vtValue);
+    hrReturn = GetProperty(szName, &vtValue);
     if (FAILED(hrReturn))
     {
         goto End;
@@ -92,12 +92,12 @@ End:
     return hrReturn;
 }
 
-HRESULT COM::GetLongProperty(IDispatch* pIDispatch, LPCWSTR szName, LONG& value)
+HRESULT Dispatch::GetLongProperty(LPCWSTR szName, LONG& value)
 {
     HRESULT hrReturn = S_OK;
     VARIANT vtValue;
 
-    if (!pIDispatch || !szName)
+    if (!szName)
     {
         return E_POINTER;
     }
@@ -105,7 +105,7 @@ HRESULT COM::GetLongProperty(IDispatch* pIDispatch, LPCWSTR szName, LONG& value)
     ::VariantInit(&vtValue);
 
     // Get the property value
-    hrReturn = GetProperty(pIDispatch, szName, &vtValue);
+    hrReturn = GetProperty(szName, &vtValue);
     if (FAILED(hrReturn))
     {
         goto End;
