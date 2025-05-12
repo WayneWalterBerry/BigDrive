@@ -29,7 +29,10 @@ namespace BigDrive.ConfigProvider
             }
 
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{providerConfig.Id}}}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{providerConfig.Id.ToString().ToUpper()}}}";
+
+            // Clear the SubKey In ProviderConfiguration different properties since the last write.
+            Registry.CurrentUser.DeleteSubKeyTree(subFolderRegistryPath, throwOnMissingSubKey: false);
 
             using (RegistryKey subFolderKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
             {
@@ -55,6 +58,12 @@ namespace BigDrive.ConfigProvider
 
                     if (propertyValue != null)
                     {
+                        if (propertyValue is Guid guidValue)
+                        {
+                            // Convert the Guid to a string representation
+                            propertyValue = $"{{{guidValue.ToString().ToUpper()}}}";
+                        }
+
                         // Write the value to the registry
                         subFolderKey.SetValue(registryValueName, propertyValue.ToString());
                     }
@@ -70,7 +79,7 @@ namespace BigDrive.ConfigProvider
         public static void UnRegisterProvider(Guid guidProvider, CancellationToken cancellationToken)
         {
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{guidProvider}}}";
+            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{guidProvider.ToString().ToUpper()}}}";
             using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath, true))
             {
                 if (subFolderKey != null)

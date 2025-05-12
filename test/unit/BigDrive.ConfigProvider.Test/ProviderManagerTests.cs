@@ -1,21 +1,37 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using BigDrive.ConfigProvider;
-using BigDrive.ConfigProvider.Model;
-using Microsoft.Win32;
-using System;
-using System.Threading;
+// <copyright file="ProviderManagerTests.cs" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
+// <summary>
+// Unit tests for the ProviderManager class in the BigDrive.ConfigProvider namespace.
+// These tests validate the functionality of registering and unregistering providers
+// in the Windows registry under the HKEY_CURRENT_USER hive.
+// </summary>
 
 namespace BigDrive.Unit.ConfigurationProvider.Test
 {
+    using System;
+    using System.Threading;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using BigDrive.ConfigProvider;
+    using BigDrive.ConfigProvider.Model;
+    using Microsoft.Win32;
+
+    /// <summary>
+    /// Unit tests for the ProviderManager class.
+    /// These tests ensure that providers are correctly registered and unregistered
+    /// in the Windows registry under the HKEY_CURRENT_USER hive.
+    /// </summary>
     [TestClass]
     public class ProviderManagerTests
     {
         private const string TestRegistryBasePath = @"Software\BigDrive\Providers";
 
+        /// <summary>
+        /// Cleans up the test registry path after each test to ensure a clean state.
+        /// </summary>
         [TestCleanup]
         public void Cleanup()
         {
-            // Clean up the test registry path after each test
             using (RegistryKey baseKey = Registry.CurrentUser.OpenSubKey(TestRegistryBasePath, true))
             {
                 if (baseKey != null)
@@ -25,6 +41,9 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             }
         }
 
+        /// <summary>
+        /// Tests that a valid ProviderConfiguration is correctly written to the registry.
+        /// </summary>
         [TestMethod]
         public void RegisterProvider_ValidProviderConfiguration_WritesToRegistry()
         {
@@ -47,6 +66,9 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             }
         }
 
+        /// <summary>
+        /// Tests that passing a null ProviderConfiguration to RegisterProvider throws an ArgumentNullException.
+        /// </summary>
         [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
         public void RegisterProvider_NullProviderConfiguration_ThrowsArgumentNullException()
@@ -55,6 +77,9 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             ProviderManager.RegisterProvider(null, CancellationToken.None);
         }
 
+        /// <summary>
+        /// Tests that a valid provider GUID is correctly unregistered from the registry.
+        /// </summary>
         [TestMethod]
         public void UnRegisterProvider_ValidGuid_DeletesRegistryKey()
         {
@@ -78,6 +103,9 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
             }
         }
 
+        /// <summary>
+        /// Tests that attempting to unregister a non-existent provider GUID does not throw an exception.
+        /// </summary>
         [TestMethod]
         public void UnRegisterProvider_NonExistentGuid_DoesNotThrow()
         {

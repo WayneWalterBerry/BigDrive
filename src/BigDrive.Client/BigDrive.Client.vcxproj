@@ -141,10 +141,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\EventLogger.h" />
+    <ClInclude Include="ApplicationCollection.h" />
+    <ClInclude Include="ApplicationManager.h" />
     <ClInclude Include="BigDriveClientConfigurationManager.h" />
     <ClInclude Include="BigDriveConfigurationClient.h" />
     <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
+    <ClInclude Include="COM.h" />
+    <ClInclude Include="Application.h" />
     <ClInclude Include="DriveConfiguration.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GuidUtil.h" />
@@ -157,10 +161,14 @@
     <ClCompile Include="..\Shared\EventLogger.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ApplicationCollection.cpp" />
+    <ClCompile Include="ApplicationManager.cpp" />
     <ClCompile Include="BigDriveClientConfigurationManager.cpp" />
     <ClCompile Include="BigDriveConfigurationClient.cpp" />
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderFactory.cpp" />
+    <ClCompile Include="COM.cpp" />
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DriveConfiguration.cpp" />
     <ClCompile Include="pch.cpp">
