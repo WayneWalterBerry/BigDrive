@@ -11,11 +11,16 @@
 // Initialize the static EventLogger instance
 EventLogger ApplicationCollection::s_eventLogger(L"BigDrive.Client");
 
+HRESULT ApplicationCollection::Initialize()
+{
+    return GetApplications(&m_ppApplications, m_dwSize);
+}
+
 /// <summary>
 /// Populates the specified COM+ collection by invoking the "Populate" method.
 /// </summary>
 /// <returns>HRESULT indicating success or failure of the operation.</returns>
-HRESULT ApplicationCollection::Populate()
+HRESULT ApplicationCollection::Populate(LPDISPATCH pDispatch)
 {
     HRESULT hrReturn = S_OK;
 
@@ -25,7 +30,7 @@ HRESULT ApplicationCollection::Populate()
 
     // Get the DISPID for the "Populate" method
     LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
-    hrReturn = m_pDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
+    hrReturn = pDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -33,7 +38,7 @@ HRESULT ApplicationCollection::Populate()
     }
 
     // Invoke the "Populate" method
-    hrReturn = m_pDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+    hrReturn = pDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -59,7 +64,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
     dwSize = 0;
 
     // Populate the Applications collection
-    hrReturn = Populate();
+    hrReturn = Populate(m_pDispatch);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);

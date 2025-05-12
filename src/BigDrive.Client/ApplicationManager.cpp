@@ -206,7 +206,6 @@ End:
     return hrReturn;
 }
 
-
 HRESULT ApplicationManager::GetNames(IDispatch* pDispatch, BSTR** ppNames, UINT* pCount)
 {
     if (!pDispatch || !ppNames || !pCount)

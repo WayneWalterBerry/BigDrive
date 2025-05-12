@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationCollectionTests.cpp" />
     <ClCompile Include="ApplicationManagerTests.cpp" />
     <ClCompile Include="BigDriveConfigurationClientTests.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderTests.cpp" />
@@ -171,6 +172,8 @@
     <ClCompile Include="SampleProviderTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationCollectionTests.h" />
+    <ClInclude Include="ApplicationManagerTests.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

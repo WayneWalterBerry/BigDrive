@@ -14,6 +14,8 @@
 #include "Application.h"
 #include "COM.h"
 
+// Forward Declarations Of Test Classes
+#include "..\..\test\unit\BigDrive.Client.Test\ApplicationCollectionTests.h"
 
 /// <summary>
 /// Collection of COM+ applications.
@@ -27,9 +29,13 @@ private:
     /// </summary>
     static EventLogger s_eventLogger;
 
-    LPDISPATCH  m_pDispatch
-        ;
-    Application** m_ppApplications;
+    LPDISPATCH  m_pDispatch;
+
+    /// <summary>
+    /// Array of Applications
+    /// </summary>
+    Application **m_ppApplications;
+    DWORD       m_dwSize = 0;
 
 public:
 
@@ -49,20 +55,40 @@ public:
             m_pDispatch->Release();
             m_pDispatch = nullptr;
         }
+
+        if (*m_ppApplications != nullptr)
+        {
+            for (DWORD j = 0; j < m_dwSize; j++)
+            {
+                if (m_ppApplications[j] != nullptr)
+                {
+                    delete (m_ppApplications)[j];
+                }
+            }
+            ::CoTaskMemFree(m_ppApplications);
+            m_ppApplications = nullptr;
+            m_dwSize = 0;
+        }
     }
+
+    HRESULT Initialize();
+
+    friend class BigDriveClientTest::ApplicationCollectionTests;
+
+private :
 
     /// <summary>
     /// Populates the specified COM+ collection by invoking the "Populate" method.
     /// </summary>
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
-    HRESULT Populate();
+    static HRESULT Populate(LPDISPATCH pDispatch);
 
     /// <summary>
     /// Returns The Count Of Applications In The Collection 
     /// </summary>
     HRESULT GetCount(LONG& lCount)
     {
-        HRESULT hrReturn = Populate();
+        HRESULT hrReturn = Populate(m_pDispatch);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -74,7 +100,7 @@ public:
 
     HRESULT GetName(BSTR& bstrName)
     {
-        HRESULT hrReturn = Populate();
+        HRESULT hrReturn = Populate(m_pDispatch);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
