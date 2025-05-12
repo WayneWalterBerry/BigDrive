@@ -91,7 +91,7 @@ namespace BigDriveClientTest
             // Act
             Application** ppApplications = nullptr;
             DWORD dwSize = 0;
-            hrReturn = applicationCollection.GetApplications(&ppApplications, dwSize);
+            hrReturn = applicationCollection.GetApplications(pDispatch , &ppApplications, dwSize);
 
             // Assert
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplications() failed.");

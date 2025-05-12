@@ -98,5 +98,5 @@ private :
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
     static HRESULT Populate(LPDISPATCH pDispatch);
 
-    HRESULT GetApplications(Application*** pppApplications, DWORD& dwSize);
+    static HRESULT GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD& dwSize);
 };

@@ -13,14 +13,14 @@ EventLogger ApplicationCollection::s_eventLogger(L"BigDrive.Client");
 
 HRESULT ApplicationCollection::Initialize()
 {
-    return GetApplications(&m_ppApplications, m_dwSize);
+    return GetApplications(m_pIDispatch, &m_ppApplications, m_dwSize);
 }
 
 /// <summary>
 /// Populates the specified COM+ collection by invoking the "Populate" method.
 /// </summary>
 /// <returns>HRESULT indicating success or failure of the operation.</returns>
-HRESULT ApplicationCollection::Populate(LPDISPATCH pDispatch)
+HRESULT ApplicationCollection::Populate(LPDISPATCH pIDispatch)
 {
     HRESULT hrReturn = S_OK;
 
@@ -30,7 +30,7 @@ HRESULT ApplicationCollection::Populate(LPDISPATCH pDispatch)
 
     // Get the DISPID for the "Populate" method
     LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
-    hrReturn = pDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
+    hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -38,7 +38,7 @@ HRESULT ApplicationCollection::Populate(LPDISPATCH pDispatch)
     }
 
     // Invoke the "Populate" method
-    hrReturn = pDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+    hrReturn = pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -55,7 +55,7 @@ End:
     return hrReturn;
 }
 
-HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, DWORD &dwSize)
+HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD &dwSize)
 {
     HRESULT hrReturn = S_OK;
 
@@ -63,8 +63,10 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
 
     dwSize = 0;
 
+    Dispatch dispatch(pIDispatch);
+
     // Populate the Applications collection
-    hrReturn = Populate(m_pIDispatch);
+    hrReturn = Populate(pIDispatch);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -73,7 +75,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
 
     // Retrieve the count of applications
     LONG lCount;
-    hrReturn = GetLongProperty(L"Count", lCount);
+    hrReturn = dispatch.GetLongProperty(L"Count", lCount);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to retrieve application count. HRESULT: 0x%08X", hrReturn);
@@ -96,7 +98,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
         const OLECHAR* szMethodName = L"Item";
 
         // Get the DISPID for the Item property
-        hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
+        hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get DISPID for Item property. HRESULT: 0x%08X", hrReturn);
@@ -113,7 +115,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, D
         VariantInit(&vtCollection);
 
         // Invoke the Item property to retrieve the application
-        hrReturn = m_pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
+        hrReturn = pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to invoke Item property for index %ld. HRESULT: 0x%08X", i, hrReturn);
