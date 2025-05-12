@@ -38,6 +38,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.EnterpriseServices" />
     <Reference Include="System.Xml.Linq" />
@@ -48,18 +49,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Provider.BigDriveRoot.cs" />
+    <Compile Include="Provider.IBigDriveRoot.cs" />
     <Compile Include="Provider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Provider.IProcessInitializer.cs" />
+    <Compile Include="ProviderConfigurationFactory.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\BigDrive.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
+      <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
+      <Name>BigDrive.ConfigProvider</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Interfaces\BigDrive.Interfaces.csproj">
       <Project>{28e4adaf-11b9-4afb-920e-f8384426e8d1}</Project>
       <Name>BigDrive.Interfaces</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\BigDrive.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

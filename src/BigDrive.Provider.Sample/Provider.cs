@@ -2,6 +2,8 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
+
+
 namespace BigDrive.Provider.Sample
 {
     using BigDrive.Interfaces;
@@ -13,7 +15,21 @@ namespace BigDrive.Provider.Sample
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
     [ComVisible(true)] // Make the class visible to COM
     public partial class Provider : ServicedComponent,
+        IProcessInitializer,
         IBigDriveRoot
     {
+        public static Guid CLSID
+        {
+            get
+            {
+                // Get the type of the Provider class
+                Type providerType = typeof(Provider);
+
+                // Get the GuidAttribute applied to the Provider class
+                GuidAttribute guidAttribute = (GuidAttribute)Attribute.GetCustomAttribute(providerType, typeof(GuidAttribute));
+
+                return Guid.Parse(guidAttribute.Value);
+            }
+        }
     }
 }
