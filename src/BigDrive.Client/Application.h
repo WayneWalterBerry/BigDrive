@@ -8,15 +8,18 @@
 #include <comdef.h>
 
 // Local
-#include "Dispatch.h"
+#include "CatalogCollection.h"
 
-class Application : Dispatch
+// Forward Declarations Of Test Classes
+#include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
+
+class Application : CatalogCollection
 {
 
 public:
 
     Application(LPDISPATCH pDispatch)
-        : Dispatch(pDispatch)
+        : CatalogCollection(pDispatch)
     {
     }
 
@@ -24,5 +27,9 @@ public:
     {
     }
 
-    HRESULT GetAppId(BSTR& bstrString);
+    HRESULT GetName(BSTR& bstrString);
+
+    HRESULT GetComponentsCLSIDs(CLSID** ppCLSIDs, long& lSize);
+
+    friend class BigDriveClientTest::ApplicationTests;
 };

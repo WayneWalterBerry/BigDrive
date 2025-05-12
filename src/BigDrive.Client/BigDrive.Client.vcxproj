@@ -147,6 +147,7 @@
     <ClInclude Include="BigDriveConfigurationClient.h" />
     <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
+    <ClInclude Include="CatalogCollection.h" />
     <ClInclude Include="Dispatch.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="DriveConfiguration.h" />
@@ -167,6 +168,7 @@
     <ClCompile Include="BigDriveConfigurationClient.cpp" />
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderFactory.cpp" />
+    <ClCompile Include="CatalogCollection.cpp" />
     <ClCompile Include="Dispatch.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="dllmain.cpp" />

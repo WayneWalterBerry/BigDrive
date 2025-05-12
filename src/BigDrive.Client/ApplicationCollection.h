@@ -12,7 +12,7 @@
 
 // Local
 #include "Application.h"
-#include "Dispatch.h"
+#include "CatalogCollection.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationCollectionTests.h"
@@ -20,25 +20,20 @@
 /// <summary>
 /// Collection of COM+ applications.
 /// </summary>
-class ApplicationCollection : Dispatch
+class ApplicationCollection : CatalogCollection
 {
 private:
 
     /// <summary>
-    /// Static instance of EventLogger for logging events.
-    /// </summary>
-    static EventLogger s_eventLogger;
-
-    /// <summary>
     /// Array of Applications
     /// </summary>
-    Application **m_ppApplications = nullptr;
+    Application** m_ppApplications = nullptr;
     DWORD       m_dwSize = 0;
 
 public:
 
     ApplicationCollection(LPDISPATCH pDispatch)
-        : Dispatch(pDispatch), m_ppApplications(nullptr)
+        : CatalogCollection(pDispatch), m_ppApplications(nullptr)
     {
     }
 
@@ -61,6 +56,18 @@ public:
 
     HRESULT Initialize();
 
+    HRESULT GetName(BSTR& bstrName)
+    {
+        HRESULT hrReturn = Populate(m_pIDispatch);
+        if (FAILED(hrReturn))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+            return hrReturn;
+        }
+
+        return GetStringProperty(L"Name", bstrName);
+    }
+
     /// <summary>
     /// Returns The Count Of Applications In The Collection 
     /// </summary>
@@ -76,21 +83,17 @@ public:
         return GetLongProperty(L"Count", lCount);
     }
 
-    HRESULT GetName(BSTR& bstrName)
-    {
-        HRESULT hrReturn = Populate(m_pIDispatch);
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-            return hrReturn;
-        }
-
-        return GetStringProperty(L"Name", bstrName);
-    }
+    /// <summary>
+    /// Provides access to an Application object at the specified index.
+    /// </summary>
+    /// <param name="index">The zero-based index of the Application to retrieve.</param>
+    /// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
+    HRESULT GetItem(size_t index, Application** ppApplication) const;
 
     friend class BigDriveClientTest::ApplicationCollectionTests;
 
-private :
+private:
 
     /// <summary>
     /// Populates the specified COM+ collection by invoking the "Populate" method.

@@ -8,12 +8,36 @@
 #include "ApplicationCollection.h"
 #include "ApplicationManager.h"
 
-// Initialize the static EventLogger instance
-EventLogger ApplicationCollection::s_eventLogger(L"BigDrive.Client");
-
 HRESULT ApplicationCollection::Initialize()
 {
-    return GetApplications(m_pIDispatch, &m_ppApplications, m_dwSize);
+    if (m_ppApplications == nullptr)
+    {
+        return GetApplications(m_pIDispatch, &m_ppApplications, m_dwSize);
+    }
+
+    return S_OK;
+}
+
+/// <summary>
+/// Provides access to an Application object at the specified index.
+/// </summary>
+/// <param name="index">The zero-based index of the Application to retrieve.</param>
+/// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
+/// <returns>HRESULT indicating success or failure of the operation.</returns>
+HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication) const
+{
+    if (ppApplication == nullptr)
+    {
+        return E_POINTER;
+    }
+
+    if (index >= m_dwSize || m_ppApplications == nullptr)
+    {
+        return E_BOUNDS; // Index out of range or array uninitialized
+    }
+
+    *ppApplication = m_ppApplications[index];
+    return S_OK;
 }
 
 /// <summary>
@@ -55,7 +79,7 @@ End:
     return hrReturn;
 }
 
-HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD &dwSize)
+HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD& dwSize)
 {
     HRESULT hrReturn = S_OK;
 
