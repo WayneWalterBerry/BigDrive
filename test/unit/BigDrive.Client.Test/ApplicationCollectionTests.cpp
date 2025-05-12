@@ -53,7 +53,7 @@ namespace BigDriveClientTest
 
             ApplicationCollection applicationCollection = ApplicationCollection(pDispatch);
 
-            hrReturn = applicationCollection.Populate(pDispatch);
+            hrReturn = applicationCollection.Populate();
             Assert::IsTrue(SUCCEEDED(hrReturn), L"Populate() failed.");
 
             LONG lCount;
@@ -90,15 +90,15 @@ namespace BigDriveClientTest
 
             // Act
             Application** ppApplications = nullptr;
-            DWORD dwSize = 0;
-            hrReturn = applicationCollection.GetApplications(pDispatch , &ppApplications, dwSize);
+            LONG lSize = 0;
+            hrReturn = applicationCollection.GetApplications(&ppApplications, lSize);
 
             // Assert
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplications() failed.");
 
             if (*ppApplications != nullptr)
             {
-                for (DWORD j = 0; j < dwSize; j++)
+                for (LONG j = 0; j < lSize; j++)
                 {
                     if (ppApplications[j] != nullptr)
                     {
@@ -107,7 +107,7 @@ namespace BigDriveClientTest
                 }
                 ::CoTaskMemFree(ppApplications);
                 ppApplications = nullptr;
-                dwSize = 0;
+                lSize = 0;
             }
         }
 

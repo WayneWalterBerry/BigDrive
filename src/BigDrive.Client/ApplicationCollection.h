@@ -28,7 +28,7 @@ private:
     /// Array of Applications
     /// </summary>
     Application** m_ppApplications = nullptr;
-    DWORD       m_dwSize = 0;
+    LONG       m_lSize = 0;
 
 public:
 
@@ -41,7 +41,7 @@ public:
     {
         if (m_ppApplications != nullptr)
         {
-            for (DWORD j = 0; j < m_dwSize; j++)
+            for (LONG j = 0; j < m_lSize; j++)
             {
                 if (m_ppApplications[j] != nullptr)
                 {
@@ -50,7 +50,7 @@ public:
             }
             ::CoTaskMemFree(m_ppApplications);
             m_ppApplications = nullptr;
-            m_dwSize = 0;
+            m_lSize = 0;
         }
     }
 
@@ -58,7 +58,7 @@ public:
 
     HRESULT GetName(BSTR& bstrName)
     {
-        HRESULT hrReturn = Populate(m_pIDispatch);
+        HRESULT hrReturn = Populate();
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -73,7 +73,7 @@ public:
     /// </summary>
     HRESULT GetCount(LONG& lCount)
     {
-        HRESULT hrReturn = Populate(m_pIDispatch);
+        HRESULT hrReturn = Populate();
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -95,11 +95,5 @@ public:
 
 private:
 
-    /// <summary>
-    /// Populates the specified COM+ collection by invoking the "Populate" method.
-    /// </summary>
-    /// <returns>HRESULT indicating success or failure of the operation.</returns>
-    static HRESULT Populate(LPDISPATCH pDispatch);
-
-    static HRESULT GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD& dwSize);
+    HRESULT GetApplications(Application*** pppApplications, LONG& lSize);
 };

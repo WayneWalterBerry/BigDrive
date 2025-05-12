@@ -12,7 +12,7 @@ HRESULT ApplicationCollection::Initialize()
 {
     if (m_ppApplications == nullptr)
     {
-        return GetApplications(m_pIDispatch, &m_ppApplications, m_dwSize);
+        return GetApplications(&m_ppApplications, m_lSize);
     }
 
     return S_OK;
@@ -31,7 +31,7 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
         return E_POINTER;
     }
 
-    if (index >= m_dwSize || m_ppApplications == nullptr)
+    if (index >= m_lSize || m_ppApplications == nullptr)
     {
         return E_BOUNDS; // Index out of range or array uninitialized
     }
@@ -40,57 +40,14 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
     return S_OK;
 }
 
-/// <summary>
-/// Populates the specified COM+ collection by invoking the "Populate" method.
-/// </summary>
-/// <returns>HRESULT indicating success or failure of the operation.</returns>
-HRESULT ApplicationCollection::Populate(LPDISPATCH pIDispatch)
+HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
 {
     HRESULT hrReturn = S_OK;
 
-    DISPPARAMS params = { nullptr, nullptr, 0, 0 };
-    DISPID dispidPopulate;
-    const OLECHAR* populateMethod = L"Populate";
-
-    // Get the DISPID for the "Populate" method
-    LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
-    hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-    // Invoke the "Populate" method
-    hrReturn = pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-End:
-
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Operation failed. HRESULT: 0x%08X", hrReturn);
-    }
-
-    return hrReturn;
-}
-
-HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Application*** pppApplications, DWORD& dwSize)
-{
-    HRESULT hrReturn = S_OK;
-
-    IDispatch* pCollection = nullptr;
-
-    dwSize = 0;
-
-    Dispatch dispatch(pIDispatch);
+    lSize = 0;
 
     // Populate the Applications collection
-    hrReturn = Populate(pIDispatch);
+    hrReturn = Populate();
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
@@ -98,16 +55,15 @@ HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Applicatio
     }
 
     // Retrieve the count of applications
-    LONG lCount;
-    hrReturn = dispatch.GetLongProperty(L"Count", lCount);
+    hrReturn = GetCount(lSize);
     if (FAILED(hrReturn))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to retrieve application count. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of applications. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
-    // Allocate memory for the IDispatch pointers
-    *pppApplications = (Application**)::CoTaskMemAlloc(sizeof(Application*) * lCount);
+    // Allocate memory for the Application Instances
+    *pppApplications = (Application**)::CoTaskMemAlloc(sizeof(Application*) * lSize);
     if (*pppApplications == nullptr)
     {
         hrReturn = E_OUTOFMEMORY;
@@ -116,13 +72,13 @@ HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Applicatio
     }
 
     // Retrieve each application and store its IDispatch pointer
-    for (long i = 0; i < lCount; i++)
+    for (long i = 0; i < lSize; i++)
     {
         DISPID dispidItem;
         const OLECHAR* szMethodName = L"Item";
 
         // Get the DISPID for the Item property
-        hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
+        hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get DISPID for Item property. HRESULT: 0x%08X", hrReturn);
@@ -139,7 +95,7 @@ HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Applicatio
         VariantInit(&vtCollection);
 
         // Invoke the Item property to retrieve the application
-        hrReturn = pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
+        hrReturn = m_pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to invoke Item property for index %ld. HRESULT: 0x%08X", i, hrReturn);
@@ -154,7 +110,6 @@ HRESULT ApplicationCollection::GetApplications(LPDISPATCH pIDispatch, Applicatio
 
         // Store the IDispatch pointer in the array
         (*pppApplications)[i] = new Application(vtCollection.pdispVal);
-        dwSize++;
     }
 
     goto End;
@@ -164,7 +119,7 @@ CleanupArray:
     // Cleanup allocated memory and release IDispatch pointers on failure
     if (*pppApplications != nullptr)
     {
-        for (DWORD j = 0; j < dwSize; j++)
+        for (DWORD j = 0; j < lSize; j++)
         {
             if ((*pppApplications)[j] != nullptr)
             {
@@ -173,16 +128,10 @@ CleanupArray:
         }
         ::CoTaskMemFree(*pppApplications);
         *pppApplications = nullptr;
-        dwSize = 0;
+        lSize = 0;
     }
 
 End:
-    if (pCollection)
-    {
-        pCollection->Release();
-        pCollection = nullptr;
-    }
-
 
     return hrReturn;
 }

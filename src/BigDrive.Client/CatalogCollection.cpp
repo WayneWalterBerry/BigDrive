@@ -10,7 +10,7 @@
 // Initialize the static EventLogger instance
 EventLogger CatalogCollection::s_eventLogger(L"BigDrive.Client");
 
-HRESULT CatalogCollection::Populate(LPDISPATCH pIDispatch)
+HRESULT CatalogCollection::Populate()
 {
     HRESULT hrReturn = S_OK;
 
@@ -20,7 +20,7 @@ HRESULT CatalogCollection::Populate(LPDISPATCH pIDispatch)
 
     // Get the DISPID for the "Populate" method
     LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
-    hrReturn = pIDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
+    hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -28,7 +28,7 @@ HRESULT CatalogCollection::Populate(LPDISPATCH pIDispatch)
     }
 
     // Invoke the "Populate" method
-    hrReturn = pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+    hrReturn = m_pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -43,4 +43,9 @@ End:
     }
 
     return hrReturn;
+}
+
+HRESULT CatalogCollection::GetCount(LONG lCount)
+{
+    return GetLongProperty(L"Count", lCount);
 }

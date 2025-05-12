@@ -1,3 +1,7 @@
+// <copyright file="CatalogCollection.h" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
+
 #pragma once
 
 // Local
@@ -24,5 +28,7 @@ public:
     {
     }
 
-    HRESULT Populate(LPDISPATCH pIDispatch);
+    HRESULT Populate();
+
+    HRESULT GetCount(LONG lCount);
 };
