@@ -19,17 +19,14 @@ class Application : public CatalogObject
 
 public:
 
-    Application(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
-        : CatalogObject(pCOMAdminCatalog, pDispatch)
+    Application(LPDISPATCH pDispatch)
+        : CatalogObject( pDispatch)
     {
     }
 
     ~Application()
     {
     }
-
-
-    HRESULT GetComponentCollection(ComponentCollection** ppComponentCollection);
 
     friend class BigDriveClientTest::ApplicationTests;
 };

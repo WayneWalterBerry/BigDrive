@@ -66,6 +66,11 @@ namespace BigDriveClientTest
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetId() failed.");
             ::SysFreeString(bstrId);
 
+            BSTR bstrKey;
+            hrReturn = pApplication->GetKey(bstrKey);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetKey() failed.");
+            ::SysFreeString(bstrKey);
+
             delete pApplicationCollection;
         }
 
@@ -99,7 +104,7 @@ namespace BigDriveClientTest
             ::SysFreeString(bstrTypeLibrary);
 
             ComponentCollection* pComponentCollection = nullptr;
-            hrReturn = pApplication->GetComponentCollection(&pComponentCollection);
+            hrReturn = pCOMAdminCatalog->GetComponentCollection(pApplication, &pComponentCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetComponents() failed.");
 
 

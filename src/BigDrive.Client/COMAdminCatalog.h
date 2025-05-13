@@ -32,5 +32,5 @@ public:
     
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);
 
-    HRESULT GetComponentsCollection(BSTR appKey, IDispatch** pIDispatch);
+    HRESULT GetComponentCollection(Application *pApplication, ComponentCollection **ppComponentCollection);
 };

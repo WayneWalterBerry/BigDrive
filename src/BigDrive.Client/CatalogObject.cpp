@@ -17,6 +17,11 @@ HRESULT CatalogObject::GetId(BSTR& bstrId)
     return GetValue(L"ID", bstrId);
 }
 
+HRESULT CatalogObject::GetKey(BSTR& bstrKey)
+{
+    return GetValue(L"Key", bstrKey);
+}
+
 HRESULT CatalogObject::GetDescription(BSTR& bstrDescription)
 {
     return GetValue(L"Description", bstrDescription);

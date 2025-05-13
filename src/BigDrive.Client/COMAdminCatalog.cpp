@@ -88,7 +88,7 @@ HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApp
         goto End;
     }
 
-    *ppApplicationCollection = new ApplicationCollection(this, vtCollections.pdispVal);
+    *ppApplicationCollection = new ApplicationCollection(vtCollections.pdispVal);
 
 End:
 
@@ -110,9 +110,10 @@ End:
 #include <oaidl.h>
 #include <iostream>
 
-HRESULT COMAdminCatalog::GetComponentsCollection(BSTR appKey, IDispatch** pIDispatch)
+HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, ComponentCollection** ppComponentCollection)
 {
-    if (!appKey || !pIDispatch)
+    HRESULT hr = S_OK;
+    if (!pApplication || !ppComponentCollection)
     {
         return E_POINTER;
     }
@@ -123,7 +124,14 @@ HRESULT COMAdminCatalog::GetComponentsCollection(BSTR appKey, IDispatch** pIDisp
     DISPID dispidGetCollection;
     LPOLESTR methodName = ::SysAllocString(L"GetCollection");
 
-    HRESULT hr = m_pIDispatch->GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
+    BSTR bstrAppId;
+    hr = pApplication->GetId(bstrAppId);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    hr = m_pIDispatch->GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
     if (FAILED(hr))
     {
         return hr;
@@ -137,7 +145,7 @@ HRESULT COMAdminCatalog::GetComponentsCollection(BSTR appKey, IDispatch** pIDisp
     varCollectionName.vt = VT_BSTR;
     varCollectionName.bstrVal = ::SysAllocString(L"Components");
     varKey.vt = VT_BSTR;
-    varKey.bstrVal = appKey; // Pass the application's key
+    varKey.bstrVal = bstrAppId; // Pass the application's key
 
     DISPPARAMS params = { new VARIANT[2]{ varCollectionName, varKey }, nullptr, 2, 0 };
     VARIANT varResult;
@@ -151,8 +159,7 @@ HRESULT COMAdminCatalog::GetComponentsCollection(BSTR appKey, IDispatch** pIDisp
         goto End;
     }
 
-    *pIDispatch = varResult.pdispVal;
-    (*pIDispatch)->AddRef();
+    *ppComponentCollection = new ComponentCollection(varResult.pdispVal);
 
 End:
 

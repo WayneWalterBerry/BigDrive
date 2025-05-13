@@ -10,22 +10,17 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
-// Forward Declarations
-class COMAdminCatalog;
-
 class COMAdmin : public Dispatch
 {
 
 protected:
 
-    COMAdminCatalog* m_pCOMAdminCatalog;
 
 public:
 
-    COMAdmin(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
+    COMAdmin(LPDISPATCH pDispatch)
         : Dispatch(pDispatch)
     {
-        m_pCOMAdminCatalog = pCOMAdminCatalog;
     }
 
     ~COMAdmin()

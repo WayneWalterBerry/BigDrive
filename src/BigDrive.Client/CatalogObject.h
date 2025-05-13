@@ -19,8 +19,8 @@ class CatalogObject : public COMAdmin
 
 public:
 
-    CatalogObject(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
-        : COMAdmin(pCOMAdminCatalog, pDispatch)
+    CatalogObject(LPDISPATCH pDispatch)
+        : COMAdmin(pDispatch)
     {
     }
 
@@ -32,5 +32,6 @@ public:
 
     HRESULT GetName(BSTR& bstrName);
     HRESULT GetId(BSTR& bstrName);
+    HRESULT GetKey(BSTR& bstrKey);
     HRESULT GetDescription(BSTR& bstrDescription);
 };

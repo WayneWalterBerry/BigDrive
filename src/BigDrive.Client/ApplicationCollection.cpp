@@ -109,7 +109,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
         }
 
         // Store the IDispatch pointer in the array
-        (*pppApplications)[i] = new Application(m_pCOMAdminCatalog, vtCollection.pdispVal);
+        (*pppApplications)[i] = new Application(vtCollection.pdispVal);
 
         ::VariantClear(&vtCollection);
     }

@@ -18,8 +18,8 @@ class Component : CatalogCollection
 
 public:
 
-    Component(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
-        : CatalogCollection(pCOMAdminCatalog, pDispatch)
+    Component(LPDISPATCH pDispatch)
+        : CatalogCollection(pDispatch)
     {
     }
 

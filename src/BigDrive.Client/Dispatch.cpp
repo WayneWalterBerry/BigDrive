@@ -409,7 +409,7 @@ HRESULT Dispatch::GetValue(LPCWSTR szName, BSTR& bstrValue)
     hr = Invoke(dispidGetValue, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &varResult, nullptr, nullptr);
     if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetValue: Failed to invoke method 'Value'. HRESULT: 0x%08X", hr);
+        s_eventLogger.WriteErrorFormmated(L"GetValue: Failed to invoke property 'Value'. HRESULT: 0x%08X", hr);
         goto End;
     }
 
