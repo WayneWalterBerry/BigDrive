@@ -20,7 +20,7 @@
 /// <summary>
 /// Collection of COM+ applications.
 /// </summary>
-class ApplicationCollection : CatalogCollection
+class ApplicationCollection : public CatalogCollection
 {
 private:
 
@@ -55,33 +55,6 @@ public:
     }
 
     HRESULT Initialize();
-
-    HRESULT GetName(BSTR& bstrName)
-    {
-        HRESULT hrReturn = Populate();
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-            return hrReturn;
-        }
-
-        return GetStringProperty(L"Name", bstrName);
-    }
-
-    /// <summary>
-    /// Returns The Count Of Applications In The Collection 
-    /// </summary>
-    HRESULT GetCount(LONG& lCount)
-    {
-        HRESULT hrReturn = Populate();
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-            return hrReturn;
-        }
-
-        return GetLongProperty(L"Count", lCount);
-    }
 
     /// <summary>
     /// Provides access to an Application object at the specified index.

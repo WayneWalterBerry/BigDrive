@@ -78,7 +78,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
         const OLECHAR* szMethodName = L"Item";
 
         // Get the DISPID for the Item property
-        hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
+        hrReturn = GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
         if (FAILED(hrReturn))
         {
             s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get DISPID for Item property. HRESULT: 0x%08X", hrReturn);
@@ -110,6 +110,8 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
 
         // Store the IDispatch pointer in the array
         (*pppApplications)[i] = new Application(vtCollection.pdispVal);
+
+        ::VariantClear(&vtCollection);
     }
 
     goto End;
@@ -119,7 +121,7 @@ CleanupArray:
     // Cleanup allocated memory and release IDispatch pointers on failure
     if (*pppApplications != nullptr)
     {
-        for (DWORD j = 0; j < lSize; j++)
+        for (LONG j = 0; j < lSize; j++)
         {
             if ((*pppApplications)[j] != nullptr)
             {

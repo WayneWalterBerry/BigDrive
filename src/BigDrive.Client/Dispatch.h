@@ -7,9 +7,19 @@
 // System
 #include <comdef.h>
 
+// Shared
+#include "..\Shared\EventLogger.h"
+
 class Dispatch : public IDispatch
 {
 protected:
+
+    /// <summary>
+    /// Static instance of EventLogger for logging events.
+    /// </summary>
+    static EventLogger s_eventLogger;
+
+    static DISPPARAMS dispparamsNoArgs;
 
     LPDISPATCH m_pIDispatch;
 
@@ -46,6 +56,8 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetProperty(LPCWSTR szName, VARIANT* pValue);
 
+    HRESULT GetProperty(DISPID dispid, VARIANT* pValue);
+
     /// <summary>
     /// Retrieves a string property value by name.
     /// </summary>
@@ -61,6 +73,14 @@ public:
     /// <param name="value">Reference to a LONG to receive the property value.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetLongProperty(LPCWSTR szName, LONG& value);
+
+    HRESULT GetProperty(LPCWSTR szName, LPDISPATCH* pIDispatch);
+
+    HRESULT GetNames(BSTR** ppNames, LONG& lCount);
+
+    HRESULT GetValue(LPDISPATCH* ppIDispatch);
+
+    HRESULT GetTypeInfo(BSTR& bstrName);
 
     // ==================== IUnknown Methods ====================
 
@@ -126,4 +146,17 @@ public:
     /// <param name="puArgErr">The index of the first argument with an error.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override;
+
+private:
+
+    HRESULT GetSupportedIIDs(IID** pResult, ULONG& ulCount);
+
+    /// <summary>
+    /// Concatenates an array of BSTR strings into a single BSTR, with each string separated by a semicolon (';').
+    /// </summary>
+    /// <param name="pNames">Pointer to an array of BSTR strings to concatenate.</param>
+    /// <param name="lCount">The number of BSTR strings in the array.</param>
+    /// <param name="concatenatedResult">Reference to a BSTR that will receive the concatenated result. The caller is responsible for freeing this BSTR using SysFreeString.</param>
+    /// <returns>HRESULT indicating success (S_OK) or failure (e.g., E_INVALIDARG, E_OUTOFMEMORY).</returns>
+    HRESULT ConcatenateBSTRArray(BSTR* pNames, LONG lCount, BSTR& concatenatedResult);
 };

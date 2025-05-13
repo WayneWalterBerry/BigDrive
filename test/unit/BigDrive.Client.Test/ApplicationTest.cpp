@@ -14,6 +14,7 @@
 #include "ApplicationManager.h"
 #include "BigDriveClientConfigurationManager.h"
 #include "BigDriveConfigurationClient.h"
+#include "ComponentCollection.h"
 #include "IBigDriveConfiguration.h"
 #include "GuidUtil.h"
 #include "Dispatch.h"
@@ -55,7 +56,7 @@ namespace BigDriveClientTest
             ::SysFreeString(bstrName);
         }
 
-        TEST_METHOD(GetComponentsCLSIDsTest)
+        TEST_METHOD(GetComponentCollectionTest)
         {
             HRESULT hrReturn = S_OK;
 
@@ -78,16 +79,17 @@ namespace BigDriveClientTest
             hrReturn = applicationCollection.GetItem(0, &pApplication);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetItem() failed.");
 
-            CLSID* pclsid = nullptr;
-            LONG lSize;
-            hrReturn = pApplication->GetComponentsCLSIDs(&pclsid, lSize);
-            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetComponentsCLSIDs() failed.");
+            BSTR bstrTypeLibrary;
+            hrReturn = pApplication->GetTypeInfo(bstrTypeLibrary);
 
-            if (pclsid != nullptr)
+            ComponentCollection* pComponentCollection = nullptr;
+            hrReturn = pApplication->GetComponentCollection(&pComponentCollection);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetComponents() failed.");
+
+            if (pComponentCollection != nullptr)
             {
-                ::CoTaskMemFree(pclsid);
-                pclsid = nullptr;
-            }   
+                delete pComponentCollection;
+            }
 
             if (pDispatch != nullptr)
             {

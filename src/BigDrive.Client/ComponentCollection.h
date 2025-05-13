@@ -1,4 +1,4 @@
-// <copyright file="Application.h" company="Wayne Walter Berry">
+// <copyright file="ComponentCollection.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -9,28 +9,28 @@
 
 // Local
 #include "CatalogCollection.h"
-#include "ComponentCollection.h"
+#include "Component.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 
-class Application : Dispatch
+class ComponentCollection : public CatalogCollection
 {
 
 public:
 
-    Application(LPDISPATCH pDispatch)
-        : Dispatch(pDispatch)
+    ComponentCollection(LPDISPATCH pDispatch)
+        : CatalogCollection(pDispatch)
     {
     }
 
-    ~Application()
+    ~ComponentCollection()
     {
     }
 
     HRESULT GetName(BSTR& bstrString);
 
-    HRESULT GetComponentCollection(ComponentCollection** ppComponentCollection);
+    HRESULT GetComponents(Component*** pppComponents, long& lSize);
 
     friend class BigDriveClientTest::ApplicationTests;
 };

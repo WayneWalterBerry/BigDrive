@@ -5,7 +5,6 @@
 #include "pch.h"
 
 // System
-
 #include <windows.h>
 #include <comdef.h>
 #include <iostream>
@@ -206,88 +205,5 @@ End:
     return hrReturn;
 }
 
-HRESULT ApplicationManager::GetNames(IDispatch* pDispatch, BSTR** ppNames, UINT* pCount)
-{
-    if (!pDispatch || !ppNames || !pCount)
-    {
-        return E_POINTER;
-    }
-
-    HRESULT hr = S_OK;
-    ITypeInfo* pTypeInfo = nullptr;
-    TYPEATTR* pTypeAttr = nullptr;
-    FUNCDESC* pFuncDesc = nullptr;
-    UINT count = 0;
-
-    *ppNames = nullptr;
-    *pCount = 0;
-
-    // Get type information
-    hr = pDispatch->GetTypeInfo(0, LOCALE_USER_DEFAULT, &pTypeInfo);
-    if (FAILED(hr) || !pTypeInfo)
-    {
-        s_eventLogger.WriteErrorFormmated(L"Failed to get type info. HRESULT: 0x%08X", hr);
-        goto End;
-    }
-
-    // Get type attributes
-    hr = pTypeInfo->GetTypeAttr(&pTypeAttr);
-    if (FAILED(hr) || !pTypeAttr)
-    {
-        s_eventLogger.WriteErrorFormmated(L"Failed to get type attributes. HRESULT: 0x%08X", hr);
-        goto End;
-    }
-
-    // Allocate memory for names
-    *ppNames = (BSTR*)CoTaskMemAlloc(sizeof(BSTR) * pTypeAttr->cFuncs);
-    if (!*ppNames)
-    {
-        hr = E_OUTOFMEMORY;
-        s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for names.");
-        goto End;
-    }
-
-    // Retrieve method names
-    for (UINT i = 0; i < pTypeAttr->cFuncs; i++)
-    {
-        hr = pTypeInfo->GetFuncDesc(i, &pFuncDesc);
-        if (SUCCEEDED(hr))
-        {
-            BSTR methodName;
-            UINT cNames = 0;
-
-            hr = pTypeInfo->GetNames(pFuncDesc->memid, &methodName, 1, &cNames);
-            if (SUCCEEDED(hr) && cNames > 0)
-            {
-                (*ppNames)[count++] = methodName;
-            }
-
-            if (pFuncDesc)
-            {
-                pTypeInfo->ReleaseFuncDesc(pFuncDesc);
-                pFuncDesc = nullptr;
-            }
-        }
-    }
-
-    *pCount = count;
-
-End:
-
-    // Cleanup
-    if (pTypeInfo != nullptr)
-    {
-        pTypeInfo->Release();
-        pTypeInfo = nullptr;
-    }
-
-    if (pTypeInfo != nullptr)
-    {
-        pTypeInfo->ReleaseTypeAttr(pTypeAttr);
-        pTypeAttr = nullptr;
-    }
-
-    return hr;
-}
 
 

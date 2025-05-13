@@ -12,12 +12,6 @@
 
 class CatalogCollection : public Dispatch
 {
-protected:
-
-    /// <summary>
-    /// Static instance of EventLogger for logging events.
-    /// </summary>
-    static EventLogger s_eventLogger;
 
 public:
     CatalogCollection(LPDISPATCH pDispatch)
@@ -30,5 +24,7 @@ public:
 
     HRESULT Populate();
 
-    HRESULT GetCount(LONG lCount);
+    HRESULT GetCount(LONG& lCount);
+
+    HRESULT GetName(BSTR& bstrName);
 };

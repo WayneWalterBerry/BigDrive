@@ -162,6 +162,7 @@
     <ClCompile Include="BigDriveConfigurationClientTests.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderTests.cpp" />
     <ClCompile Include="BigDriveClientConfigurationManagerTests.cpp" />
+    <ClCompile Include="COMAdminCatalogTests.cpp" />
     <ClCompile Include="DriveConfigurationTests.cpp" />
     <ClCompile Include="GuidUtilTests.cpp" />
     <ClCompile Include="MockDispatch.cpp" />

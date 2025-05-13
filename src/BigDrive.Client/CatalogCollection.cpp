@@ -7,9 +7,6 @@
 // Header
 #include "CatalogCollection.h"
 
-// Initialize the static EventLogger instance
-EventLogger CatalogCollection::s_eventLogger(L"BigDrive.Client");
-
 HRESULT CatalogCollection::Populate()
 {
     HRESULT hrReturn = S_OK;
@@ -20,7 +17,8 @@ HRESULT CatalogCollection::Populate()
 
     // Get the DISPID for the "Populate" method
     LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
-    hrReturn = m_pIDispatch->GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
+
+    hrReturn = GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
@@ -45,7 +43,28 @@ End:
     return hrReturn;
 }
 
-HRESULT CatalogCollection::GetCount(LONG lCount)
+HRESULT CatalogCollection::GetCount(LONG& lCount)
 {
+    HRESULT hr = S_OK;
+
+    hr = Populate();
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate collection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
     return GetLongProperty(L"Count", lCount);
+}
+
+HRESULT CatalogCollection::GetName(BSTR& bstrName)
+{
+    HRESULT hrReturn = Populate();
+    if (FAILED(hrReturn))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+        return hrReturn;
+    }
+
+    return GetStringProperty(L"Name", bstrName);
 }
