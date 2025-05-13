@@ -1,0 +1,23 @@
+// <copyright file="CatalogObject.cpp" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
+
+#include "pch.h"
+
+// Header
+#include "CatalogObject.h"
+
+HRESULT CatalogObject::GetName(BSTR& bstrName)
+{
+    return GetStringProperty(L"Name", bstrName);
+}
+
+HRESULT CatalogObject::GetId(BSTR& bstrId)
+{
+    return GetValue(L"ID", bstrId);
+}
+
+HRESULT CatalogObject::GetDescription(BSTR& bstrDescription)
+{
+    return GetValue(L"Description", bstrDescription);
+}

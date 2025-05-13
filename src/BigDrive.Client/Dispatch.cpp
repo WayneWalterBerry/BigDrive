@@ -362,31 +362,87 @@ HRESULT Dispatch::GetSupportedIIDs(IID** pResult, ULONG& ulCount)
     return S_OK;
 }
 
-HRESULT Dispatch::GetValue(LPDISPATCH* ppIDispatch)
+#include <windows.h>
+#include <oaidl.h>
+#include <iostream>
+
+/// <summary>
+/// Call the Value Property on with the Value Name As the Argument To The Value Property
+/// </summary>
+/// <param name="szName">Name of Value to fetch</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT Dispatch::GetValue(LPCWSTR szName, BSTR& bstrValue)
 {
-    HRESULT hr = S_OK;
-
-    if (ppIDispatch == nullptr)
-    {
-        return E_POINTER;
-    }
-
     VARIANT varResult;
-
     ::VariantInit(&varResult);
 
-    hr = Invoke(DISPID_VALUE, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &dispparamsNoArgs, &varResult, nullptr, nullptr);
+    VARIANT varPropertyName;
+    ::VariantInit(&varPropertyName);
+    varPropertyName.vt = VT_BSTR;
+    varPropertyName.bstrVal = SysAllocString(szName);
+
+    if (!varPropertyName.bstrVal)
+    {
+        s_eventLogger.WriteError(L"GetValue: Failed to allocate memory for property name.");
+        return E_OUTOFMEMORY;
+    }
+
+    DISPID dispidGetValue;
+    LPOLESTR szMethodName = ::SysAllocString(L"Value");
+
+    if (!szMethodName)
+    {
+        s_eventLogger.WriteError(L"GetValue: Failed to allocate memory for method name.");
+        ::SysFreeString(varPropertyName.bstrVal);
+        return E_OUTOFMEMORY;
+    }
+
+    DISPPARAMS params = { &varPropertyName, nullptr, 1, 0 };
+
+    HRESULT hr = GetIDsOfNames(IID_NULL, &szMethodName, 1, LOCALE_USER_DEFAULT, &dispidGetValue);
     if (FAILED(hr))
     {
+        s_eventLogger.WriteErrorFormmated(L"GetValue: Failed to get DISPID for method 'Value'. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    *ppIDispatch = varResult.pdispVal;
-    (*ppIDispatch)->AddRef();
+    hr = Invoke(dispidGetValue, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &varResult, nullptr, nullptr);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetValue: Failed to invoke method 'Value'. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    if (varResult.vt != VT_BSTR)
+    {
+        s_eventLogger.WriteError(L"GetValue: Returned value is not of type BSTR.");
+        hr = E_FAIL;
+        goto End;
+    }
+
+    bstrValue = ::SysAllocString(varResult.bstrVal);
+    if (!bstrValue)
+    {
+        s_eventLogger.WriteError(L"GetValue: Failed to allocate memory for the result BSTR.");
+        hr = E_OUTOFMEMORY;
+        goto End;
+    }
 
 End:
 
     ::VariantClear(&varResult);
+
+    if (szMethodName)
+    {
+        ::SysFreeString(szMethodName);
+        szMethodName = nullptr;
+    }
+
+    if (varPropertyName.bstrVal)
+    {
+        ::SysFreeString(varPropertyName.bstrVal);
+        varPropertyName.bstrVal = nullptr;
+    }
 
     return hr;
 }

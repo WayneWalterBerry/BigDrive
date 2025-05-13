@@ -26,7 +26,7 @@ namespace BigDriveClientTest
 {
     TEST_CLASS(ApplicationTests)
     {
-        TEST_METHOD(GetNameTest)
+        TEST_METHOD(GetValuesTest)
         {
             HRESULT hrReturn = S_OK;
 
@@ -52,8 +52,17 @@ namespace BigDriveClientTest
             BSTR bstrName;
             hrReturn = pApplication->GetName(bstrName);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetName() failed.");
-
             ::SysFreeString(bstrName);
+
+            BSTR bstrDescription;
+            hrReturn = pApplication->GetDescription(bstrDescription);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetDescription() failed.");
+            ::SysFreeString(bstrDescription);
+
+            BSTR bstrId;
+            hrReturn = pApplication->GetId(bstrId);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetId() failed.");
+            ::SysFreeString(bstrId);
         }
 
         TEST_METHOD(GetComponentCollectionTest)

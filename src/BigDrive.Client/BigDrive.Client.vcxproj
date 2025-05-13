@@ -148,6 +148,7 @@
     <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
     <ClInclude Include="CatalogCollection.h" />
+    <ClInclude Include="CatalogObject.h" />
     <ClInclude Include="COMAdminCatalog.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="ComponentCollection.h" />
@@ -172,6 +173,7 @@
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderFactory.cpp" />
     <ClCompile Include="CatalogCollection.cpp" />
+    <ClCompile Include="CatalogObject.cpp" />
     <ClCompile Include="COMAdminCatalog.cpp" />
     <ClCompile Include="ComponentCollection.cpp" />
     <ClCompile Include="Dispatch.cpp" />

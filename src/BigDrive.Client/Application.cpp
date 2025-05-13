@@ -14,18 +14,13 @@
 // Local
 #include "Component.h"
 
-HRESULT Application::GetName(BSTR& bstrString)
-{
-    return GetStringProperty(L"Name", bstrString);
-}
-
 HRESULT Application::GetComponentCollection(ComponentCollection** ppComponentCollection)
 {
     HRESULT hrReturn = S_OK;
 
     if (!ppComponentCollection)
     {
-        s_eventLogger.WriteError(L"GetComponents: Invalid pointer passed for ppIDispatchApplicationsCollection.");
+        s_eventLogger.WriteError(L"GetComponents: Invalid pointer passed for ppComponentCollection.");
         return E_POINTER;
     }
 

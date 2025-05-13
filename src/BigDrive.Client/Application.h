@@ -8,19 +8,19 @@
 #include <comdef.h>
 
 // Local
-#include "CatalogCollection.h"
+#include "CatalogObject.h"
 #include "ComponentCollection.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 
-class Application : Dispatch
+class Application : public CatalogObject
 {
 
 public:
 
     Application(LPDISPATCH pDispatch)
-        : Dispatch(pDispatch)
+        : CatalogObject(pDispatch)
     {
     }
 
@@ -28,7 +28,6 @@ public:
     {
     }
 
-    HRESULT GetName(BSTR& bstrString);
 
     HRESULT GetComponentCollection(ComponentCollection** ppComponentCollection);
 

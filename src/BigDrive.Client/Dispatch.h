@@ -78,7 +78,7 @@ public:
 
     HRESULT GetNames(BSTR** ppNames, LONG& lCount);
 
-    HRESULT GetValue(LPDISPATCH* ppIDispatch);
+    HRESULT GetValue(LPCWSTR bstrName, BSTR& bstrValue);
 
     HRESULT GetTypeInfo(BSTR& bstrName);
 

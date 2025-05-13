@@ -32,4 +32,5 @@ public:
     
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);
 
+    HRESULT GetId(BSTR& bstrName);
 };
