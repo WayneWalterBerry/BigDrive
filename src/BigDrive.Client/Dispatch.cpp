@@ -637,6 +637,10 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT Dispatch::Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr)
 {
+    HRESULT hrInternal;
+    FuncDesc* pFuncDesc = nullptr;
+    BSTR bstrFuncJson;
+
     if (m_pIDispatch == nullptr)
     {
         return E_POINTER;
@@ -645,11 +649,30 @@ HRESULT Dispatch::Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlag
     HRESULT hr = m_pIDispatch->Invoke(dispIdMember, riid, lcid, wFlags, pDispParams, pVarResult, pExcepInfo, puArgErr);
     switch (hr)
     {
+    case DISP_E_TYPEMISMATCH:
+
+        hrInternal = GetFuncDesc(dispIdMember, &pFuncDesc);
+        if (FAILED(hrInternal))
+        {
+            s_eventLogger.WriteErrorFormmated(L"FunctionDescriptions: GetFuncDesc() failed. HRESULT: 0x%08X", hrInternal);
+            goto End;
+        }
+
+        hrInternal = pFuncDesc->Serialize(bstrFuncJson);
+        if (FAILED(hrInternal))
+        {
+            s_eventLogger.WriteErrorFormmated(L"FunctionDescriptions: Serialize() failed. HRESULT: 0x%08X", hrInternal);
+            goto End;
+        }
+
+        s_eventLogger.WriteErrorFormmated(L"Invoke: Type Mistmatch. HRESULT: 0x%08X Possible Names: {%s}", hr, bstrFuncJson);
+
+        ::SysFreeString(bstrFuncJson);
+
+        break;
     case DISP_E_MEMBERNOTFOUND:
 
-        BSTR bstrFuncJson;
-
-        HRESULT hrInternal = FunctionDescriptions(bstrFuncJson);
+        hrInternal = FunctionDescriptions(bstrFuncJson);
         if (FAILED(hrInternal))
         {
             ::SysFreeString(bstrFuncJson);
@@ -757,4 +780,124 @@ End:
     return hr;
 }
 
+HRESULT Dispatch::GetFuncDesc(LPFUNCDESC** pppFuncDesc, LONG& lCount)
+{
+    if (!pppFuncDesc)
+    {
+        return E_POINTER;
+    }
+
+    HRESULT hr = S_OK;
+    ITypeInfo* pTypeInfo = nullptr;
+    TYPEATTR* pTypeAttr = nullptr;
+    UINT count = 0;
+
+    *pppFuncDesc = nullptr;
+    lCount = 0;
+
+    // Get type information
+    hr = m_pIDispatch->GetTypeInfo(0, LOCALE_USER_DEFAULT, &pTypeInfo);
+    if (FAILED(hr) || !pTypeInfo)
+    {
+        goto End;
+    }
+
+    // Get type attributes
+    hr = pTypeInfo->GetTypeAttr(&pTypeAttr);
+    if (FAILED(hr) || !pTypeAttr)
+    {
+        goto End;
+    }
+
+    // Allocate memory for names
+    *pppFuncDesc = (LPFUNCDESC*)::CoTaskMemAlloc(sizeof(LPFUNCDESC) * pTypeAttr->cFuncs);
+    if (!*pppFuncDesc)
+    {
+        hr = E_OUTOFMEMORY;
+        goto End;
+    }
+
+    // Retrieve method names
+    for (UINT i = 0; i < pTypeAttr->cFuncs; i++)
+    {
+        FuncDesc *pFuncDesc = nullptr;
+
+        hr = FuncDesc::Create(pTypeInfo, i, &pFuncDesc);
+        if(FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetFuncDesc: Failed to create FuncDesc. HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        (*pppFuncDesc)[count++] = pFuncDesc;
+    }
+
+    lCount = count;
+
+End:
+
+    // Cleanup
+    if (pTypeInfo != nullptr)
+    {
+        pTypeInfo->Release();
+        pTypeInfo = nullptr;
+    }
+
+    if (pTypeInfo != nullptr)
+    {
+        pTypeInfo->ReleaseTypeAttr(pTypeAttr);
+        pTypeAttr = nullptr;
+    }
+
+    return hr;
+}
+
+HRESULT Dispatch::GetFuncDesc(DISPID dispid, LPFUNCDESC* ppFuncDesc)
+{
+    HRESULT hr = S_OK;
+
+    LPFUNCDESC* arrayFuncDesc = nullptr;
+    LONG lCount = 0;
+
+    hr = GetFuncDesc(&arrayFuncDesc, lCount);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetFuncDesc: Failed to get FuncDesc. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    for (LONG i = 0; i < lCount; i++)
+    {
+        if (arrayFuncDesc[i]->GetMemId() == dispid)
+        {
+            hr = arrayFuncDesc[i]->Clone(ppFuncDesc);
+            if (FAILED(hr))
+            {
+                s_eventLogger.WriteErrorFormmated(L"GetFuncDesc: Failed to get FuncDesc. HRESULT: 0x%08X", hr);
+                goto End;
+            }
+
+            break;
+        }
+    }
+
+End:
+
+    // Cleanup
+    if (arrayFuncDesc)
+    {
+        for (LONG i = 0; i < lCount; i++)
+        {
+            if (arrayFuncDesc[i])
+            {
+                delete arrayFuncDesc[i];
+                arrayFuncDesc[i] = nullptr;
+            }
+        }
+        ::CoTaskMemFree(arrayFuncDesc);
+        arrayFuncDesc = nullptr;
+    }
+
+    return hr;
+}
 

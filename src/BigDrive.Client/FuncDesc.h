@@ -67,12 +67,40 @@ public:
         return hr;
     }
 
+    HRESULT Clone(FuncDesc** pFuncDesc)
+    {
+        if (!pFuncDesc)
+        {
+            // Null pointer check
+            return E_POINTER;
+        }
+
+        *pFuncDesc = new FuncDesc(m_pTypeInfo, m_pFuncDesc);
+        if (!*pFuncDesc)
+        {
+            // Memory allocation failure
+            return E_OUTOFMEMORY; 
+        }
+
+        return S_OK;
+    }
+
     HRESULT GetName(BSTR* pbstrName)
     {
         UINT cNames = 0;
         return m_pTypeInfo->GetNames(m_pFuncDesc->memid, pbstrName, 1, &cNames);
     }
 
+    MEMBERID GetMemId() const
+    {
+        if (m_pFuncDesc == nullptr)
+        {
+            // Return an invalid MEMBERID if m_pFuncDesc is null
+            return MEMBERID_NIL;
+        }
+
+        return m_pFuncDesc->memid;
+    }
 
     HRESULT InvkindToBSTR(BSTR* pOutput)
     {
@@ -298,4 +326,6 @@ public:
     }
 
 };
+
+#define LPFUNCDESC FuncDesc*
 

@@ -10,6 +10,9 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
+// Local
+#include "FuncDesc.h"
+
 class Dispatch : public IDispatch
 {
 protected:
@@ -155,6 +158,10 @@ public:
     HRESULT CreateJsonArray(BSTR* pJson, LONG lCount, BSTR& bstrJsonArray);
 
     HRESULT FunctionDescriptions(BSTR& bstrJson);
+
+    HRESULT GetFuncDesc(FuncDesc*** pppFuncDesc, LONG& lCount);
+
+    HRESULT GetFuncDesc(DISPID dispid, LPFUNCDESC*ppFuncDesc);
 
 private:
 
