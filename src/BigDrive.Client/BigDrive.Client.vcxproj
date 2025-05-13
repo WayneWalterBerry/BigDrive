@@ -149,6 +149,7 @@
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
     <ClInclude Include="CatalogCollection.h" />
     <ClInclude Include="CatalogObject.h" />
+    <ClInclude Include="COMAdmin.h" />
     <ClInclude Include="COMAdminCatalog.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="ComponentCollection.h" />

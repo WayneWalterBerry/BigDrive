@@ -19,7 +19,7 @@
 // Initialize the static EventLogger instance
 EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
 
-HRESULT COMAdminCatalog::Create(COMAdminCatalog **ppCOMAdminCatalog)
+HRESULT COMAdminCatalog::Create(COMAdminCatalog** ppCOMAdminCatalog)
 {
     HRESULT hrReturn = S_OK;
 
@@ -88,7 +88,7 @@ HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApp
         goto End;
     }
 
-    *ppApplicationCollection = new ApplicationCollection(vtCollections.pdispVal);
+    *ppApplicationCollection = new ApplicationCollection(this, vtCollections.pdispVal);
 
 End:
 
@@ -104,6 +104,66 @@ End:
     }
 
     return hrReturn;
+}
+
+#include <windows.h>
+#include <oaidl.h>
+#include <iostream>
+
+HRESULT COMAdminCatalog::GetComponentsCollection(BSTR appKey, IDispatch** pIDispatch)
+{
+    if (!appKey || !pIDispatch)
+    {
+        return E_POINTER;
+    }
+
+    IDispatch* pComponentsCollection = nullptr;
+
+    // Retrieve DISPID for GetCollection
+    DISPID dispidGetCollection;
+    LPOLESTR methodName = ::SysAllocString(L"GetCollection");
+
+    HRESULT hr = m_pIDispatch->GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    // Pass "Components" and appKey to GetCollection
+    VARIANT varCollectionName, varKey;
+    VariantInit(&varCollectionName);
+    VariantInit(&varKey);
+
+    varCollectionName.vt = VT_BSTR;
+    varCollectionName.bstrVal = ::SysAllocString(L"Components");
+    varKey.vt = VT_BSTR;
+    varKey.bstrVal = appKey; // Pass the application's key
+
+    DISPPARAMS params = { new VARIANT[2]{ varCollectionName, varKey }, nullptr, 2, 0 };
+    VARIANT varResult;
+    VariantInit(&varResult);
+
+    hr = m_pIDispatch->Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &varResult, nullptr, nullptr);
+    ::SysFreeString(varCollectionName.bstrVal);
+
+    if (FAILED(hr) || varResult.vt != VT_DISPATCH)
+    {
+        goto End;
+    }
+
+    *pIDispatch = varResult.pdispVal;
+    (*pIDispatch)->AddRef();
+
+End:
+
+    if (methodName)
+    {
+        ::SysFreeString(methodName);
+    }
+
+    ::VariantClear(&varResult);
+
+    return hr;
 }
 
 

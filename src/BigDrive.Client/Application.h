@@ -19,8 +19,8 @@ class Application : public CatalogObject
 
 public:
 
-    Application(LPDISPATCH pDispatch)
-        : CatalogObject(pDispatch)
+    Application(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
+        : CatalogObject(pCOMAdminCatalog, pDispatch)
     {
     }
 

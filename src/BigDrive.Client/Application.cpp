@@ -52,7 +52,7 @@ HRESULT Application::GetComponentCollection(ComponentCollection** ppComponentCol
         goto End;
     }
 
-    *ppComponentCollection = new ComponentCollection(vtCollections.pdispVal);
+    *ppComponentCollection = new ComponentCollection(m_pCOMAdminCatalog, vtCollections.pdispVal);
 
 End:
 

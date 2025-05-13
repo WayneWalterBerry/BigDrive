@@ -78,6 +78,11 @@ public:
 
     HRESULT GetNames(BSTR** ppNames, LONG& lCount);
 
+    /// <summary>
+    /// Call the Value Property on with the Value Name As the Argument To The Value Property
+    /// </summary>
+    /// <param name="szName">Name of Value to fetch</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetValue(LPCWSTR bstrName, BSTR& bstrValue);
 
     HRESULT GetTypeInfo(BSTR& bstrName);

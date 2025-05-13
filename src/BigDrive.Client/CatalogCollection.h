@@ -10,14 +10,20 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
-class CatalogCollection : public Dispatch
+// Local
+
+#include "COMAdmin.h"
+
+class CatalogCollection : public COMAdmin
 {
 
 public:
-    CatalogCollection(LPDISPATCH pDispatch)
-        : Dispatch(pDispatch)
+
+    CatalogCollection(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
+        : COMAdmin(pCOMAdminCatalog, pDispatch)
     {
     }
+
     ~CatalogCollection()
     {
     }

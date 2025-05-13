@@ -32,8 +32,8 @@ private:
 
 public:
 
-    ApplicationCollection(LPDISPATCH pDispatch)
-        : CatalogCollection(pDispatch), m_ppApplications(nullptr)
+    ApplicationCollection(COMAdminCatalog *pCOMAdminCatalog, LPDISPATCH pDispatch)
+        : CatalogCollection(pCOMAdminCatalog, pDispatch), m_ppApplications(nullptr)
     {
     }
 

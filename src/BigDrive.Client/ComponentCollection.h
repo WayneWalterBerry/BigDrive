@@ -19,8 +19,8 @@ class ComponentCollection : public CatalogCollection
 
 public:
 
-    ComponentCollection(LPDISPATCH pDispatch)
-        : CatalogCollection(pDispatch)
+    ComponentCollection(COMAdminCatalog* pCOMAdminCatalog, LPDISPATCH pDispatch)
+        : CatalogCollection(pCOMAdminCatalog, pDispatch)
     {
     }
 

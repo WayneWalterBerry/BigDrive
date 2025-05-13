@@ -15,6 +15,7 @@
 #include "BigDriveClientConfigurationManager.h"
 #include "BigDriveConfigurationClient.h"
 #include "ComponentCollection.h"
+#include "COMAdminCatalog.h"
 #include "IBigDriveConfiguration.h"
 #include "GuidUtil.h"
 #include "Dispatch.h"
@@ -30,23 +31,24 @@ namespace BigDriveClientTest
         {
             HRESULT hrReturn = S_OK;
 
-            IDispatch* pDispatch = nullptr;
+            COMAdminCatalog* pCOMAdminCatalog;
+            hrReturn = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"Create() failed.");
 
-            hrReturn = ApplicationManager::GetApplicationsCollection(&pDispatch);
+            ApplicationCollection* pApplicationCollection;
+            hrReturn = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplicationsCollection() failed.");
 
-            ApplicationCollection applicationCollection = ApplicationCollection(pDispatch);
-
-            hrReturn = applicationCollection.Initialize();
+            hrReturn = pApplicationCollection->Initialize();
             Assert::IsTrue(SUCCEEDED(hrReturn), L"Populate() failed.");
 
             LONG lCount;
-            hrReturn = applicationCollection.GetCount(lCount);
+            hrReturn = pApplicationCollection->GetCount(lCount);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetCount() failed.");
             Assert::IsTrue(lCount > 0, L"Expected at least one application.");
 
             Application* pApplication = nullptr;
-            hrReturn = applicationCollection.GetItem(0, &pApplication);
+            hrReturn = pApplicationCollection->GetItem(0, &pApplication);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetItem() failed.");
 
             BSTR bstrName;
@@ -63,48 +65,50 @@ namespace BigDriveClientTest
             hrReturn = pApplication->GetId(bstrId);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetId() failed.");
             ::SysFreeString(bstrId);
+
+            delete pApplicationCollection;
         }
 
         TEST_METHOD(GetComponentCollectionTest)
         {
             HRESULT hrReturn = S_OK;
 
-            IDispatch* pDispatch = nullptr;
+            COMAdminCatalog* pCOMAdminCatalog;
+            hrReturn = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"Create() failed.");
 
-            hrReturn = ApplicationManager::GetApplicationsCollection(&pDispatch);
+            ApplicationCollection* pApplicationCollection;
+            hrReturn = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplicationsCollection() failed.");
 
-            ApplicationCollection applicationCollection = ApplicationCollection(pDispatch);
-
-            hrReturn = applicationCollection.Initialize();
+            hrReturn = pApplicationCollection->Initialize();
             Assert::IsTrue(SUCCEEDED(hrReturn), L"Populate() failed.");
 
             LONG lCount;
-            hrReturn = applicationCollection.GetCount(lCount);
+            hrReturn = pApplicationCollection->GetCount(lCount);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetCount() failed.");
             Assert::IsTrue(lCount > 0, L"Expected at least one application.");
 
             Application* pApplication = nullptr;
-            hrReturn = applicationCollection.GetItem(0, &pApplication);
+            hrReturn = pApplicationCollection->GetItem(0, &pApplication);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetItem() failed.");
 
             BSTR bstrTypeLibrary;
             hrReturn = pApplication->GetTypeInfo(bstrTypeLibrary);
+            Assert::AreEqual(L"COMAdmin", bstrTypeLibrary);
+            ::SysFreeString(bstrTypeLibrary);
 
             ComponentCollection* pComponentCollection = nullptr;
             hrReturn = pApplication->GetComponentCollection(&pComponentCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetComponents() failed.");
+
 
             if (pComponentCollection != nullptr)
             {
                 delete pComponentCollection;
             }
 
-            if (pDispatch != nullptr)
-            {
-                pDispatch->Release();
-                pDispatch = nullptr;
-            }
+            delete pApplicationCollection;
         }
     };
 }
