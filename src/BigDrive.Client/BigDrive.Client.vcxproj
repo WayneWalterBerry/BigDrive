@@ -157,6 +157,7 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="DriveConfiguration.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="FuncDesc.h" />
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
     <ClInclude Include="Interfaces\IBigDriveRoot.h" />

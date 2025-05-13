@@ -98,11 +98,8 @@ namespace BigDriveClientTest
             Assert::AreEqual(L"COMAdmin", bstrTypeLibrary);
             ::SysFreeString(bstrTypeLibrary);
 
-            BSTR* pNames = nullptr;
-            pCOMAdminCatalog->GetNames(&pNames, lCount);
-
-            BSTR bstrList;
-            pCOMAdminCatalog->ConcatenateBSTRArray(pNames, lCount, bstrList);
+            BSTR bstrDescriptions = nullptr;
+            pCOMAdminCatalog->FunctionDescriptions(bstrDescriptions);
 
             BSTR bstrApplId;
             hrReturn = pApplication->GetId(bstrApplId);

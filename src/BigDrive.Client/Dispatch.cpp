@@ -13,6 +13,9 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
+// Local
+#include "FuncDesc.h"
+
 // Initialize the static EventLogger instance
 EventLogger Dispatch::s_eventLogger(L"BigDrive.Client");
 
@@ -200,7 +203,6 @@ HRESULT Dispatch::GetNames(BSTR** ppNames, LONG& lCount)
     HRESULT hr = S_OK;
     ITypeInfo* pTypeInfo = nullptr;
     TYPEATTR* pTypeAttr = nullptr;
-    FUNCDESC* pFuncDesc = nullptr;
     UINT count = 0;
 
     *ppNames = nullptr;
@@ -231,23 +233,28 @@ HRESULT Dispatch::GetNames(BSTR** ppNames, LONG& lCount)
     // Retrieve method names
     for (UINT i = 0; i < pTypeAttr->cFuncs; i++)
     {
-        hr = pTypeInfo->GetFuncDesc(i, &pFuncDesc);
-        if (SUCCEEDED(hr))
+        FuncDesc* pFuncDesc = nullptr;
+
+        hr = FuncDesc::Create(pTypeInfo, i, &pFuncDesc);
+
+        BSTR bstrJson;
+        HRESULT hr = pFuncDesc->Serialize(bstrJson);
+        if (FAILED(hr))
         {
-            BSTR methodName;
-            UINT cNames = 0;
+            s_eventLogger.WriteErrorFormmated(L"GetNames: Failed to serialize FuncDesc. HRESULT: 0x%08X", hr);
 
-            hr = pTypeInfo->GetNames(pFuncDesc->memid, &methodName, 1, &cNames);
-            if (SUCCEEDED(hr) && cNames > 0)
-            {
-                (*ppNames)[count++] = methodName;
-            }
+            delete pFuncDesc;
+            pFuncDesc = nullptr;
 
-            if (pFuncDesc)
-            {
-                pTypeInfo->ReleaseFuncDesc(pFuncDesc);
-                pFuncDesc = nullptr;
-            }
+            goto End;
+        }
+
+        (*ppNames)[count++] = bstrJson;
+
+        if (pFuncDesc)
+        {
+            delete pFuncDesc;
+            pFuncDesc = nullptr;
         }
     }
 
@@ -362,10 +369,6 @@ HRESULT Dispatch::GetSupportedIIDs(IID** pResult, ULONG& ulCount)
     return S_OK;
 }
 
-#include <windows.h>
-#include <oaidl.h>
-#include <iostream>
-
 /// <summary>
 /// Call the Value Property on with the Value Name As the Argument To The Value Property
 /// </summary>
@@ -456,7 +459,7 @@ HRESULT Dispatch::GetTypeInfo(BSTR& bstrName)
     ITypeLib* pTypeLib = nullptr;
 
     hr = m_pIDispatch->GetTypeInfo(0, LOCALE_USER_DEFAULT, &pTypeInfo);
-    if (FAILED(hr) || !pTypeInfo) 
+    if (FAILED(hr) || !pTypeInfo)
     {
         goto End;
     }
@@ -490,7 +493,6 @@ End:
 
     return hr;
 }
-
 
 /// <summary>
 /// Increments the reference count for the object.
@@ -588,9 +590,6 @@ HRESULT Dispatch::GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo)
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT Dispatch::GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId)
 {
-    BSTR bstrNames = nullptr;
-    BSTR* pNames = nullptr;
-    LONG lCount = 0;
 
     if (m_pIDispatch == nullptr)
     {
@@ -602,46 +601,24 @@ HRESULT Dispatch::GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, L
     {
     case DISP_E_UNKNOWNNAME:
 
-        HRESULT hrInternal = GetNames(&pNames, lCount);
+        BSTR bstrFuncJson;
+
+        HRESULT hrInternal = FunctionDescriptions(bstrFuncJson);
         if (FAILED(hrInternal))
         {
-            s_eventLogger.WriteErrorFormmated(L"GetIDsOfNames: Failed to get names. HRESULT: 0x%08X", hrInternal);
+            ::SysFreeString(bstrFuncJson);
+            s_eventLogger.WriteErrorFormmated(L"FunctionDescriptions: Failed to get names. HRESULT: 0x%08X", hrInternal);
             goto End;
         }
 
-        hrInternal = ConcatenateBSTRArray(pNames, lCount, bstrNames);
-        if (FAILED(hrInternal))
-        {
-            s_eventLogger.WriteErrorFormmated(L"ConcatenateBSTRArray: Failed to get names. HRESULT: 0x%08X", hrInternal);
-            goto End;
-        }
+        s_eventLogger.WriteErrorFormmated(L"Invoke: Unknown name. HRESULT: 0x%08X Possible Names: {%s}", hr, bstrFuncJson);
 
-        s_eventLogger.WriteErrorFormmated(L"GetIDsOfNames: Unknown name. HRESULT: 0x%08X Possible Names: {%s}", hr, bstrNames);
+        ::SysFreeString(bstrFuncJson);
 
         break;
     }
 
 End:
-
-    if (bstrNames)
-    {
-        ::SysFreeString(bstrNames);
-        bstrNames = nullptr;
-    }
-
-    if (pNames)
-    {
-        for (LONG i = 0; i < lCount; ++i)
-        {
-            if (pNames[i])
-            {
-                ::SysFreeString(pNames[i]);
-                pNames[i] = nullptr;
-            }
-        }
-        ::CoTaskMemFree(pNames);
-        pNames = nullptr;
-    }
 
     return hr;
 }
@@ -660,10 +637,6 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT Dispatch::Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr)
 {
-    BSTR bstrNames = nullptr;
-    BSTR* pNames = nullptr;
-    LONG lCount = 0;
-
     if (m_pIDispatch == nullptr)
     {
         return E_POINTER;
@@ -674,33 +647,99 @@ HRESULT Dispatch::Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlag
     {
     case DISP_E_MEMBERNOTFOUND:
 
-        HRESULT hrInternal = GetNames(&pNames, lCount);
+        BSTR bstrFuncJson;
+
+        HRESULT hrInternal = FunctionDescriptions(bstrFuncJson);
         if (FAILED(hrInternal))
         {
-            s_eventLogger.WriteErrorFormmated(L"GetIDsOfNames: Failed to get names. HRESULT: 0x%08X", hrInternal);
+            ::SysFreeString(bstrFuncJson);
+            s_eventLogger.WriteErrorFormmated(L"FunctionDescriptions: Failed to function Descriptions. HRESULT: 0x%08X", hrInternal);
             goto End;
         }
 
-        hrInternal = ConcatenateBSTRArray(pNames, lCount, bstrNames);
-        if (FAILED(hrInternal))
-        {
-            s_eventLogger.WriteErrorFormmated(L"ConcatenateBSTRArray: Failed to get names. HRESULT: 0x%08X", hrInternal);
-            goto End;
-        }
+        s_eventLogger.WriteErrorFormmated(L"Invoke: Unknown name. HRESULT: 0x%08X Possible Names: {%s}", hr, bstrFuncJson);
 
-        s_eventLogger.WriteErrorFormmated(L"Invoke: Unknown name. HRESULT: 0x%08X Possible Names: {%s}", hr, bstrNames);
+        ::SysFreeString(bstrFuncJson);
 
         break;
     }
 
 End:
 
-    if (bstrNames)
+    return hr;
+}
+
+HRESULT Dispatch::CreateJsonArray(BSTR* pJson, LONG lCount, BSTR& bstrJsonArray)
+{
+    if (!pJson || lCount <= 0)
     {
-        ::SysFreeString(bstrNames);
-        bstrNames = nullptr;
+        return E_INVALIDARG; // Invalid arguments
     }
 
+    try
+    {
+        std::ostringstream jsonStream;
+
+        // Start JSON array
+        jsonStream << "[";
+
+        for (LONG i = 0; i < lCount; ++i)
+        {
+            if (pJson[i] == nullptr)
+            {
+                return E_POINTER; // Null pointer in the array
+            }
+
+            // Append the JSON object to the array
+            jsonStream << _bstr_t(pJson[i]);
+
+            // Add a comma if it's not the last element
+            if (i < lCount - 1)
+            {
+                jsonStream << ",";
+            }
+        }
+
+        // End JSON array
+        jsonStream << "]";
+
+        // Convert JSON string to BSTR
+        std::string jsonString = jsonStream.str();
+        _bstr_t bstr(jsonString.c_str());
+        bstrJsonArray = bstr.Detach();
+
+        return S_OK;
+    }
+    catch (const std::exception&)
+    {
+        return E_FAIL; // Return failure in case of an exception
+    }
+}
+
+HRESULT Dispatch::FunctionDescriptions(BSTR& bstrJson)
+{
+    HRESULT hr;
+
+    BSTR* pNames = nullptr;
+    LONG lCount = 0;
+
+    hr = GetNames(&pNames, lCount);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetIDsOfNames: Failed to get names. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    hr = CreateJsonArray(pNames, lCount, bstrJson);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetIDsOfNames: Failed to create json array. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+End:
+
+    // Cleanup
     if (pNames)
     {
         for (LONG i = 0; i < lCount; ++i)
@@ -718,65 +757,4 @@ End:
     return hr;
 }
 
-/// <summary>
-/// Concatenates an array of BSTR strings into a single BSTR, with each string separated by a semicolon (';').
-/// </summary>
-/// <param name="pNames">Pointer to an array of BSTR strings to concatenate.</param>
-/// <param name="lCount">The number of BSTR strings in the array.</param>
-/// <param name="concatenatedResult">Reference to a BSTR that will receive the concatenated result. The caller is responsible for freeing this BSTR using SysFreeString.</param>
-/// <returns>HRESULT indicating success (S_OK) or failure (e.g., E_INVALIDARG, E_OUTOFMEMORY).</returns>
-HRESULT Dispatch::ConcatenateBSTRArray(BSTR* pNames, LONG lCount, BSTR& concatenatedResult)
-{
-    if (pNames == nullptr || lCount <= 0)
-    {
-        return E_INVALIDARG;
-    }
-
-    HRESULT hr = S_OK;
-    concatenatedResult = nullptr;
-
-    // Calculate the total length required for the concatenated string
-    LONG totalLength = 0;
-    for (LONG i = 0; i < lCount; ++i)
-    {
-        if (pNames[i] != nullptr)
-        {
-            totalLength += ::SysStringLen(pNames[i]);
-        }
-        if (i < lCount - 1)
-        {
-            totalLength += 1; // For the ";" delimiter
-        }
-    }
-
-    // Allocate memory for the concatenated BSTR
-    BSTR result = ::SysAllocStringLen(nullptr, totalLength);
-    if (result == nullptr)
-    {
-        return E_OUTOFMEMORY;
-    }
-
-    // Concatenate the strings
-    LONG currentPos = 0;
-    for (LONG i = 0; i < lCount; ++i)
-    {
-        if (pNames[i] != nullptr)
-        {
-            LONG nameLength = ::SysStringLen(pNames[i]);
-            memcpy(result + currentPos, pNames[i], nameLength * sizeof(OLECHAR));
-            currentPos += nameLength;
-        }
-        if (i < lCount - 1)
-        {
-            result[currentPos] = L';';
-            currentPos += 1;
-        }
-    }
-
-    // Null-terminate the result
-    result[currentPos] = L'\0';
-
-    concatenatedResult = result;
-    return hr;
-}
 
