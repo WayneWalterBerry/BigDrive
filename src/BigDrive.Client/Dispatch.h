@@ -152,10 +152,6 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override;
 
-private:
-
-    HRESULT GetSupportedIIDs(IID** pResult, ULONG& ulCount);
-
     /// <summary>
     /// Concatenates an array of BSTR strings into a single BSTR, with each string separated by a semicolon (';').
     /// </summary>
@@ -164,4 +160,10 @@ private:
     /// <param name="concatenatedResult">Reference to a BSTR that will receive the concatenated result. The caller is responsible for freeing this BSTR using SysFreeString.</param>
     /// <returns>HRESULT indicating success (S_OK) or failure (e.g., E_INVALIDARG, E_OUTOFMEMORY).</returns>
     HRESULT ConcatenateBSTRArray(BSTR* pNames, LONG lCount, BSTR& concatenatedResult);
+
+private:
+
+    HRESULT GetSupportedIIDs(IID** pResult, ULONG& ulCount);
+
+
 };

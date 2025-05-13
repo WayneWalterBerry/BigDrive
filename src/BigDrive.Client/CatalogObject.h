@@ -32,6 +32,5 @@ public:
 
     HRESULT GetName(BSTR& bstrName);
     HRESULT GetId(BSTR& bstrName);
-    HRESULT GetKey(BSTR& bstrKey);
     HRESULT GetDescription(BSTR& bstrDescription);
 };

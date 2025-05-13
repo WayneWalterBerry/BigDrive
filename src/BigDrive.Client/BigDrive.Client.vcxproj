@@ -162,6 +162,7 @@
     <ClInclude Include="Interfaces\IBigDriveRoot.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ProviderConfiguration.h" />
+    <ClInclude Include="VariantUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\EventLogger.cpp">

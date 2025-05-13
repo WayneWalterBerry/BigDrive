@@ -33,4 +33,6 @@ public:
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);
 
     HRESULT GetComponentCollection(Application *pApplication, ComponentCollection **ppComponentCollection);
+
+    HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);
 };

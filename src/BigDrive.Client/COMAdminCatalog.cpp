@@ -15,6 +15,7 @@
 // Local
 #include "ApplicationCollection.h"
 #include "ComponentCollection.h"
+#include "VariantUtil.h"
 
 // Initialize the static EventLogger instance
 EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
@@ -127,7 +128,7 @@ HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, Compo
         return hr;
     }
 
-    hr = m_pIDispatch->GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
+    hr = GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
     if (FAILED(hr))
     {
         return hr;
@@ -135,8 +136,8 @@ HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, Compo
 
     // Pass "Components" and appKey to GetCollection
     VARIANT varCollectionName, varKey;
-    VariantInit(&varCollectionName);
-    VariantInit(&varKey);
+    ::VariantInit(&varCollectionName);
+    ::VariantInit(&varKey);
 
     varCollectionName.vt = VT_BSTR;
     varCollectionName.bstrVal = ::SysAllocString(L"Components");
@@ -145,9 +146,9 @@ HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, Compo
 
     DISPPARAMS params = { new VARIANT[2]{ varCollectionName, varKey }, nullptr, 2, 0 };
     VARIANT varResult;
-    VariantInit(&varResult);
+    ::VariantInit(&varResult);
 
-    hr = m_pIDispatch->Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &varResult, nullptr, nullptr);
+    hr = Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &varResult, nullptr, nullptr);
     ::SysFreeString(varCollectionName.bstrVal);
 
     if (FAILED(hr) || varResult.vt != VT_DISPATCH)
@@ -170,4 +171,58 @@ End:
 }
 
 
+HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appKey, IDispatch **pIDispatch) 
+{
+    if (!pIDispatch || !szCollectionName || !appKey) 
+    {
+        return E_POINTER;
+    }   
+
+    // Prepare query array
+    SAFEARRAY* pQueryArray = SafeArrayCreateVector(VT_VARIANT, 0, 1);
+
+    VARIANT varKey;
+    ::VariantInit(&varKey, appKey);
+
+    VARIANT varCollectionName;
+    ::VariantInit(&varCollectionName, szCollectionName);
+
+    LONG index = 0;
+    ::SafeArrayPutElement(pQueryArray, &index, &varKey);
+
+    // Call GetCollectionByQuery
+    DISPID dispidGetCollectionByQuery;
+    LPOLESTR szGetCollectionByQuery = ::SysAllocString(L"GetCollectionByQuery");
+    HRESULT hr = GetIDsOfNames(IID_NULL, &szGetCollectionByQuery, 1, LOCALE_USER_DEFAULT, &dispidGetCollectionByQuery);
+
+    if (SUCCEEDED(hr)) 
+    {
+        VARIANT varQueryArray;
+        ::VariantInit(&varQueryArray);
+        varQueryArray.vt = VT_ARRAY | VT_VARIANT;
+        varQueryArray.parray = pQueryArray;
+
+        DISPPARAMS params = { new VARIANT[2]{ varCollectionName, varQueryArray }, nullptr, 2, 0 };
+        VARIANT varResult;
+        VariantInit(&varResult);
+
+        hr = Invoke(dispidGetCollectionByQuery, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &varResult, nullptr, nullptr);
+        SafeArrayDestroy(pQueryArray);
+
+        if (SUCCEEDED(hr) && varResult.vt == VT_DISPATCH)
+        {
+            *pIDispatch = varResult.pdispVal;
+            (*pIDispatch)->AddRef();
+        }
+
+        VariantClear(&varResult);
+    }
+
+    ::SysFreeString(szGetCollectionByQuery);
+
+    ::VariantClear(&varCollectionName);
+    ::VariantClear(&varKey);
+
+    return S_OK;
+}
 
