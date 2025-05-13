@@ -106,10 +106,6 @@ End:
     return hrReturn;
 }
 
-#include <windows.h>
-#include <oaidl.h>
-#include <iostream>
-
 HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, ComponentCollection** ppComponentCollection)
 {
     HRESULT hr = S_OK;
