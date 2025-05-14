@@ -17,6 +17,7 @@
 #include "IBigDriveConfiguration.h"
 #include "GuidUtil.h"
 #include "Dispatch.h"
+#include "Interfaces/ICOMAdminCatalog2.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace BigDriveClient;
@@ -50,6 +51,23 @@ namespace BigDriveClientTest
             // Clean up
             delete pApplicationCollection;
             delete pCOMAdminCatalog;
+        }
+
+        TEST_METHOD(TestGetICOMAdminCatalog2)
+        {
+            // Arrange
+            COMAdminCatalog* pCOMAdminCatalog = nullptr;
+            HRESULT hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::AreEqual(S_OK, hr, L"Failed to create COMAdminCatalog instance.");
+            Assert::IsNotNull(pCOMAdminCatalog, L"COMAdminCatalog instance should not be null.");
+
+            ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
+            hr = pCOMAdminCatalog->GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+            Assert::AreEqual(S_OK, hr, L"Failed to create COMAdminCatalog instance.");
+            Assert::IsNotNull(pCOMAdminCatalog, L"COMAdminCatalog instance should not be null.");
+
+            pCOMAdminCatalog->Release();
+            pCOMAdminCatalog = nullptr;
         }
     };
 }

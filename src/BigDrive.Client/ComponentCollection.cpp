@@ -5,7 +5,6 @@
 #include "pch.h"
 
 // System
-#include <comadmin.h>
 #include <oaidl.h>
 
 // Header

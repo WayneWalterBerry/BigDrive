@@ -5,11 +5,15 @@
 #pragma once
 
 // System
-#include <comadmin.h>
 #include <oaidl.h>
 
+// Local
 #include "ApplicationCollection.h"
 #include "Dispatch.h"
+#include "Interfaces/ICOMAdminCatalog2.h"
+
+// Forward Declarations Of Test Classes
+#include "..\..\test\unit\BigDrive.Client.Test\COMAdminCatalogTests.h"
 
 class COMAdminCatalog : public Dispatch
 {
@@ -35,4 +39,11 @@ public:
     HRESULT GetComponentCollection(Application *pApplication, ComponentCollection **ppComponentCollection);
 
     HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);
+
+    HRESULT GetICOMAdminCatalog2(ICOMAdminCatalog2** ppICOMAdminCatalog2)
+    {
+        return m_pIDispatch->QueryInterface(IID_ICOMAdminCatalog2, (void**)&ppICOMAdminCatalog2);
+    }
+
+    friend class BigDriveClientTest::COMAdminCatalogTests;
 };

@@ -21,3 +21,12 @@ HRESULT CatalogObject::GetDescription(BSTR& bstrDescription)
 {
     return GetValue(L"Description", bstrDescription);
 }
+
+/// <summary>
+/// Gets The Application Key
+/// </summary>
+/// <param name="bstrKey">Application Key</param>
+HRESULT CatalogObject::GetKey(BSTR& bstrKey)
+{
+    return GetStringProperty(L"Key", bstrKey);
+}

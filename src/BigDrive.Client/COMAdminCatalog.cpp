@@ -5,7 +5,6 @@
 #include "pch.h"
 
 // System
-#include <comadmin.h>
 #include <oaidl.h>
 #include <comdef.h>
 
@@ -169,7 +168,6 @@ End:
 
     return hr;
 }
-
 
 HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appKey, IDispatch **pIDispatch) 
 {

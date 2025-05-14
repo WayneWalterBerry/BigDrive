@@ -12,15 +12,15 @@
 
 // Local
 
-#include "COMAdmin.h"
+#include "Dispatch.h"
 
-class CatalogCollection : public COMAdmin
+class CatalogCollection : public Dispatch
 {
 
 public:
 
     CatalogCollection(LPDISPATCH pDispatch)
-        : COMAdmin(pDispatch)
+        : Dispatch(pDispatch)
     {
     }
 

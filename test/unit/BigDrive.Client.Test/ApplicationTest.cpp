@@ -6,6 +6,7 @@
 #include "CppUnitTest.h"
 
 // System
+#include <windows.h>
 #include <wtypes.h>
 #include <string.h>
 
@@ -98,8 +99,12 @@ namespace BigDriveClientTest
             Assert::AreEqual(L"COMAdmin", bstrTypeLibrary);
             ::SysFreeString(bstrTypeLibrary);
 
+            ICatalogCollection* pCatalogColection;
+            hrReturn = pApplication->GetICatalogCollection(&pCatalogColection);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetICatalogCollection() failed.");
+
             BSTR bstrDescriptions = nullptr;
-            pCOMAdminCatalog->FunctionDescriptions(bstrDescriptions);
+            pApplication->FunctionDescriptions(bstrDescriptions);
 
             BSTR bstrApplId;
             hrReturn = pApplication->GetId(bstrApplId);

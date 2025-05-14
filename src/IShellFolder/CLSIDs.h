@@ -1,5 +1,3 @@
-#include "pch.h"
-
 #pragma once
 
 #include <initguid.h> // Required for DEFINE_GUID

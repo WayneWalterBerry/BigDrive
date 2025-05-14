@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "pch.h"
-
 #include <wtypes.h>
 #include <string>
 #include <combaseapi.h>
