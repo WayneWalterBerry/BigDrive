@@ -18,12 +18,7 @@ HRESULT ApplicationCollection::Initialize()
     return S_OK;
 }
 
-/// <summary>
-/// Provides access to an Application object at the specified index.
-/// </summary>
-/// <param name="index">The zero-based index of the Application to retrieve.</param>
-/// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
-/// <returns>HRESULT indicating success or failure of the operation.</returns>
+/// <inheritdoc />
 HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication) const
 {
     if (ppApplication == nullptr)
@@ -39,6 +34,7 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
     return m_ppApplications[index]->Clone(ppApplication);
 }
 
+/// <inheritdoc />
 HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
 {
     HRESULT hrReturn = S_OK;

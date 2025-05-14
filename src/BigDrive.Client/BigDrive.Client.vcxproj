@@ -175,7 +175,7 @@
     <ClInclude Include="COMAdminCatalog.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="ComponentCollection.h" />
-    <ClInclude Include="COMUtil.h" />
+    <ClInclude Include="COMUtility.h" />
     <ClInclude Include="Dispatch.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="DriveConfiguration.h" />

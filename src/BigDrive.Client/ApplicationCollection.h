@@ -68,5 +68,12 @@ public:
 
 private:
 
+    /// <summary>
+    /// Retrieves all Application objects in the collection and returns them as an array of Application pointers.
+    /// </summary>
+    /// <param name="pppApplications">Address of a pointer that receives the array of Application pointers.</param>
+    /// <param name="lSize">Reference to a LONG that receives the number of applications in the array.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
+
     HRESULT GetApplications(Application*** pppApplications, LONG& lSize);
 };

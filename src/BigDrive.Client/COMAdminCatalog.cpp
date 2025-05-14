@@ -15,7 +15,7 @@
 #include "ApplicationCollection.h"
 #include "ComponentCollection.h"
 #include "VariantUtil.h"
-#include "COMUtil.h"
+#include "COMUtility.h"
 
 // Initialize the static EventLogger instance
 EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");

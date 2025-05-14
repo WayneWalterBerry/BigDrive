@@ -1,4 +1,4 @@
-// <copyright file="COMAdminCatalog.cpp" company="Wayne Walter Berry">
+// <copyright file="COMAdminCatalog.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -32,6 +32,11 @@ private:
 
 public:
 
+    /// <summary>
+    /// Creates an instance of the COMAdminCatalog class and initializes it with a COMAdminCatalog COM object.
+    /// </summary>
+    /// <param name="ppCOMAdminCatalog">Address of a pointer that receives the created COMAdminCatalog instance.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
     static HRESULT Create(COMAdminCatalog **ppCOMAdminCatalog);
     
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);

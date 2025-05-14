@@ -17,10 +17,16 @@
 class ComponentCollection : public CatalogCollection
 {
 
+    /// <summary>
+    /// Array of Components
+    /// </summary>
+    Component** m_ppComponents = nullptr;
+    LONG       m_lSize = 0;
+
 public:
 
     ComponentCollection(LPDISPATCH pDispatch)
-        : CatalogCollection(pDispatch)
+        : CatalogCollection(pDispatch), m_ppComponents(nullptr)
     {
     }
 
@@ -30,7 +36,19 @@ public:
 
     HRESULT GetName(BSTR& bstrString);
 
-    HRESULT GetComponents(Component*** pppComponents, long& lSize);
+    HRESULT Initialize();
+
+    /// <summary>
+    /// Provides access to an Component object at the specified index.
+    /// </summary>
+    /// <param name="index">The zero-based index of the Component to retrieve.</param>
+    /// <param name="ppComponent">Pointer to receive the Component object at the specified index.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
+    HRESULT GetItem(size_t index, Component** ppComponent) const;
 
     friend class BigDriveClientTest::ApplicationTests;
+
+private:
+
+    HRESULT GetComponents(Component*** pppComponents, LONG& lSize);
 };

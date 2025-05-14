@@ -193,6 +193,7 @@
     <ClCompile Include="BigDriveInterfaceProviderTests.cpp" />
     <ClCompile Include="BigDriveClientConfigurationManagerTests.cpp" />
     <ClCompile Include="COMAdminCatalogTests.cpp" />
+    <ClCompile Include="ComponentCollectionTests.cpp" />
     <ClCompile Include="DriveConfigurationTests.cpp" />
     <ClCompile Include="GuidUtilTests.cpp" />
     <ClCompile Include="MockDispatch.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="ApplicationManagerTests.h" />
     <ClInclude Include="ApplicationTests.h" />
     <ClInclude Include="COMAdminCatalogTests.h" />
+    <ClInclude Include="ComponentCollectionTests.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
