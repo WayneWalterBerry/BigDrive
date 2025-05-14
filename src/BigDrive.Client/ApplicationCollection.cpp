@@ -36,8 +36,7 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
         return E_BOUNDS; // Index out of range or array uninitialized
     }
 
-    *ppApplication = m_ppApplications[index];
-    return S_OK;
+    return m_ppApplications[index]->Clone(ppApplication);
 }
 
 HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
@@ -46,16 +45,22 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
 
     lSize = 0;
 
-    // Populate the Applications collection
-    hrReturn = Populate();
+    ICatalogCollection* pICatalogCollection = nullptr;
+    hrReturn = GetICatalogCollection(&pICatalogCollection);
+    if (FAILED(hrReturn))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hrReturn);
+        goto End;
+    }
+
+    hrReturn = pICatalogCollection->Populate();
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
-    // Retrieve the count of applications
-    hrReturn = GetCount(lSize);
+    hrReturn = pICatalogCollection->get_Count(&lSize);
     if (FAILED(hrReturn))
     {
         s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of applications. HRESULT: 0x%08X", hrReturn);
@@ -74,44 +79,17 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
     // Retrieve each application and store its IDispatch pointer
     for (long i = 0; i < lSize; i++)
     {
-        DISPID dispidItem;
-        const OLECHAR* szMethodName = L"Item";
+        IDispatch* pDispatch = nullptr;
 
-        // Get the DISPID for the Item property
-        hrReturn = GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&szMethodName), 1, LOCALE_USER_DEFAULT, &dispidItem);
-        if (FAILED(hrReturn))
+        hrReturn = pICatalogCollection->get_Item(i, &pDispatch);
+        if (FAILED(hrReturn) || pDispatch == nullptr)
         {
-            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get DISPID for Item property. HRESULT: 0x%08X", hrReturn);
-            goto CleanupArray;
-        }
-
-        VARIANT vtItem;
-        VariantInit(&vtItem);
-        DISPPARAMS indexParams = { &vtItem, nullptr, 1, 0 };
-        vtItem.vt = VT_I4;
-        vtItem.lVal = i;
-
-        VARIANT vtCollection;
-        VariantInit(&vtCollection);
-
-        // Invoke the Item property to retrieve the application
-        hrReturn = m_pIDispatch->Invoke(dispidItem, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &indexParams, &vtCollection, nullptr, nullptr);
-        if (FAILED(hrReturn))
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to invoke Item property for index %ld. HRESULT: 0x%08X", i, hrReturn);
-            goto CleanupArray;
-        }
-
-        if (vtCollection.vt != VT_DISPATCH)
-        {
-            s_eventLogger.WriteErrorFormmated(L"GetApplications: Item at index %ld is not a valid IDispatch pointer. HRESULT: 0x%08X", i, hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get application at index %d. HRESULT: 0x%08X", i, hrReturn);
             goto CleanupArray;
         }
 
         // Store the IDispatch pointer in the array
-        (*pppApplications)[i] = new Application(vtCollection.pdispVal);
-
-        ::VariantClear(&vtCollection);
+        (*pppApplications)[i] = new Application(pDispatch);
     }
 
     goto End;

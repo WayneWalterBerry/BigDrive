@@ -36,6 +36,12 @@ public:
     
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);
 
+    /// <summary>
+    /// Retrieves the collection of COM+ components for a specified application.
+    /// </summary>
+    /// <param name="pApplication">Pointer to the Application object whose components are to be retrieved.</param>
+    /// <param name="ppComponentCollection">Address of a pointer that receives the resulting ComponentCollection object.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
     HRESULT GetComponentCollection(Application *pApplication, ComponentCollection **ppComponentCollection);
 
     HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);

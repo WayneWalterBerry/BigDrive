@@ -28,5 +28,17 @@ public:
     {
     }
 
+    HRESULT Clone(Application** ppApplication) const
+    {
+        if (ppApplication == nullptr)
+        {
+            return E_POINTER;
+        }
+
+        *ppApplication = new Application(m_pIDispatch);
+
+        return S_OK;
+    }
+
     friend class BigDriveClientTest::ApplicationTests;
 };

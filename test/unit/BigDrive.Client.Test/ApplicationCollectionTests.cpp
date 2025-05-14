@@ -16,6 +16,7 @@
 #include "BigDriveClientConfigurationManager.h"
 #include "BigDriveConfigurationClient.h"
 #include "IBigDriveConfiguration.h"
+#include "Interfaces/ICatalogCollection.h"
 #include "GuidUtil.h"
 #include "Dispatch.h"
 
@@ -76,6 +77,25 @@ namespace BigDriveClientTest
             delete pApplicationCollection;
         }
 
+        TEST_METHOD(GetICatalogCollectionTest)
+        {
+            HRESULT hr = S_OK;
+
+            COMAdminCatalog* pCOMAdminCatalog;
+            hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hr), L"Create() failed.");
+
+            ApplicationCollection* pApplicationCollection;
+            hr = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
+            Assert::IsNotNull(pApplicationCollection, L"GetApplicationsCollection() failed.");
+
+            ICatalogCollection* pICatalogCollection = nullptr;
+            hr = pApplicationCollection->GetICatalogCollection(&pICatalogCollection);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
+            Assert::IsNotNull(pICatalogCollection, L"GetApplicationsCollection() failed.");
+        }
+
         TEST_METHOD(GetApplications)
         {
             HRESULT hrReturn = S_OK;
@@ -111,6 +131,5 @@ namespace BigDriveClientTest
                 lSize = 0;
             }
         }
-
     };
 }

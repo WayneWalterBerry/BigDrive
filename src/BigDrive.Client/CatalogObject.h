@@ -6,10 +6,13 @@
 
 // Local
 #include "Dispatch.h"
-#include "Interfaces/ICatalogCollection.h"
+#include "Interfaces/ICatalogObject.h"
 
 // Shared
 #include "..\Shared\EventLogger.h"
+
+// Forward Declarations Of Test Classes
+#include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 
 class CatalogObject : public Dispatch
 {
@@ -25,15 +28,19 @@ public:
     {
     }
 
-    HRESULT GetICatalogCollection(ICatalogCollection** ppICatalogCollection)
-    {
-        return m_pIDispatch->QueryInterface(IID_ICatalogCollection, (void**)ppICatalogCollection);
-    }
-
     // ==================== ICatalogObject ====================
 
     HRESULT GetName(BSTR& bstrName);
     HRESULT GetId(BSTR& bstrName);
     HRESULT GetDescription(BSTR& bstrDescription);
     HRESULT GetKey(BSTR& bstrKey);
+
+    friend class BigDriveClientTest::ApplicationTests;
+
+protected:
+
+    HRESULT GetICatalogObject(ICatalogObject** ppICatalogObject)
+    {
+        return m_pIDispatch->QueryInterface(IID_ICatalogObject, (void**)ppICatalogObject);
+    }
 };

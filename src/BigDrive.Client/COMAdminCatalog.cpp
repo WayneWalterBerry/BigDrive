@@ -15,31 +15,32 @@
 #include "ApplicationCollection.h"
 #include "ComponentCollection.h"
 #include "VariantUtil.h"
+#include "COMUtil.h"
 
 // Initialize the static EventLogger instance
 EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
 
 HRESULT COMAdminCatalog::Create(COMAdminCatalog** ppCOMAdminCatalog)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     LPDISPATCH pIDispatch = nullptr;
 
     CLSID clsidCOMAdminCatalog;
 
     // Retrieve the CLSID for COMAdminCatalog
-    hrReturn = ::CLSIDFromProgID(L"COMAdmin.COMAdminCatalog", &clsidCOMAdminCatalog);
-    if (FAILED(hrReturn))
+    hr = ::CLSIDFromProgID(L"COMAdmin.COMAdminCatalog", &clsidCOMAdminCatalog);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to retrieve CLSID for COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to retrieve CLSID for COMAdminCatalog. HRESULT: 0x%08X", hr);
         goto End;
     }
 
     // Create an instance of the COMAdminCatalog
-    hrReturn = ::CoCreateInstance(clsidCOMAdminCatalog, nullptr, CLSCTX_INPROC_SERVER, IID_IDispatch, (void**)&pIDispatch);
-    if (FAILED(hrReturn))
+    hr = ::CoCreateInstance(clsidCOMAdminCatalog, nullptr, CLSCTX_INPROC_SERVER, IID_IDispatch, (void**)&pIDispatch);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to create an instance of COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to create an instance of COMAdminCatalog. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -47,14 +48,14 @@ HRESULT COMAdminCatalog::Create(COMAdminCatalog** ppCOMAdminCatalog)
 
 End:
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApplicationCollection)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
-    IDispatch* pApplicationsCollection = nullptr;
+    IDispatch* pIDispatchCollection = nullptr;
     BSTR bstrCollectionName = nullptr;
 
     if (!ppApplicationCollection)
@@ -65,24 +66,30 @@ HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApp
 
     bstrCollectionName = ::SysAllocString(L"Applications");
 
-    hrReturn = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
-    if (FAILED(hrReturn) || (pICOMAdminCatalog2 == nullptr))
+    hr = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+    if (FAILED(hr) || (pICOMAdminCatalog2 == nullptr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hr);
         goto End;
     }
 
     // Call GetCollection method to retrieve the Applications collection
-    hrReturn = pICOMAdminCatalog2->GetCollection(bstrCollectionName, (IDispatch**)&pApplicationsCollection);
-    if (FAILED(hrReturn) || (pApplicationsCollection == nullptr))
+    hr = pICOMAdminCatalog2->GetCollection(bstrCollectionName, (IDispatch**)&pIDispatchCollection);
+    if (FAILED(hr) || (pIDispatchCollection == nullptr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed call to ICOMAdminCatalog2::GetCollection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed call to ICOMAdminCatalog2::GetCollection. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    *ppApplicationCollection = new ApplicationCollection(pApplicationsCollection);
+    *ppApplicationCollection = new ApplicationCollection(pIDispatchCollection);
 
 End:
+
+    if (pIDispatchCollection)
+    {
+        pIDispatchCollection->Release();
+        pIDispatchCollection = nullptr;
+    }
 
     if (bstrCollectionName)
     {
@@ -96,68 +103,90 @@ End:
         pICOMAdminCatalog2 = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
+/// </inheritdoc>
 HRESULT COMAdminCatalog::GetComponentCollection(Application* pApplication, ComponentCollection** ppComponentCollection)
 {
     HRESULT hr = S_OK;
-    if (!pApplication || !ppComponentCollection)
+    ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
+    IDispatch* pIDispatchCollection = nullptr;
+    BSTR bstrCollectionName = nullptr;
+    BSTR bstrAppId = nullptr;
+    SAFEARRAY* psaQuery = nullptr;
+
+    if (!ppComponentCollection)
     {
+        s_eventLogger.WriteError(L"GetApplicationsCollection: Invalid pointer passed for ppIDispatchApplicationsCollection.");
         return E_POINTER;
     }
 
-    IDispatch* pComponentsCollection = nullptr;
+    bstrCollectionName = ::SysAllocString(L"Components");
 
-    // Retrieve DISPID for GetCollection
-    DISPID dispidGetCollection;
-    LPOLESTR methodName = ::SysAllocString(L"GetCollection");
-
-    BSTR bstrAppId;
-    hr = pApplication->GetId(bstrAppId);
-    if (FAILED(hr))
+    hr = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+    if (FAILED(hr) || (pICOMAdminCatalog2 == nullptr))
     {
-        return hr;
-    }
-
-    hr = GetIDsOfNames(IID_NULL, &methodName, 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
-
-    // Pass "Components" and appKey to GetCollection
-    VARIANT varCollectionName, varKey;
-    ::VariantInit(&varCollectionName);
-    ::VariantInit(&varKey);
-
-    varCollectionName.vt = VT_BSTR;
-    varCollectionName.bstrVal = ::SysAllocString(L"Components");
-    varKey.vt = VT_BSTR;
-    varKey.bstrVal = bstrAppId; // Pass the application's key
-
-    DISPPARAMS params = { new VARIANT[2]{ varCollectionName, varKey }, nullptr, 2, 0 };
-    VARIANT varResult;
-    ::VariantInit(&varResult);
-
-    hr = Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &varResult, nullptr, nullptr);
-    ::SysFreeString(varCollectionName.bstrVal);
-
-    if (FAILED(hr) || varResult.vt != VT_DISPATCH)
-    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    *ppComponentCollection = new ComponentCollection(varResult.pdispVal);
+    hr = pApplication->GetId(bstrAppId);
+    if (FAILED(hr) || (bstrAppId == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get Application ID. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    hr = CreateSafeArrayFromBSTR(bstrAppId, &psaQuery);
+    if (FAILED(hr) || (psaQuery == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to create SafeArray from BSTR. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    // Call GetCollection method to retrieve the Applications collection
+    hr = pICOMAdminCatalog2->GetCollectionByQuery(bstrCollectionName, &psaQuery, (IDispatch**)&pIDispatchCollection);
+    if (FAILED(hr) || (pIDispatchCollection == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed call to ICOMAdminCatalog2::GetCollection. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    *ppComponentCollection = new ComponentCollection(pIDispatchCollection);
 
 End:
 
-    if (methodName)
+
+    if (psaQuery)
     {
-        ::SysFreeString(methodName);
+        ::SafeArrayDestroy(psaQuery);
+        psaQuery = nullptr;
     }
 
-    ::VariantClear(&varResult);
+    if (bstrAppId)
+    {
+        ::SysFreeString(bstrAppId);
+        bstrAppId = nullptr;
+    }
+
+    if (pIDispatchCollection)
+    {
+        pIDispatchCollection->Release();
+        pIDispatchCollection = nullptr;
+    }
+
+    if (bstrCollectionName)
+    {
+        ::SysFreeString(bstrCollectionName);
+        bstrCollectionName = nullptr;
+    }
+
+    if (pICOMAdminCatalog2 == NULL)
+    {
+        pICOMAdminCatalog2->Release();
+        pICOMAdminCatalog2 = nullptr;
+    }
 
     return hr;
 }
