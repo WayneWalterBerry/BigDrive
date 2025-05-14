@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "pch.h"
 #include <shlobj.h> // For IShellFolder and related interfaces
 #include <objbase.h> // For COM initialization
 #include <string>

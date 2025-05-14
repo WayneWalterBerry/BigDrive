@@ -7,9 +7,22 @@
 // System
 #include <comdef.h>
 
+// Shared
+#include "..\Shared\EventLogger.h"
+
+// Local
+#include "FuncDesc.h"
+
 class Dispatch : public IDispatch
 {
 protected:
+
+    /// <summary>
+    /// Static instance of EventLogger for logging events.
+    /// </summary>
+    static EventLogger s_eventLogger;
+
+    static DISPPARAMS dispparamsNoArgs;
 
     LPDISPATCH m_pIDispatch;
 
@@ -46,6 +59,8 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetProperty(LPCWSTR szName, VARIANT* pValue);
 
+    HRESULT GetProperty(DISPID dispid, VARIANT* pValue);
+
     /// <summary>
     /// Retrieves a string property value by name.
     /// </summary>
@@ -61,6 +76,19 @@ public:
     /// <param name="value">Reference to a LONG to receive the property value.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetLongProperty(LPCWSTR szName, LONG& value);
+
+    HRESULT GetProperty(LPCWSTR szName, LPDISPATCH* pIDispatch);
+
+    HRESULT GetNames(BSTR** ppNames, LONG& lCount);
+
+    /// <summary>
+    /// Call the Value Property on with the Value Name As the Argument To The Value Property
+    /// </summary>
+    /// <param name="szName">Name of Value to fetch</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+    HRESULT GetValue(LPCWSTR bstrName, BSTR& bstrValue);
+
+    HRESULT GetTypeInfo(BSTR& bstrName);
 
     // ==================== IUnknown Methods ====================
 
@@ -126,4 +154,16 @@ public:
     /// <param name="puArgErr">The index of the first argument with an error.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override;
+
+    HRESULT CreateJsonArray(BSTR* pJson, LONG lCount, BSTR& bstrJsonArray);
+
+    HRESULT FunctionDescriptions(BSTR& bstrJson);
+
+    HRESULT GetFuncDesc(FuncDesc*** pppFuncDesc, LONG& lCount);
+
+    HRESULT GetFuncDesc(DISPID dispid, LPFUNCDESC*ppFuncDesc);
+
+private:
+
+    HRESULT GetSupportedIIDs(IID** pResult, ULONG& ulCount);
 };

@@ -2,7 +2,6 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-#include "pch.h"
 #include <unknwn.h> // For IClassFactory
 #include "BigDriveShellFolder.h" // For BigDriveFolder
 

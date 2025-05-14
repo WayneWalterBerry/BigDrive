@@ -12,9 +12,11 @@
 #include "Application.h"
 #include "ApplicationCollection.h"
 #include "ApplicationManager.h"
+#include "COMAdminCatalog.h"
 #include "BigDriveClientConfigurationManager.h"
 #include "BigDriveConfigurationClient.h"
 #include "IBigDriveConfiguration.h"
+#include "Interfaces/ICatalogCollection.h"
 #include "GuidUtil.h"
 #include "Dispatch.h"
 
@@ -46,22 +48,23 @@ namespace BigDriveClientTest
         {
             HRESULT hrReturn = S_OK;
 
-            IDispatch* pDispatch = nullptr;
+            COMAdminCatalog* pCOMAdminCatalog;
+            hrReturn = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"Create() failed.");
 
-            hrReturn = ApplicationManager::GetApplicationsCollection(&pDispatch);
+            ApplicationCollection *pApplicationCollection;
+            hrReturn = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplicationsCollection() failed.");
 
-            ApplicationCollection applicationCollection = ApplicationCollection(pDispatch);
-
-            hrReturn = applicationCollection.Populate();
+            hrReturn = pApplicationCollection->Populate();
             Assert::IsTrue(SUCCEEDED(hrReturn), L"Populate() failed.");
 
             LONG lCount;
-            hrReturn = applicationCollection.GetCount(lCount);
+            hrReturn = pApplicationCollection->GetCount(lCount);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetCount() failed.");
 
             BSTR bstrName;
-            hrReturn = applicationCollection.GetName(bstrName);
+            hrReturn = pApplicationCollection->GetName(bstrName);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetName() failed.");
             Assert::AreEqual(bstrName, L"Applications");
 
@@ -71,27 +74,45 @@ namespace BigDriveClientTest
                 bstrName = nullptr;
             }
 
-            if (pDispatch != nullptr)
-            {
-                pDispatch->Release();
-                pDispatch = nullptr;
-            }
+            delete pApplicationCollection;
+        }
+
+        TEST_METHOD(GetICatalogCollectionTest)
+        {
+            HRESULT hr = S_OK;
+
+            COMAdminCatalog* pCOMAdminCatalog;
+            hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hr), L"Create() failed.");
+
+            ApplicationCollection* pApplicationCollection;
+            hr = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
+            Assert::IsNotNull(pApplicationCollection, L"GetApplicationsCollection() failed.");
+
+            ICatalogCollection* pICatalogCollection = nullptr;
+            hr = pApplicationCollection->GetICatalogCollection(&pICatalogCollection);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
+            Assert::IsNotNull(pICatalogCollection, L"GetApplicationsCollection() failed.");
         }
 
         TEST_METHOD(GetApplications)
         {
             HRESULT hrReturn = S_OK;
-            LPDISPATCH pDispatch = nullptr;
 
             // Arrange
-            hrReturn = ApplicationManager::GetApplicationsCollection(&pDispatch);
+            COMAdminCatalog* pCOMAdminCatalog;
+            hrReturn = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hrReturn), L"Create() failed.");
+
+            ApplicationCollection* pApplicationCollection;
+            hrReturn = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplicationsCollection() failed.");
-            ApplicationCollection applicationCollection = ApplicationCollection(pDispatch);
 
             // Act
             Application** ppApplications = nullptr;
             LONG lSize = 0;
-            hrReturn = applicationCollection.GetApplications(&ppApplications, lSize);
+            hrReturn = pApplicationCollection->GetApplications(&ppApplications, lSize);
 
             // Assert
             Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplications() failed.");
@@ -110,6 +131,5 @@ namespace BigDriveClientTest
                 lSize = 0;
             }
         }
-
     };
 }

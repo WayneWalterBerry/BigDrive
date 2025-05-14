@@ -74,10 +74,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\um;
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
+                $(VCInstallDir)UnitTest\include;
+                %(AdditionalIncludeDirectories)
+            </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -91,10 +97,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\um;
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
+                $(VCInstallDir)UnitTest\include;
+                %(AdditionalIncludeDirectories)
+            </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -108,11 +120,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\BigDrive\src\Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\um;
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
+                $(VCInstallDir)UnitTest\include;
+                %(AdditionalIncludeDirectories)
+            </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -126,10 +143,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;BIGDRIVECLIENT_EXPORTS;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\um;
+                $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
+                $(VCInstallDir)UnitTest\include;
+                %(AdditionalIncludeDirectories)
+            </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -148,15 +171,26 @@
     <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
     <ClInclude Include="CatalogCollection.h" />
+    <ClInclude Include="CatalogObject.h" />
+    <ClInclude Include="COMAdminCatalog.h" />
+    <ClInclude Include="Component.h" />
+    <ClInclude Include="ComponentCollection.h" />
+    <ClInclude Include="COMUtil.h" />
     <ClInclude Include="Dispatch.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="DriveConfiguration.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="FuncDesc.h" />
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
     <ClInclude Include="Interfaces\IBigDriveRoot.h" />
+    <ClInclude Include="Interfaces\ICatalogObject.h" />
+    <ClInclude Include="Interfaces\ICatalogCollection.h" />
+    <ClInclude Include="Interfaces\ICOMAdminCatalog.h" />
+    <ClInclude Include="Interfaces\ICOMAdminCatalog2.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ProviderConfiguration.h" />
+    <ClInclude Include="VariantUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\EventLogger.cpp">
@@ -169,10 +203,14 @@
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderFactory.cpp" />
     <ClCompile Include="CatalogCollection.cpp" />
+    <ClCompile Include="CatalogObject.cpp" />
+    <ClCompile Include="COMAdminCatalog.cpp" />
+    <ClCompile Include="ComponentCollection.cpp" />
     <ClCompile Include="Dispatch.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DriveConfiguration.cpp" />
+    <ClCompile Include="FuncDesc.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

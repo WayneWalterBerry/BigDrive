@@ -8,18 +8,19 @@
 #include <comdef.h>
 
 // Local
-#include "CatalogCollection.h"
+#include "CatalogObject.h"
+#include "ComponentCollection.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 
-class Application : CatalogCollection
+class Application : public CatalogObject
 {
 
 public:
 
     Application(LPDISPATCH pDispatch)
-        : CatalogCollection(pDispatch)
+        : CatalogObject( pDispatch)
     {
     }
 
@@ -27,9 +28,17 @@ public:
     {
     }
 
-    HRESULT GetName(BSTR& bstrString);
+    HRESULT Clone(Application** ppApplication) const
+    {
+        if (ppApplication == nullptr)
+        {
+            return E_POINTER;
+        }
 
-    HRESULT GetComponentsCLSIDs(CLSID** ppCLSIDs, long& lSize);
+        *ppApplication = new Application(m_pIDispatch);
+
+        return S_OK;
+    }
 
     friend class BigDriveClientTest::ApplicationTests;
 };
