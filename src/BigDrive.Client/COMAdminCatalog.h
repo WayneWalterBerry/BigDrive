@@ -40,10 +40,17 @@ public:
 
     HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);
 
+    friend class BigDriveClientTest::COMAdminCatalogTests;
+
+private:
+
     HRESULT GetICOMAdminCatalog2(ICOMAdminCatalog2** ppICOMAdminCatalog2)
     {
-        return m_pIDispatch->QueryInterface(IID_ICOMAdminCatalog2, (void**)&ppICOMAdminCatalog2);
-    }
+        if (!ppICOMAdminCatalog2)
+        {
+            return E_POINTER;
+        }
 
-    friend class BigDriveClientTest::COMAdminCatalogTests;
+        return m_pIDispatch->QueryInterface(IID_ICOMAdminCatalog2, (void**)ppICOMAdminCatalog2);
+    }
 };

@@ -184,6 +184,7 @@
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
     <ClInclude Include="Interfaces\IBigDriveRoot.h" />
     <ClInclude Include="Interfaces\ICatalogCollection.h" />
+    <ClInclude Include="Interfaces\ICOMAdminCatalog.h" />
     <ClInclude Include="Interfaces\ICOMAdminCatalog2.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ProviderConfiguration.h" />

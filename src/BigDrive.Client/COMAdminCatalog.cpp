@@ -53,6 +53,9 @@ End:
 HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApplicationCollection)
 {
     HRESULT hrReturn = S_OK;
+    ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
+    IDispatch* pApplicationsCollection = nullptr;
+    BSTR bstrCollectionName = nullptr;
 
     if (!ppApplicationCollection)
     {
@@ -60,53 +63,43 @@ HRESULT COMAdminCatalog::GetApplicationsCollection(ApplicationCollection** ppApp
         return E_POINTER;
     }
 
-    DISPID dispidGetCollection;
-    const OLECHAR* methodName = L"GetCollection";
+    bstrCollectionName = ::SysAllocString(L"Applications");
 
-    VARIANT vtCollections;
-    ::VariantInit(&vtCollections);
-    DISPPARAMS params = { nullptr, nullptr, 0, 0 };
-
-    VARIANTARG varg;
-    varg.vt = VT_BSTR;
-    varg.bstrVal = ::SysAllocString(L"Applications"); // Request Collection list
-    params.rgvarg = &varg;
-    params.cArgs = 1;
-
-    // Get the DISPID for GetCollection method
-    hrReturn = GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&methodName), 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
-    if (FAILED(hrReturn))
+    hrReturn = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+    if (FAILED(hrReturn) || (pICOMAdminCatalog2 == nullptr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get DISPID for GetCollection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
-    hrReturn = Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &vtCollections, nullptr, nullptr);
-    if (FAILED(hrReturn) || (vtCollections.vt != VT_DISPATCH))
+    // Call GetCollection method to retrieve the Applications collection
+    hrReturn = pICOMAdminCatalog2->GetCollection(bstrCollectionName, (IDispatch**)&pApplicationsCollection);
+    if (FAILED(hrReturn) || (pApplicationsCollection == nullptr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to invoke GetCollection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed call to ICOMAdminCatalog2::GetCollection. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
-    *ppApplicationCollection = new ApplicationCollection(vtCollections.pdispVal);
+    *ppApplicationCollection = new ApplicationCollection(pApplicationsCollection);
 
 End:
 
-    if (FAILED(hrReturn))
+    if (bstrCollectionName)
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Operation failed. HRESULT: 0x%08X", hrReturn);
+        ::SysFreeString(bstrCollectionName);
+        bstrCollectionName = nullptr;
     }
 
-
-    if (varg.bstrVal)
+    if (pICOMAdminCatalog2 == NULL)
     {
-        ::SysFreeString(varg.bstrVal);
+        pICOMAdminCatalog2->Release();
+        pICOMAdminCatalog2 = nullptr;
     }
 
     return hrReturn;
 }
 
-HRESULT COMAdminCatalog::GetComponentCollection(Application *pApplication, ComponentCollection** ppComponentCollection)
+HRESULT COMAdminCatalog::GetComponentCollection(Application* pApplication, ComponentCollection** ppComponentCollection)
 {
     HRESULT hr = S_OK;
     if (!pApplication || !ppComponentCollection)
@@ -169,12 +162,12 @@ End:
     return hr;
 }
 
-HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appKey, IDispatch **pIDispatch) 
+HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appKey, IDispatch** pIDispatch)
 {
-    if (!pIDispatch || !szCollectionName || !appKey) 
+    if (!pIDispatch || !szCollectionName || !appKey)
     {
         return E_POINTER;
-    }   
+    }
 
     // Prepare query array
     SAFEARRAY* pQueryArray = SafeArrayCreateVector(VT_VARIANT, 0, 1);
@@ -193,7 +186,7 @@ HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appK
     LPOLESTR szGetCollectionByQuery = ::SysAllocString(L"GetCollectionByQuery");
     HRESULT hr = GetIDsOfNames(IID_NULL, &szGetCollectionByQuery, 1, LOCALE_USER_DEFAULT, &dispidGetCollectionByQuery);
 
-    if (SUCCEEDED(hr)) 
+    if (SUCCEEDED(hr))
     {
         VARIANT varQueryArray;
         ::VariantInit(&varQueryArray);

@@ -63,8 +63,8 @@ namespace BigDriveClientTest
 
             ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
             hr = pCOMAdminCatalog->GetICOMAdminCatalog2(&pICOMAdminCatalog2);
-            Assert::AreEqual(S_OK, hr, L"Failed to create COMAdminCatalog instance.");
-            Assert::IsNotNull(pCOMAdminCatalog, L"COMAdminCatalog instance should not be null.");
+            Assert::AreEqual(S_OK, hr, L"Failed to create ICOMAdminCatalog2 instance.");
+            Assert::IsNotNull(pICOMAdminCatalog2, L"ICOMAdminCatalog2 instance should not be null.");
 
             pCOMAdminCatalog->Release();
             pCOMAdminCatalog = nullptr;
