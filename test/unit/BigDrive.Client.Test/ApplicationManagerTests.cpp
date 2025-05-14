@@ -34,6 +34,18 @@ namespace BigDriveClientTest
     public:
 
         /// <summary>
+        /// Test case for RegisterApplications
+        /// </summary>
+        TEST_METHOD(RegisterApplications_Basic)
+        {
+            // Act
+            HRESULT hr = ApplicationManager::RegisterApplications();
+
+            // Assert
+            Assert::IsTrue(SUCCEEDED(hr), L"RegisterApplications() failed.");
+        }
+
+        /// <summary>
         /// Test case for StartApplication with a valid CLSID
         /// </summary>
         TEST_METHOD(StartApplication_BigDriveSampleProvider)

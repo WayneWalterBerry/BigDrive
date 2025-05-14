@@ -13,7 +13,7 @@
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 
-class Component : CatalogObject
+class Component : public CatalogObject
 {
 
 public:

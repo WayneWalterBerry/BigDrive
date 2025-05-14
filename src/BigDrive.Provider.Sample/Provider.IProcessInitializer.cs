@@ -24,7 +24,6 @@ namespace BigDrive.Provider.Sample
         /// </param>
         public void Startup(object punkProcessControl)
         {
-            ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
         }
 
         /// <summary>
@@ -32,7 +31,6 @@ namespace BigDrive.Provider.Sample
         /// </summary>
         public void Shutdown()
         {
-            ProviderManager.UnRegisterProvider(providerConfiguration.Id, CancellationToken.None);
         }
     }
 }

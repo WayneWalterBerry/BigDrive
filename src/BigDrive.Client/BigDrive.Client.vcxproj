@@ -183,6 +183,7 @@
     <ClInclude Include="FuncDesc.h" />
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
+    <ClInclude Include="Interfaces\IBigDriveRegistration.h" />
     <ClInclude Include="Interfaces\IBigDriveRoot.h" />
     <ClInclude Include="Interfaces\ICatalogObject.h" />
     <ClInclude Include="Interfaces\ICatalogCollection.h" />
@@ -205,6 +206,7 @@
     <ClCompile Include="CatalogCollection.cpp" />
     <ClCompile Include="CatalogObject.cpp" />
     <ClCompile Include="COMAdminCatalog.cpp" />
+    <ClCompile Include="Component.cpp" />
     <ClCompile Include="ComponentCollection.cpp" />
     <ClCompile Include="Dispatch.cpp" />
     <ClCompile Include="Application.cpp" />

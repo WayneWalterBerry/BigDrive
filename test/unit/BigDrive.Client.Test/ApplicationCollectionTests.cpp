@@ -30,6 +30,7 @@ namespace BigDriveClientTest
 
     private:
 
+
         TEST_METHOD(GetApplicationsCollection_Populate)
         {
             HRESULT hrReturn = S_OK;

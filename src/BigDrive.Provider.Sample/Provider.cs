@@ -2,8 +2,6 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-
-
 namespace BigDrive.Provider.Sample
 {
     using BigDrive.Interfaces;
@@ -16,6 +14,7 @@ namespace BigDrive.Provider.Sample
     [ComVisible(true)] // Make the class visible to COM
     public partial class Provider : ServicedComponent,
         IProcessInitializer,
+        IBigDriveRegistration,
         IBigDriveRoot
     {
         public static Guid CLSID
