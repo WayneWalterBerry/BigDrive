@@ -27,12 +27,4 @@ public:
 
     static HRESULT StartApplication(CLSID clsidProvider);
 
-    static HRESULT GetCOMAdminCatalog(IDispatch** ppIDispatch);
-
-    /// <summary>
-    /// Retrieves the Applications collection from the COM+ catalog.
-    /// </summary>
-    /// <param name="ppIDispatchApplicationsCollection">Pointer to an IDispatch pointer that will receive the Applications collection.</param>
-    /// <returns>HRESULT indicating success or failure of the operation.</returns>
-    static HRESULT GetApplicationsCollection(IDispatch** ppIDispatchApplicationCollection);
 };

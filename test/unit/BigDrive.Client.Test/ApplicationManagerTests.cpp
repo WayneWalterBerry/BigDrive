@@ -33,19 +33,6 @@ namespace BigDriveClientTest
 
     public:
 
-        // Test: GetCOMAdminCatalog with valid input
-        TEST_METHOD(GetCOMAdminCatalog_ValidInput)
-        {
-            IDispatch* pDispatch = nullptr;
-
-            HRESULT hr = ApplicationManager::GetCOMAdminCatalog(&pDispatch);
-
-            Assert::IsTrue(SUCCEEDED(hr), L"GetCOMAdminCatalog() failed.");
-            Assert::IsTrue(pDispatch != nullptr, L"Expected a valid IDispatch pointer.");
-        }
-
-
-
         /// <summary>
         /// Test case for StartApplication with a valid CLSID
         /// </summary>

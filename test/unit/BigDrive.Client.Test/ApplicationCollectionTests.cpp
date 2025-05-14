@@ -30,20 +30,6 @@ namespace BigDriveClientTest
 
     private:
 
-        TEST_METHOD(GetApplicationsCollection_ValidInput)
-        {
-            IDispatch* pDispatch = nullptr;
-
-            HRESULT hrReturn = ApplicationManager::GetApplicationsCollection(&pDispatch);
-            Assert::IsTrue(SUCCEEDED(hrReturn), L"GetApplicationsCollection() failed.");
-
-            if (pDispatch != nullptr)
-            {
-                pDispatch->Release();
-                pDispatch = nullptr;
-            }
-        }
-
         TEST_METHOD(GetApplicationsCollection_Populate)
         {
             HRESULT hrReturn = S_OK;
