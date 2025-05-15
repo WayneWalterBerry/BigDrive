@@ -27,15 +27,6 @@ extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
 EventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
 
-/// <summary>
-/// Static method to get the singleton instance
-/// </summary>
-RegistrationManager& RegistrationManager::GetInstance()
-{
-    static RegistrationManager instance; // Guaranteed to be initialized only once
-    return instance;
-}
-
 HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
 {
     HRESULT hrReturn = S_OK;
@@ -71,7 +62,7 @@ HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
             break;
         }
 
-        WriteInfoFormmated(guid, L"Named: %s Regsitered As An IShellFolder", driveConfiguration.name);
+        WriteInfoFormmated(guid, L"Named: %s Registered As An IShellFolder", driveConfiguration.name);
 
         ++index;
     }
@@ -456,7 +447,6 @@ HRESULT RegistrationManager::UnregisterShellFolders()
 
     return hrReturn;
 }
-
 
 /// <summary>
 /// Logs a formatted info message with the Drive Guid

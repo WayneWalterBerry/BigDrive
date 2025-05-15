@@ -17,6 +17,8 @@ namespace BigDrive.Provider.Sample
         IBigDriveRegistration,
         IBigDriveRoot
     {
+        private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+
         public static Guid CLSID
         {
             get

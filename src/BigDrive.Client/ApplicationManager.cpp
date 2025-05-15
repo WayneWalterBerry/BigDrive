@@ -20,6 +20,7 @@
 // Initialize the static EventLogger instance
 EventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");
 
+/// <inheritdoc />
 HRESULT ApplicationManager::RegisterApplications()
 {
     HRESULT hr = S_OK;
@@ -230,9 +231,4 @@ End:
     return hr;
 
 }
-
-
-
-
-
 

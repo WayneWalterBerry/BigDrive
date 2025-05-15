@@ -18,6 +18,7 @@
 #include "CLSIDs.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
+#include "ApplicationManager.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -47,9 +48,38 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     return TRUE;
 }
 
+/// <summary>
+/// Registers the COM server and its components with the system.
+/// This function performs registration of all COM+ applications (Providers) and their components that support the
+/// IBigDriveRegistration interface,and registers all BigDrive shell folders by creating the necessary registry entries 
+/// for Windows Explorer integration.
+/// Returns S_OK if registration succeeds, or an error HRESULT if any step fails.
+/// </summary>
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
-    // HRESULT hrReturn = RegistrationManager::GetInstance().RegisterShellFoldersFromRegistry();
+    HRESULT hr = S_OK;
+
+    // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
+    // This method enumerates applications and their components using the COMAdminCatalog, queries for the
+    // IBigDriveRegistration interface, and invokes the Register method on each supported component.
+    hr = ApplicationManager::RegisterApplications();
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+    /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
+    /// and registers each as a shell folder in Windows Explorer. For each drive, this method
+    /// obtains its configuration, then creates the necessary registry entries to expose the
+    /// drive as an IShellFolder. Logs errors and informational messages for each operation.
+    /// Returns S_OK if all drives are registered successfully, or an error HRESULT if any step fails.
+    hr = RegistrationManager::RegisterShellFoldersFromRegistry();
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
 
     return S_OK;
 }
@@ -72,7 +102,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv) 
+STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
 {
     HRESULT hrReturn = S_OK;
     CLSID* pclsid = nullptr;
@@ -81,7 +111,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
 
     ::LaunchDebugger();
 
-    if (ppv == nullptr) 
+    if (ppv == nullptr)
     {
         return E_POINTER;
     }
@@ -89,7 +119,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
     // Ensure the output pointer is initialized to nullptr.
     *ppv = nullptr;
 
-    hrReturn = RegistrationManager::GetInstance().GetRegisteredCLSIDs(&pclsid, dwSize);
+    hrReturn = RegistrationManager::GetRegisteredCLSIDs(&pclsid, dwSize);
     if (FAILED(hrReturn))
     {
         return hrReturn;
@@ -101,7 +131,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
         {
             // The CLSID matches, create the factory, with the CLSID as the GUID
             pFactory = new BigDriveShellFolderFactory(rclsid);
-            if (!pFactory) 
+            if (!pFactory)
             {
                 return E_OUTOFMEMORY;
             }

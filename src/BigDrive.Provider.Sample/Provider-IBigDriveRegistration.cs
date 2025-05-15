@@ -8,6 +8,7 @@ namespace BigDrive.Provider.Sample
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Principal;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -17,6 +18,12 @@ namespace BigDrive.Provider.Sample
         /// <inheritdoc/>
         public void Register()
         {
+            // The Expectation is that the Current User Have Admin Permissions to the Registry.
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+
+            DefaultTraceSource.TraceInformation($"User: {identity.Name}");
+            DefaultTraceSource.TraceInformation($"Impersonation Level: {identity.ImpersonationLevel}");
+
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
         }
 

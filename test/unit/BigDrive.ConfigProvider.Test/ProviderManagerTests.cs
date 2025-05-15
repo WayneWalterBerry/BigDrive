@@ -64,6 +64,8 @@ namespace BigDrive.Unit.ConfigurationProvider.Test
                 Assert.IsNotNull(key, "Registry key was not created.");
                 Assert.AreEqual(providerConfig.Name, key.GetValue("name"), "Registry value was not set correctly.");
             }
+
+            ProviderManager.UnRegisterProvider(providerConfig.Id, CancellationToken.None);
         }
 
         /// <summary>
