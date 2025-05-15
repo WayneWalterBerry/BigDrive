@@ -26,6 +26,12 @@ namespace BigDriveClientTest
 {
     TEST_CLASS(COMAdminCatalogTests)
     {
+    public:
+
+        COMAdminCatalogTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
         TEST_METHOD(COMAdminCatalog_QueryApplicationByName_FindsApplication)
         {
             HRESULT hr = S_OK;

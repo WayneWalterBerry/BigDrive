@@ -11,6 +11,11 @@ namespace BigDriveClientTest
     {
     public:
 
+        GuidUtilTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
+
         /// <summary>
         /// Tests the StringFromGUID method to ensure it correctly converts a GUID to a string without braces.
         /// </summary>
