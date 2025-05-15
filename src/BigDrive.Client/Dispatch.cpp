@@ -125,7 +125,7 @@ HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
     HRESULT hrReturn = S_OK;
     VARIANT vtValue;
 
-    if (!szName || !bstrString)
+    if (!szName)
     {
         return E_POINTER;
     }

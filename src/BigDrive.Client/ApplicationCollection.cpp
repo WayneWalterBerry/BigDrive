@@ -8,25 +8,60 @@
 #include "ApplicationCollection.h"
 #include "ApplicationManager.h"
 
+/// <inheritdoc />
 HRESULT ApplicationCollection::Initialize()
 {
-    if (m_ppApplications == nullptr)
+    if (m_ppApplications == NULL)
     {
-        return GetApplications(&m_ppApplications, m_lSize);
-    }
+        Application** temp = NULL;
+        LONG tempSize = 0;
 
+        HRESULT hr = GetApplications(&temp, tempSize);
+
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"Initialize: Failed to get applications. HRESULT: 0x%08X", hr);
+            return hr;
+        }
+
+        // Only set m_ppApplications if it is still NULL
+        if (InterlockedCompareExchangePointer((PVOID*)&m_ppApplications, temp, NULL) != NULL)
+        {
+            // Another thread already initialized, so free our temp
+            for (LONG i = 0; i < tempSize; ++i)
+            {
+                if (temp[i])
+                {
+                    delete temp[i];
+                }
+            }
+
+            ::CoTaskMemFree(temp);
+        }
+        else
+        {
+            m_lSize = tempSize;
+        }
+    }
     return S_OK;
 }
 
 /// <inheritdoc />
-HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication) const
+HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication)
 {
     if (ppApplication == nullptr)
     {
         return E_POINTER;
     }
 
-    if (index >= m_lSize || m_ppApplications == nullptr)
+    HRESULT hr = Initialize();
+    if (FAILED(hr) || (m_ppApplications==nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetItem: Failed to initialize ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    if (index >= m_lSize)
     {
         return E_BOUNDS; // Index out of range or array uninitialized
     }

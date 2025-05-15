@@ -54,6 +54,14 @@ public:
         }
     }
 
+    /// <summary>
+    /// Thread-safe initialization of the application collection.
+    /// If the internal application array has not been initialized, this method retrieves
+    /// all COM+ applications and populates the array. Uses InterlockedCompareExchangePointer
+    /// to ensure only one thread performs the initialization, and cleans up any redundant
+    /// allocations if another thread wins the race. Returns S_OK if already initialized
+    /// or if initialization succeeds; otherwise, returns an error HRESULT.
+    /// </summary>
     HRESULT Initialize();
 
     /// <summary>
@@ -62,7 +70,7 @@ public:
     /// <param name="index">The zero-based index of the Application to retrieve.</param>
     /// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
-    HRESULT GetItem(size_t index, Application** ppApplication) const;
+    HRESULT GetItem(size_t index, Application** ppApplication);
 
     friend class BigDriveClientTest::ApplicationCollectionTests;
 

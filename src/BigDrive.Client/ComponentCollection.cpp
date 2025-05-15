@@ -17,9 +17,35 @@ HRESULT ComponentCollection::Initialize()
 {
     if (m_ppComponents == nullptr)
     {
-        return GetComponents(&m_ppComponents, m_lSize);
-    }
+        Component** temp = nullptr;
+        LONG tempSize = 0;
 
+        HRESULT hr = GetComponents(&temp, tempSize);
+
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"Initialize: Failed to get components. HRESULT: 0x%08X", hr);
+            return hr;
+        }
+
+        // Only set m_ppComponents if it is still nullptr
+        if (InterlockedCompareExchangePointer((PVOID*)&m_ppComponents, temp, nullptr) != nullptr)
+        {
+            // Another thread already initialized, so free our temp
+            for (LONG i = 0; i < tempSize; ++i)
+            {
+                if (temp[i])
+                {
+                    delete temp[i];
+                }
+            }
+            ::CoTaskMemFree(temp);
+        }
+        else
+        {
+            m_lSize = tempSize;
+        }
+    }
     return S_OK;
 }
 
@@ -29,14 +55,21 @@ HRESULT ComponentCollection::GetName(BSTR& bstrString)
 }
 
 /// <inheritdoc />
-HRESULT ComponentCollection::GetItem(size_t index, Component** ppComponent) const
+HRESULT ComponentCollection::GetItem(size_t index, Component** ppComponent)
 {
     if (ppComponent == nullptr)
     {
         return E_POINTER;
     }
 
-    if (index >= m_lSize || ppComponent == nullptr)
+    HRESULT hr = Initialize();
+    if (FAILED(hr) || (m_ppComponents == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetItem: Failed to initialize ComponentCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    if (index >= m_lSize)
     {
         return E_BOUNDS; // Index out of range or array uninitialized
     }

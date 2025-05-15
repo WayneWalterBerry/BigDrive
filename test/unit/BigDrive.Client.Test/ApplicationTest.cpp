@@ -47,7 +47,7 @@ namespace BigDriveClientTest
             hr = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
             Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
 
-            hr = pApplicationCollection->Populate();
+            hr = pApplicationCollection->Initialize();
             Assert::IsTrue(SUCCEEDED(hr), L"Populate() failed.");
 
             LONG lCount = 0;
@@ -68,6 +68,30 @@ namespace BigDriveClientTest
             Assert::IsTrue(SUCCEEDED(hr), L"Clone() failed.");
             Assert::IsNotNull(pClone, L"Cloned Application is null.");
             Assert::AreNotEqual((void*)pOriginal, (void*)pClone, L"Clone returned the same pointer as original.");
+
+            // Get names from both the original and the clone and compare
+            BSTR bstrOriginalName = nullptr;
+            BSTR bstrCloneName = nullptr;
+
+            hr = pOriginal->GetName(bstrOriginalName);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetName() failed on original.");
+            hr = pClone->GetName(bstrCloneName);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetName() failed on clone.");
+
+            // Compare the names
+            Assert::IsTrue(wcscmp(bstrOriginalName, bstrCloneName) == 0, L"Application names do not match after clone.");
+
+            // Clean up BSTRs
+            if (bstrOriginalName != nullptr)
+            {
+                ::SysFreeString(bstrOriginalName);
+                bstrOriginalName = nullptr;
+            }
+            if (bstrCloneName != nullptr)
+            {
+                ::SysFreeString(bstrCloneName);
+                bstrCloneName = nullptr;
+            }
 
             // Clean up
             delete pClone;
@@ -113,6 +137,8 @@ namespace BigDriveClientTest
             BSTR bstrId;
             hr = pApplication->GetId(bstrId);
             Assert::IsTrue(SUCCEEDED(hr), L"GetId() failed.");
+            Assert::IsNotNull(bstrId, L"Id BSTR is null.");
+            Assert::IsTrue(SysStringLen(bstrId) > 0, L"Id BSTR is empty.");
             ::SysFreeString(bstrId);
 
             if (pCOMAdminCatalog != nullptr)

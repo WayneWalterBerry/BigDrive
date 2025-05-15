@@ -44,32 +44,5 @@ namespace BigDriveClientTest
             // Assert
             Assert::IsTrue(SUCCEEDED(hr), L"RegisterApplications() failed.");
         }
-
-        /// <summary>
-        /// Test case for StartApplication with a valid CLSID
-        /// </summary>
-        TEST_METHOD(StartApplication_BigDriveSampleProvider)
-        {
-            // Act
-            HRESULT hr = ApplicationManager::StartApplication(CLSID_BigDriveSampleProvider);
-
-            // Assert
-            Assert::IsTrue(SUCCEEDED(hr), L"StartApplication() failed.");
-        }
-
-        /// <summary>
-        /// Test case for StartApplication with an invalid CLSID
-        /// </summary>
-        TEST_METHOD(StartApplication_InvalidCLSID)
-        {
-            // Arrange
-            CLSID invalidClsid = { 0 }; // Invalid CLSID (all zeros)
-
-            // Act
-            HRESULT hr = ApplicationManager::StartApplication(invalidClsid);
-
-            // Assert
-            Assert::IsTrue(FAILED(hr), L"StartApplication() succeeds.");
-        }
     };
 }

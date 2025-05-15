@@ -25,8 +25,6 @@ private:
 
 public:
 
-    static HRESULT StartApplication(CLSID clsidProvider);
-
     static HRESULT RegisterApplications();
 
 };

@@ -246,3 +246,49 @@ HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appK
     return S_OK;
 }
 
+/// </inheritdoc>
+HRESULT COMAdminCatalog::Start(Application *pApplication)
+{
+    HRESULT hr = S_OK;
+    BSTR bstrAppId = nullptr;
+
+    ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
+
+    hr = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+    if (FAILED(hr) || (pICOMAdminCatalog2 == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    hr = pApplication->GetId(bstrAppId);
+    if (FAILED(hr) || (bstrAppId == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get Application ID. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    hr = pICOMAdminCatalog2->StartApplication(bstrAppId);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"StartApplication: Failed to start application. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+End:
+
+    if (bstrAppId)
+    {
+        ::SysFreeString(bstrAppId);
+        bstrAppId = nullptr;
+    }
+
+    if (pICOMAdminCatalog2)
+    {
+        pICOMAdminCatalog2->Release();
+        pICOMAdminCatalog2 = nullptr;
+    }
+
+    return hr;
+}
+

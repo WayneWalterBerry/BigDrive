@@ -28,6 +28,11 @@ public:
     {
     }
 
+    /// <summary>
+    /// Returns The Application Id
+    /// </summary>
+    HRESULT GetId(BSTR& bstrName);
+
     HRESULT Clone(Application** ppApplication) const
     {
         if (ppApplication == nullptr)

@@ -51,6 +51,15 @@ public:
 
     HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);
 
+    /// <summary>
+    /// Starts the specified COM+ application using the COMAdminCatalog.
+    /// Retrieves the application's name, obtains the ICOMAdminCatalog2 interface,
+    /// and calls StartApplication to launch the application. Logs errors if any step fails.
+    /// </summary>
+    /// <param name="pApplication">Pointer to the Application object to start.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
+    HRESULT Start(Application* pApplication);
+
     friend class BigDriveClientTest::COMAdminCatalogTests;
 
 private:
