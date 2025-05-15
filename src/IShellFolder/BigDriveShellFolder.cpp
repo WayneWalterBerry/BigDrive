@@ -4,7 +4,11 @@
 
 #include "pch.h"
 
+// Header
 #include "BigDriveShellFolder.h"
+
+// Local
+#include "LaunchDebugger.h"
 
 /// <summary>
 /// Queries the object for a pointer to one of its supported interfaces.
@@ -66,8 +70,24 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+    if (!pidl || !ppv)
+    {
+        return E_INVALIDARG;
+    }
+
+    LaunchDebugger();
+
+    *ppv = nullptr; 
+
+    // Check if the requested interface is IShellFolder
+    if (riid == IID_IShellFolder) 
+    {
+        BigDriveShellFolder* pSubFolder = new BigDriveShellFolder(); 
+        *ppv = static_cast<IShellFolder*>(pSubFolder);
+        return S_OK;
+    }
+
+    return E_NOINTERFACE;
 }
 
 /// <summary>
@@ -75,6 +95,8 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
+    LaunchDebugger();
+
     // Placeholder implementation
     return E_NOTIMPL;
 }

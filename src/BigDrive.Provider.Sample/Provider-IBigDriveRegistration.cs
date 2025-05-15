@@ -4,14 +4,11 @@
 
 namespace BigDrive.Provider.Sample
 {
-    using BigDrive.ConfigProvider;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Security.Principal;
-    using System.Text;
     using System.Threading;
-    using System.Threading.Tasks;
+    using BigDrive.ConfigProvider;
+    using BigDrive.ConfigProvider.Model;
 
     public partial class Provider
     {
@@ -25,6 +22,18 @@ namespace BigDrive.Provider.Sample
             DefaultTraceSource.TraceInformation($"Impersonation Level: {identity.ImpersonationLevel}");
 
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
+
+            // Most Providers Will Not Create Their Own Drive, However This One Doe For Testing Purposes.
+            {
+                DriveConfiguration driveConfiguration = new DriveConfiguration
+                {
+                    CLSID = providerConfiguration.Id,
+                    Name = providerConfiguration.Name,
+                    Id = Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E")
+                };
+
+                DriveManager.WriteConfiguration(driveConfiguration, CancellationToken.None);
+            }
         }
 
         /// <inheritdoc/>

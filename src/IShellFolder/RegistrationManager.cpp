@@ -365,11 +365,8 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     return hrReturn;
 }
 
-/// <summary>
-/// Iterate All Shell Folders and remove the BigDrive ones.
-/// </summary>
-/// <returns></returns>
-HRESULT RegistrationManager::UnregisterShellFolders()
+/// </ inheritdoc>
+HRESULT RegistrationManager::CleanUpShellFolders()
 {
     HRESULT hrReturn = S_OK;
 

@@ -23,7 +23,7 @@ namespace BigDriveShellFolderTest
         /// <summary>
         /// Test UnregisterShellFolders to ensure it removes all shell folders associated with "BigDrive".
         /// </summary>
-        TEST_METHOD(TestUnregisterShellFolders)
+        TEST_METHOD(CleanUpShellFolders)
         {
             HRESULT hr = S_OK;
 
@@ -43,7 +43,7 @@ namespace BigDriveShellFolderTest
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder2.");
 
             // Act
-            hr = RegistrationManager::UnregisterShellFolders();
+            hr = RegistrationManager::CleanUpShellFolders();
 
             // Assert
             Assert::AreEqual(S_OK, hr, L"UnregisterShellFolders failed.");

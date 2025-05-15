@@ -68,11 +68,15 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
         goto End;
     }
 
+    // Scans all CLSID entries in the Windows registry and removes those associated with BigDrive shell folders.
+    // This method identifies shell folders registered by BigDrive by checking the InprocServer32 path for the
+    // "BigDrive.ShellFolder" substring, then unregisters and deletes their related registry keys.
+    RegistrationManager::CleanUpShellFolders();
+
     /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
     /// and registers each as a shell folder in Windows Explorer. For each drive, this method
     /// obtains its configuration, then creates the necessary registry entries to expose the
     /// drive as an IShellFolder. Logs errors and informational messages for each operation.
-    /// Returns S_OK if all drives are registered successfully, or an error HRESULT if any step fails.
     hr = RegistrationManager::RegisterShellFoldersFromRegistry();
     if (FAILED(hr))
     {

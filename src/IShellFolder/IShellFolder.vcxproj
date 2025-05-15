@@ -152,8 +152,8 @@
     <ClInclude Include="..\Shared\EventLogger.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
-    <ClInclude Include="CLSIDs.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="ItemIdList.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />

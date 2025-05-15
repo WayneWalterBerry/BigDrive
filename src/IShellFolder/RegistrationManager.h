@@ -47,7 +47,13 @@ public:
 
     static HRESULT GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize);
 
-    static HRESULT UnregisterShellFolders();
+    /// <summary>
+    /// Scans all CLSID entries in the Windows registry and removes those associated with BigDrive shell folders.
+    /// This method identifies shell folders registered by BigDrive by checking the InprocServer32 path for the
+    /// "BigDrive.ShellFolder" substring, then unregisters and deletes their related registry keys. Returns S_OK
+    /// if cleanup succeeds, or an error HRESULT if any step fails.
+    /// </summary>
+    static HRESULT CleanUpShellFolders();
 
 private:
 
