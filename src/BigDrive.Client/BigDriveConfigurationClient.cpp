@@ -27,38 +27,38 @@ EventLogger BigDriveConfigurationClient::s_eventLogger(L"BigDrive.Client");
 /// </inheritdoc>
 HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* pszConfiguration)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     IBigDriveConfiguration* pBigDriveConfiguration = nullptr;
 
     BSTR configuration = nullptr;
 
     // Initialize COM
-    hrReturn = CoInitialize(NULL);
-    if (FAILED(hrReturn))
+    hr = CoInitialize(NULL);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to initialize COM. HRESULT: 0x%08X", hrReturn);
-        return hrReturn;
+        s_eventLogger.WriteErrorFormmated(L"Failed to initialize COM. HRESULT: 0x%08X", hr);
+        return hr;
     }
 
     // Create an instance of the BigDriveConfiguration COM object
-    hrReturn = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_LOCAL_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
-    if (FAILED(hrReturn))
+    hr = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_LOCAL_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to create BigDriveConfiguration COM instance. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Failed to create BigDriveConfiguration COM instance. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = pBigDriveConfiguration->GetConfiguration(guid, &configuration);
-    switch (hrReturn)
+    hr = pBigDriveConfiguration->GetConfiguration(guid, &configuration);
+    switch (hr)
     {
     case S_OK:
         break;
     case COR_E_INVALIDOPERATION:
         // Shell Folder is registered, but drive isn't
-        s_eventLogger.WriteErrorFormmated(L"BigDriveConfigurationClient::GetDriveConfiguration - Invalid operation. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"BigDriveConfigurationClient::GetDriveConfiguration - Invalid operation. HRESULT: 0x%08X", hr);
         goto End;
     default:
-        s_eventLogger.WriteErrorFormmated(L"BigDriveConfigurationClient::GetDriveConfiguration - Unexpected error. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"BigDriveConfigurationClient::GetDriveConfiguration - Unexpected error. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -66,8 +66,8 @@ HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* ps
     *pszConfiguration = ::SysAllocString(configuration);
     if (*pszConfiguration == NULL)
     {
-        hrReturn = E_OUTOFMEMORY;
-        s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for configuration string. HRESULT: 0x%08X", hrReturn);
+        hr = E_OUTOFMEMORY;
+        s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for configuration string. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -88,32 +88,32 @@ End:
     // Uninitialize COM
     CoUninitialize();
 
-    return hrReturn;
+    return hr;
 }
 
 /// </inheritdoc>
 HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, DriveConfiguration& driveConfiguration)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     LPWSTR pszConfiguration = nullptr;
 
     // Get the configuration from the registry
-    hrReturn = GetDriveConfiguration(guid, &pszConfiguration);
-    if (FAILED(hrReturn))
+    hr = GetDriveConfiguration(guid, &pszConfiguration);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to get drive configuration from registry. HRESULT: 0x%08X", hrReturn);
-        return hrReturn;
+        s_eventLogger.WriteErrorFormmated(L"Failed to get drive configuration from registry. HRESULT: 0x%08X", hr);
+        return hr;
     }
 
-    hrReturn = driveConfiguration.ParseJson(pszConfiguration);
-    if (FAILED(hrReturn))
+    hr = driveConfiguration.ParseJson(pszConfiguration);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to parse drive configuration JSON. HRESULT: 0x%08X", hrReturn);
-        return hrReturn;
+        s_eventLogger.WriteErrorFormmated(L"Failed to parse drive configuration JSON. HRESULT: 0x%08X", hr);
+        return hr;
     }
 
     // Clean up
     ::SysFreeString(pszConfiguration);
-    return hrReturn;
+    return hr;
 }
 

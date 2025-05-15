@@ -437,7 +437,7 @@ namespace BigDriveClientTest
 
         HRESULT VerifyRegistryPathForClsid(const GUID& guid)
         {
-            HRESULT hrReturn = S_OK;
+            HRESULT hr = S_OK;
             HKEY hKey = nullptr;
 
             // Convert the GUID to a string  
@@ -457,18 +457,18 @@ namespace BigDriveClientTest
             {
                 // The registry key exists  
                 Assert::IsTrue(true, L"Registry path exists.");
-                hrReturn = S_OK;
+                hr = S_OK;
             }
             else if (result == ERROR_FILE_NOT_FOUND)
             {
                 // The registry key does not exist  
                 Assert::IsTrue(false, L"Registry path does not exist.");
-                hrReturn = S_FALSE;
+                hr = S_FALSE;
             }
             else
             {
                 // Some other error occurred  
-                hrReturn = HRESULT_FROM_WIN32(result);
+                hr = HRESULT_FROM_WIN32(result);
                 Assert::Fail(L"An unexpected error occurred while verifying the registry path.");
             }
 
@@ -478,7 +478,7 @@ namespace BigDriveClientTest
                 RegCloseKey(hKey);
             }
 
-            return hrReturn;
+            return hr;
         }
 
     };

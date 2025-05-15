@@ -47,7 +47,7 @@ BigDriveInterfaceProvider::BigDriveInterfaceProvider(DriveConfiguration& driveCo
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveInterfaceProvider::GetInterface(const IID& iid, IUnknown** ppIUnknown)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     IUnknown* pIUnknown = nullptr;
 
     if (ppIUnknown == nullptr)
@@ -56,18 +56,18 @@ HRESULT BigDriveInterfaceProvider::GetInterface(const IID& iid, IUnknown** ppIUn
     }
 
     // Create an instance of the COM class
-    hrReturn = ::CoCreateInstance(m_clsid, nullptr, CLSCTX_LOCAL_SERVER, iid, reinterpret_cast<void**>(&pIUnknown));
-    if (FAILED(hrReturn))
+    hr = ::CoCreateInstance(m_clsid, nullptr, CLSCTX_LOCAL_SERVER, iid, reinterpret_cast<void**>(&pIUnknown));
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to create COM instance. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Failed to create COM instance. HRESULT: 0x%08X", hr);
         goto End;
     }
 
     // Query for the requested interface
-    hrReturn = pIUnknown->QueryInterface(iid, reinterpret_cast<void**>(ppIUnknown));
-    if (FAILED(hrReturn))
+    hr = pIUnknown->QueryInterface(iid, reinterpret_cast<void**>(ppIUnknown));
+    if (FAILED(hr))
     {
-        hrReturn = S_FALSE;
+        hr = S_FALSE;
         goto End;
     }
 
@@ -80,7 +80,7 @@ End:
         pIUnknown = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -90,7 +90,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveInterfaceProvider::GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     if (ppBigDriveConfiguration == nullptr)
     {
@@ -98,23 +98,23 @@ HRESULT BigDriveInterfaceProvider::GetIBigDriveConfiguration(IBigDriveConfigurat
     }
 
     // Get the IBigDriveConfiguration interface
-    hrReturn = GetInterface(IID_IBigDriveConfiguration, reinterpret_cast<IUnknown**>(ppBigDriveConfiguration));
-    switch (hrReturn)
+    hr = GetInterface(IID_IBigDriveConfiguration, reinterpret_cast<IUnknown**>(ppBigDriveConfiguration));
+    switch (hr)
     {
     case S_OK:
         // Successfully retrieved the interface
         break;
     case S_FALSE:
         WriteError(L"Doesn't implement IBigDriveConfiguration");
-        hrReturn = E_NOINTERFACE;
+        hr = E_NOINTERFACE;
         break;
     default:
-        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveConfiguration interface. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveConfiguration interface. HRESULT: 0x%08X", hr);
         goto End;
     }
 
 End:
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -124,28 +124,28 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveInterfaceProvider::BigDriveInterfaceProvider::GetIBigDriveRoot(IBigDriveRoot** ppBigDriveRoot)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     if (ppBigDriveRoot == nullptr)
     {
         return E_POINTER; // Return an appropriate error code
     }
     // Get the IBigDriveRoot interface
-    hrReturn = GetInterface(IID_IBigDriveRoot, reinterpret_cast<IUnknown**>(ppBigDriveRoot));
-    switch (hrReturn)
+    hr = GetInterface(IID_IBigDriveRoot, reinterpret_cast<IUnknown**>(ppBigDriveRoot));
+    switch (hr)
     {
     case S_OK:
         // Successfully retrieved the interface
         break;
     case S_FALSE:
         WriteError(L"Doesn't implement IBigDriveRoot");
-        hrReturn = E_NOINTERFACE;
+        hr = E_NOINTERFACE;
         break;
     default:
-        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveRoot interface. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveRoot interface. HRESULT: 0x%08X", hr);
         goto End;
     }
 End:
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>

@@ -19,7 +19,7 @@ using namespace BigDriveClient;
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT ProviderConfiguration::ParseJson(LPCWSTR jsonString)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     if (!jsonString)
     {
@@ -57,7 +57,7 @@ HRESULT ProviderConfiguration::ParseJson(LPCWSTR jsonString)
                 szClsidWithBrackets[clsidLength + 2] = L'\0';
 
                 // Pass the modified string to GUIDFromString
-                hrReturn = GUIDFromString(szClsidWithBrackets, &clsid);
+                hr = GUIDFromString(szClsidWithBrackets, &clsid);
 
                 // Free the allocated memory for szClsidWithBrackets
                 ::SysFreeString(szClsidWithBrackets);
@@ -65,10 +65,10 @@ HRESULT ProviderConfiguration::ParseJson(LPCWSTR jsonString)
             }
             else
             {
-                hrReturn = E_OUTOFMEMORY;
+                hr = E_OUTOFMEMORY;
             }
 
-            if (FAILED(hrReturn))
+            if (FAILED(hr))
             {
                 goto End;
             }
@@ -98,5 +98,5 @@ HRESULT ProviderConfiguration::ParseJson(LPCWSTR jsonString)
 
 End:
 
-    return hrReturn;
+    return hr;
 }

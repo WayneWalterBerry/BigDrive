@@ -14,9 +14,16 @@ namespace BigDrive.Provider.Sample
 
     public partial class Provider
     {
+        /// <inheritdoc/>
         public void Register()
         {
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
+        }
+
+        /// <inheritdoc/>
+        public void Unregister()
+        {
+            // TODO
         }
     }
 }
