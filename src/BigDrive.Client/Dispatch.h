@@ -62,6 +62,14 @@ public:
     HRESULT GetProperty(DISPID dispid, VARIANT* pValue);
 
     /// <summary>
+    /// Retrieves a property value by name and converts it to a CLSID.
+    /// </summary>
+    /// <param name="szName">The name of the property.</param>
+    /// <param name="clsid">Reference to a CLSID to receive the property value.</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+    HRESULT GetProperty(LPCWSTR szName, CLSID& clsid);
+
+    /// <summary>
     /// Retrieves a string property value by name.
     /// </summary>
     /// <param name="szName">The name of the property.</param>
@@ -87,6 +95,15 @@ public:
     /// <param name="szName">Name of Value to fetch</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT GetValue(LPCWSTR bstrName, BSTR& bstrValue);
+
+    /// <summary>
+    /// Retrieves the value of a property by name and converts it to a CLSID.
+    /// </summary>
+    /// <param name="bstrName">The name of the property to retrieve.</param>
+    /// <param name="clsdid">Reference to a CLSID that receives the converted value.</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+
+    HRESULT GetValue(LPCWSTR bstrName, CLSID& clsdid);
 
     HRESULT GetTypeInfo(BSTR& bstrName);
 

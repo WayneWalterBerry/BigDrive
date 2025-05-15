@@ -31,7 +31,7 @@ public:
     // ==================== ICatalogObject ====================
 
     HRESULT GetName(BSTR& bstrName);
-    HRESULT GetId(BSTR& bstrName);
+
     HRESULT GetDescription(BSTR& bstrDescription);
     HRESULT GetKey(BSTR& bstrKey);
 

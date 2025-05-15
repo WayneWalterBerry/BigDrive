@@ -15,7 +15,7 @@
 #include "ApplicationCollection.h"
 #include "ComponentCollection.h"
 #include "VariantUtil.h"
-#include "COMUtil.h"
+#include "COMUtility.h"
 
 // Initialize the static EventLogger instance
 EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
@@ -106,7 +106,7 @@ End:
     return hr;
 }
 
-/// </inheritdoc>
+/// <inheritdoc />
 HRESULT COMAdminCatalog::GetComponentCollection(Application* pApplication, ComponentCollection** ppComponentCollection)
 {
     HRESULT hr = S_OK;
@@ -244,5 +244,79 @@ HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appK
     ::VariantClear(&varKey);
 
     return S_OK;
+}
+
+/// <inheritdoc />
+HRESULT COMAdminCatalog::QueryApplicationByName(LPWSTR szName, Application** ppApplication)
+{
+    if (szName == nullptr || ppApplication == nullptr)
+    {
+        s_eventLogger.WriteError(L"QueryApplicationByName: Invalid argument(s).");
+        return E_POINTER;
+    }
+
+    ApplicationCollection* pApplicationCollection = nullptr;
+    HRESULT hr = GetApplicationsCollection(&pApplicationCollection);
+    if (FAILED(hr) || pApplicationCollection == nullptr)
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Failed to get ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    hr = pApplicationCollection->QueryApplicationByName(szName, ppApplication);
+
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: QueryApplicationByName failed. HRESULT: 0x%08X", hr);
+    }
+
+    delete pApplicationCollection;
+    return hr;
+}
+
+/// </inheritdoc>
+HRESULT COMAdminCatalog::Start(Application *pApplication)
+{
+    HRESULT hr = S_OK;
+    BSTR bstrAppId = nullptr;
+
+    ICOMAdminCatalog2* pICOMAdminCatalog2 = nullptr;
+
+    hr = GetICOMAdminCatalog2(&pICOMAdminCatalog2);
+    if (FAILED(hr) || (pICOMAdminCatalog2 == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get ICOMAdminCatalog2 HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    hr = pApplication->GetId(bstrAppId);
+    if (FAILED(hr) || (bstrAppId == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get Application ID. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+    hr = pICOMAdminCatalog2->StartApplication(bstrAppId);
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"StartApplication: Failed to start application. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+End:
+
+    if (bstrAppId)
+    {
+        ::SysFreeString(bstrAppId);
+        bstrAppId = nullptr;
+    }
+
+    if (pICOMAdminCatalog2)
+    {
+        pICOMAdminCatalog2->Release();
+        pICOMAdminCatalog2 = nullptr;
+    }
+
+    return hr;
 }
 

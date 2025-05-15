@@ -8,30 +8,60 @@
 #include "ApplicationCollection.h"
 #include "ApplicationManager.h"
 
+/// <inheritdoc />
 HRESULT ApplicationCollection::Initialize()
 {
-    if (m_ppApplications == nullptr)
+    if (m_ppApplications == NULL)
     {
-        return GetApplications(&m_ppApplications, m_lSize);
-    }
+        Application** temp = NULL;
+        LONG tempSize = 0;
 
+        HRESULT hr = GetApplications(&temp, tempSize);
+
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"Initialize: Failed to get applications. HRESULT: 0x%08X", hr);
+            return hr;
+        }
+
+        // Only set m_ppApplications if it is still NULL
+        if (InterlockedCompareExchangePointer((PVOID*)&m_ppApplications, temp, NULL) != NULL)
+        {
+            // Another thread already initialized, so free our temp
+            for (LONG i = 0; i < tempSize; ++i)
+            {
+                if (temp[i])
+                {
+                    delete temp[i];
+                }
+            }
+
+            ::CoTaskMemFree(temp);
+        }
+        else
+        {
+            m_lSize = tempSize;
+        }
+    }
     return S_OK;
 }
 
-/// <summary>
-/// Provides access to an Application object at the specified index.
-/// </summary>
-/// <param name="index">The zero-based index of the Application to retrieve.</param>
-/// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
-/// <returns>HRESULT indicating success or failure of the operation.</returns>
-HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication) const
+/// <inheritdoc />
+HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication)
 {
     if (ppApplication == nullptr)
     {
         return E_POINTER;
     }
 
-    if (index >= m_lSize || m_ppApplications == nullptr)
+    HRESULT hr = Initialize();
+    if (FAILED(hr) || (m_ppApplications==nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetItem: Failed to initialize ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    if (index >= m_lSize)
     {
         return E_BOUNDS; // Index out of range or array uninitialized
     }
@@ -39,6 +69,60 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
     return m_ppApplications[index]->Clone(ppApplication);
 }
 
+/// <inheritdoc />
+HRESULT ApplicationCollection::QueryApplicationByName(LPCWSTR szName, Application** ppApplication)
+{
+    HRESULT hr = S_OK;
+
+    if (szName == nullptr || ppApplication == nullptr)
+    {
+        s_eventLogger.WriteError(L"QueryApplicationByName: Invalid argument(s).");
+        return E_POINTER;
+    }
+
+    hr = Initialize();
+    if (FAILED(hr) || (m_ppApplications == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Failed to initialize ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    *ppApplication = nullptr;
+
+    for (LONG i = 0; i < m_lSize; ++i)
+    {
+        BSTR bstrCurrentName = nullptr;
+        HRESULT hrName = m_ppApplications[i]->GetName(bstrCurrentName);
+        if (FAILED(hrName))
+        {
+            s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: GetName failed for index %d. HRESULT: 0x%08X", i, hrName);
+            continue;
+        }
+
+        if (bstrCurrentName && wcscmp(bstrCurrentName, szName) == 0)
+        {
+            HRESULT hrClone = m_ppApplications[i]->Clone(ppApplication);
+            ::SysFreeString(bstrCurrentName);
+            if (FAILED(hrClone))
+            {
+                s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Clone failed for index %d. HRESULT: 0x%08X", i, hrClone);
+                return hrClone;
+            }
+            return S_OK;
+        }
+
+        if (bstrCurrentName)
+        {
+            ::SysFreeString(bstrCurrentName);
+        }
+    }
+
+    s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: No application found with name '%s'.", szName);
+    return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+}
+
+
+/// <inheritdoc />
 HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
 {
     HRESULT hrReturn = S_OK;
@@ -115,3 +199,5 @@ End:
 
     return hrReturn;
 }
+
+

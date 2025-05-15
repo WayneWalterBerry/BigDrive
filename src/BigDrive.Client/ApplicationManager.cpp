@@ -14,196 +14,216 @@
 
 // Local
 #include "Dispatch.h"
+#include "COMAdminCatalog.h"
+#include "Interfaces/IBigDriveRegistration.h"
 
 // Initialize the static EventLogger instance
 EventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");
 
-HRESULT ApplicationManager::StartApplication(CLSID clsidProvider)
+HRESULT ApplicationManager::RegisterApplications()
 {
-    HRESULT hrReturn = S_OK;
-    CLSID clsidCOMAdminCatalog;
-    IDispatch* pIDispatchCatalog = nullptr;
-    DISPID dispid;
-    LPOLESTR progID = nullptr;
-    const OLECHAR* methodName = L"StartApplication";
+    HRESULT hr = S_OK;
+    COMAdminCatalog* pCOMAdminCatalog = nullptr;
+    ApplicationCollection* pApplicationCollection = nullptr;
+    Application* pApplication = nullptr;
+    ComponentCollection* pComponentCollection = nullptr;
+    Component* pComponent = nullptr;
+    IBigDriveRegistration* pBigDriveRegistration = nullptr;
+    CLSID clsid;
 
-    // Invoke StartApplication
-    DISPPARAMS params = {};
-    VARIANTARG varg = {};
+    BSTR bstrApplicationName = nullptr;
+    BSTR bstrComponentName = nullptr;
 
-    varg.vt = VT_BSTR;
-    params.rgvarg = &varg;
-    params.cArgs = 1;
-
-    hrReturn = ::ProgIDFromCLSID(clsidProvider, &progID);
-    if (FAILED(hrReturn))
+    hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to retrieve ProgID from CLSID. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Create() failed. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    varg.bstrVal = progID;
-
-    // Create COMAdminCatalog instance
-    hrReturn = ::CLSIDFromProgID(L"COMAdmin.COMAdminCatalog", &clsidCOMAdminCatalog);
-    if (FAILED(hrReturn))
+    hr = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to retrieve CLSID for COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection() failed. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = ::CoCreateInstance(clsidCOMAdminCatalog, nullptr, CLSCTX_INPROC_SERVER, IID_IDispatch, (void**)&pIDispatchCatalog);
-    if (FAILED(hrReturn))
+    LONG lApplicationCount;
+    hr = pApplicationCollection->GetCount(lApplicationCount);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to create COMAdminCatalog instance. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetCount() failed. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    // Prepare arguments for StartApplication
-    hrReturn = pIDispatchCatalog->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&methodName), 1, LOCALE_USER_DEFAULT, &dispid);
-    if (FAILED(hrReturn))
+    for (LONG a = 0; a < lApplicationCount; a++)
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to get DISPID for StartApplication. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
+        Application* pApplication = nullptr;
+        hr = pApplicationCollection->GetItem(a, &pApplication);
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetItem() failed. HRESULT: 0x%08X", hr);
+            goto End;
+        }
 
-    hrReturn = pIDispatchCatalog->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"Failed to invoke StartApplication. HRESULT: 0x%08X", hrReturn);
-        goto End;
+        hr = pApplication->GetName(bstrApplicationName);
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetName() failed. HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        hr = pCOMAdminCatalog->GetComponentCollection(pApplication, &pComponentCollection);
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetComponentCollection() failed. HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        LONG lComponentCount;
+        hr = pComponentCollection->GetCount(lComponentCount);
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetCount() failed. HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        for (LONG c = 0; c < lComponentCount; c++)
+        {
+            hr = pComponentCollection->GetItem(c, &pComponent);
+            if (FAILED(hr))
+            {
+                s_eventLogger.WriteErrorFormmated(L"GetItem() failed. HRESULT: 0x%08X", hr);
+                goto End;
+            }
+
+            hr = pComponent->GetName(bstrComponentName);
+            if (FAILED(hr))
+            {
+                s_eventLogger.WriteErrorFormmated(L"GetName() failed. HRESULT: 0x%08X", hr);
+                goto End;
+            }
+
+            hr = pComponent->GetCLSID(clsid);
+            if (FAILED(hr))
+            {
+                s_eventLogger.WriteErrorFormmated(L"GetCLSID() failed. HRESULT: 0x%08X", hr);
+                goto End;
+            }
+
+            hr = ::CoCreateInstance(clsid, nullptr, CLSCTX_LOCAL_SERVER, IID_IBigDriveRegistration, (void**)&pBigDriveRegistration);
+            switch (hr)
+            {
+            case S_OK:
+
+                // Call Register() on the IBigDriveRegistration interface
+                hr = pBigDriveRegistration->Register();
+                if (FAILED(hr))
+                {
+                    s_eventLogger.WriteErrorFormmated(L"Register() failed. HRESULT: 0x%08X", hr);
+                    goto End;
+                }
+                break;
+            case REGDB_E_CLASSNOTREG:
+
+                // This COM Component Didn't Register Itself Correctly.
+                hr = S_OK;
+                continue;
+
+            case E_NOINTERFACE:
+
+                // Not Every Component Implements IBigDriveRegistration.
+                hr = S_OK;
+                continue;
+
+            default:
+                // Handle other cases if needed
+                s_eventLogger.WriteErrorFormmated(L"QueryInterface() failed. HRESULT: 0x%08X", hr);
+                break;
+            }
+
+            if (bstrComponentName)
+            {
+                ::SysFreeString(bstrComponentName);
+                bstrComponentName = nullptr;
+            }
+
+            if (pComponent != nullptr)
+            {
+                pComponent->Release();
+                pComponent = nullptr;
+            }
+        }
+
+        if (bstrApplicationName)
+        {
+            ::SysFreeString(bstrApplicationName);
+            bstrApplicationName = nullptr;
+        }
+
+        if (pComponentCollection != nullptr)
+        {
+            pComponentCollection->Release();
+            pComponentCollection = nullptr;
+        }
+
+        if (pApplication != nullptr)
+        {
+            pApplication->Release();
+            pApplication = nullptr;
+        }
     }
 
 End:
 
-    // Cleanup
-    if (progID != nullptr)
+    // Clean up IBigDriveRegistration
+    if (pBigDriveRegistration != nullptr)
     {
-        ::CoTaskMemFree(progID);
-        progID = nullptr;
+        pBigDriveRegistration->Release();
+        pBigDriveRegistration = nullptr;
     }
 
-    if (pIDispatchCatalog != nullptr)
+    // Clean up Component
+    if (pComponent != nullptr)
     {
-        pIDispatchCatalog->Release();
-        pIDispatchCatalog = nullptr;
+        delete pComponent;
+        pComponent = nullptr;
     }
 
-    return hrReturn;
+    // Clean up ComponentCollection
+    if (pComponentCollection != nullptr)
+    {
+        delete pComponentCollection;
+        pComponentCollection = nullptr;
+    }
+
+    // Clean up Application
+    if (pApplication != nullptr)
+    {
+        delete pApplication;
+        pApplication = nullptr;
+    }
+
+    // Clean up ApplicationCollection
+    if (pApplicationCollection != nullptr)
+    {
+        delete pApplicationCollection;
+        pApplicationCollection = nullptr;
+    }
+
+    // Clean up COMAdminCatalog
+    if (pCOMAdminCatalog != nullptr)
+    {
+        delete pCOMAdminCatalog;
+        pCOMAdminCatalog = nullptr;
+    }
+
+    return hr;
+
 }
 
-/// <summary>
-/// Retrieves the COMAdminCatalog object, which provides access to COM+ administration.
-/// </summary>
-/// <param name="ppIDispatchCatalog">Pointer to an IDispatch pointer that will receive the COMAdminCatalog object.</param>
-/// <returns>HRESULT indicating success or failure of the operation.</returns>
-/// </summary>
-HRESULT ApplicationManager::GetCOMAdminCatalog(IDispatch** ppIDispatchCatalog)
-{
-    HRESULT hrReturn = S_OK;
 
-    if (ppIDispatchCatalog == nullptr)
-    {
-        s_eventLogger.WriteError(L"GetCOMAdminCatalog: Invalid pointer passed for ppIDispatchCatalog.");
-        return E_POINTER;
-    }
 
-    CLSID clsidCOMAdminCatalog;
-
-    // Retrieve the CLSID for COMAdminCatalog
-    hrReturn = ::CLSIDFromProgID(L"COMAdmin.COMAdminCatalog", &clsidCOMAdminCatalog);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to retrieve CLSID for COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-    // Create an instance of the COMAdminCatalog
-    hrReturn = ::CoCreateInstance(clsidCOMAdminCatalog, nullptr, CLSCTX_INPROC_SERVER, IID_IDispatch, (void**)ppIDispatchCatalog);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetCOMAdminCatalog: Failed to create an instance of COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-End:
-
-    return hrReturn;
-}
-
-/// <summary>
-/// Retrieves the Applications collection from the COM+ catalog.
-/// </summary>
-/// <param name="ppIDispatchApplicationsCollection">Pointer to an IDispatch pointer that will receive the Applications collection.</param>
-/// <returns>HRESULT indicating success or failure of the operation.</returns>
-HRESULT ApplicationManager::GetApplicationsCollection(IDispatch** ppIDispatchApplicationsCollection)
-{
-    HRESULT hrReturn = S_OK;
-
-    if (!ppIDispatchApplicationsCollection)
-    {
-        s_eventLogger.WriteError(L"GetApplicationsCollection: Invalid pointer passed for ppIDispatchApplicationsCollection.");
-        return E_POINTER;
-    }
-
-    IDispatch* pIDispatchCatalog = nullptr;
-    DISPID dispidGetCollection;
-    const OLECHAR* methodName = L"GetCollection";
-
-    VARIANT vtCollections;
-    ::VariantInit(&vtCollections);
-    DISPPARAMS params = { nullptr, nullptr, 0, 0 };
-
-    VARIANTARG varg;
-    varg.vt = VT_BSTR;
-    varg.bstrVal = ::SysAllocString(L"Applications"); // Request Collection list
-    params.rgvarg = &varg;
-    params.cArgs = 1;
-
-    hrReturn = GetCOMAdminCatalog(&pIDispatchCatalog);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get COMAdminCatalog. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-    // Get the DISPID for GetCollection method
-    hrReturn = pIDispatchCatalog->GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&methodName), 1, LOCALE_USER_DEFAULT, &dispidGetCollection);
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to get DISPID for GetCollection. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-    hrReturn = pIDispatchCatalog->Invoke(dispidGetCollection, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &vtCollections, nullptr, nullptr);
-    if (FAILED(hrReturn) || (vtCollections.vt != VT_DISPATCH))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Failed to invoke GetCollection. HRESULT: 0x%08X", hrReturn);
-        goto End;
-    }
-
-    *ppIDispatchApplicationsCollection = vtCollections.pdispVal;
-
-End:
-
-    if (FAILED(hrReturn))
-    {
-        s_eventLogger.WriteErrorFormmated(L"GetApplicationsCollection: Operation failed. HRESULT: 0x%08X", hrReturn);
-    }
-
-    if (pIDispatchCatalog)
-    {
-        pIDispatchCatalog->Release();
-        pIDispatchCatalog = nullptr;
-    }
-
-    if (varg.bstrVal)
-    {
-        ::SysFreeString(varg.bstrVal);
-    }
-
-    return hrReturn;
-}
 
 
 

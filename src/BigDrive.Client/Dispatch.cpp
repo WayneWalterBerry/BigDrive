@@ -125,7 +125,7 @@ HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
     HRESULT hrReturn = S_OK;
     VARIANT vtValue;
 
-    if (!szName || !bstrString)
+    if (!szName)
     {
         return E_POINTER;
     }
@@ -139,18 +139,57 @@ HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
         goto End;
     }
     // Check if the property is a string
-    if (vtValue.vt == VT_BSTR)
+    if (vtValue.vt != VT_BSTR)
     {
-        bstrString = ::SysAllocString(vtValue.bstrVal);
-        if (bstrString == nullptr)
-        {
-            hrReturn = E_OUTOFMEMORY;
-        }
+        hrReturn = E_FAIL;
+        goto End;
     }
-    else
+
+    bstrString = ::SysAllocString(vtValue.bstrVal);
+    if (bstrString == nullptr)
     {
-        hrReturn = E_FAIL; // Not a string type
+        hrReturn = E_OUTOFMEMORY;
     }
+
+End:
+
+    ::VariantClear(&vtValue);
+
+    return hrReturn;
+}
+
+HRESULT Dispatch::GetProperty(LPCWSTR szName, CLSID& clsid)
+{
+    HRESULT hrReturn = S_OK;
+    VARIANT vtValue;
+
+    if (!szName)
+    {
+        return E_POINTER;
+    }
+
+    ::VariantInit(&vtValue);
+
+    // Get the property value
+    hrReturn = GetProperty(szName, &vtValue);
+    if (FAILED(hrReturn))
+    {
+        goto End;
+    }
+
+    // Check if the property is a string
+    if (vtValue.vt != VT_BSTR)
+    {
+        hrReturn = E_FAIL;
+        goto End;
+    }
+
+    hrReturn = ::CLSIDFromString(vtValue.bstrVal, &clsid);
+    if (FAILED(hrReturn))
+    {
+        goto End;
+    }
+
 End:
 
     ::VariantClear(&vtValue);
@@ -369,11 +408,6 @@ HRESULT Dispatch::GetSupportedIIDs(IID** pResult, ULONG& ulCount)
     return S_OK;
 }
 
-/// <summary>
-/// Call the Value Property on with the Value Name As the Argument To The Value Property
-/// </summary>
-/// <param name="szName">Name of Value to fetch</param>
-/// <returns>HRESULT indicating success or failure.</returns>
 HRESULT Dispatch::GetValue(LPCWSTR szName, BSTR& bstrValue)
 {
     VARIANT varResult;
@@ -447,6 +481,33 @@ End:
         varPropertyName.bstrVal = nullptr;
     }
 
+    return hr;
+}
+
+HRESULT Dispatch::GetValue(LPCWSTR szName, CLSID& clsid)
+{
+    HRESULT hr = S_OK;
+    BSTR bstrValue;
+
+    hr = GetValue(szName, bstrValue);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+    hr = ::CLSIDFromString(bstrValue, &clsid);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
+
+    if (bstrValue)
+    {
+        ::SysFreeString(bstrValue);
+        bstrValue = nullptr;
+    }
     return hr;
 }
 
@@ -820,10 +881,10 @@ HRESULT Dispatch::GetFuncDesc(LPFUNCDESC** pppFuncDesc, LONG& lCount)
     // Retrieve method names
     for (UINT i = 0; i < pTypeAttr->cFuncs; i++)
     {
-        FuncDesc *pFuncDesc = nullptr;
+        FuncDesc* pFuncDesc = nullptr;
 
         hr = FuncDesc::Create(pTypeInfo, i, &pFuncDesc);
-        if(FAILED(hr))
+        if (FAILED(hr))
         {
             s_eventLogger.WriteErrorFormmated(L"GetFuncDesc: Failed to create FuncDesc. HRESULT: 0x%08X", hr);
             goto End;

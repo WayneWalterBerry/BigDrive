@@ -6,7 +6,6 @@ namespace BigDrive.Interfaces
 {
     using System;
     using System.Runtime.InteropServices;
-    using System.Threading;
 
     [ComVisible(true)]
     [Guid("D3F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E6F")] // Randomly generated GUID

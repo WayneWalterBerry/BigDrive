@@ -13,3 +13,8 @@
 // Local
 #include "Component.h"
 
+/// <inheritdoc />
+HRESULT Application::GetId(BSTR& bstrId)
+{
+    return GetValue(L"ID", bstrId);
+}

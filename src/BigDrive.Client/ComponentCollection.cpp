@@ -13,35 +13,96 @@
 // Local
 #include "Component.h"
 
+HRESULT ComponentCollection::Initialize()
+{
+    if (m_ppComponents == nullptr)
+    {
+        Component** temp = nullptr;
+        LONG tempSize = 0;
+
+        HRESULT hr = GetComponents(&temp, tempSize);
+
+        if (FAILED(hr))
+        {
+            s_eventLogger.WriteErrorFormmated(L"Initialize: Failed to get components. HRESULT: 0x%08X", hr);
+            return hr;
+        }
+
+        // Only set m_ppComponents if it is still nullptr
+        if (InterlockedCompareExchangePointer((PVOID*)&m_ppComponents, temp, nullptr) != nullptr)
+        {
+            // Another thread already initialized, so free our temp
+            for (LONG i = 0; i < tempSize; ++i)
+            {
+                if (temp[i])
+                {
+                    delete temp[i];
+                }
+            }
+            ::CoTaskMemFree(temp);
+        }
+        else
+        {
+            m_lSize = tempSize;
+        }
+    }
+    return S_OK;
+}
+
 HRESULT ComponentCollection::GetName(BSTR& bstrString)
 {
     return GetStringProperty(L"Name", bstrString);
 }
 
-HRESULT ComponentCollection::GetComponents(Component*** pppComponents, long& lSize)
+/// <inheritdoc />
+HRESULT ComponentCollection::GetItem(size_t index, Component** ppComponent)
+{
+    if (ppComponent == nullptr)
+    {
+        return E_POINTER;
+    }
+
+    HRESULT hr = Initialize();
+    if (FAILED(hr) || (m_ppComponents == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetItem: Failed to initialize ComponentCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    if (index >= m_lSize)
+    {
+        return E_BOUNDS; // Index out of range or array uninitialized
+    }
+
+    return m_ppComponents[index]->Clone(ppComponent);
+}
+
+/// <inheritdoc />
+HRESULT ComponentCollection::GetComponents(Component*** pppComponents, LONG& lSize)
 {
     HRESULT hrReturn = S_OK;
 
     lSize = 0;
 
-    if (pppComponents == nullptr)
-    {
-        return E_POINTER;
-    }
-
-    // Populate the Applications collection
-    hrReturn = Populate();
+    ICatalogCollection* pICatalogCollection = nullptr;
+    hrReturn = GetICatalogCollection(&pICatalogCollection);
     if (FAILED(hrReturn))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetComponentsCLSIDs: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
-    // Retrieve the count of applications
-    hrReturn = GetCount(lSize);
+    hrReturn = pICatalogCollection->Populate();
     if (FAILED(hrReturn))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetComponentsCLSIDs: Failed to get count of applications. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate component collection. HRESULT: 0x%08X", hrReturn);
+        goto End;
+    }
+
+    hrReturn = pICatalogCollection->get_Count(&lSize);
+    if (FAILED(hrReturn))
+    {
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of components. HRESULT: 0x%08X", hrReturn);
         goto End;
     }
 
@@ -50,8 +111,43 @@ HRESULT ComponentCollection::GetComponents(Component*** pppComponents, long& lSi
     if (*pppComponents == nullptr)
     {
         hrReturn = E_OUTOFMEMORY;
-        s_eventLogger.WriteError(L"GetComponentsCLSIDs: Memory allocation for application pointers failed.");
+        s_eventLogger.WriteError(L"GetApplications: Memory allocation for component pointers failed.");
         goto End;
+    }
+
+    // Retrieve each application and store its IDispatch pointer
+    for (long i = 0; i < lSize; i++)
+    {
+        IDispatch* pDispatch = nullptr;
+
+        hrReturn = pICatalogCollection->get_Item(i, &pDispatch);
+        if (FAILED(hrReturn) || pDispatch == nullptr)
+        {
+            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get component at index %d. HRESULT: 0x%08X", i, hrReturn);
+            goto CleanupArray;
+        }
+
+        // Store the IDispatch pointer in the array
+        (*pppComponents)[i] = new Component(pDispatch);
+    }
+
+    goto End;
+
+CleanupArray:
+
+    // Cleanup allocated memory and release IDispatch pointers on failure
+    if (*pppComponents != nullptr)
+    {
+        for (LONG j = 0; j < lSize; j++)
+        {
+            if ((*pppComponents)[j] != nullptr)
+            {
+                delete (*pppComponents)[j];
+            }
+        }
+        ::CoTaskMemFree(*pppComponents);
+        *pppComponents = nullptr;
+        lSize = 0;
     }
 
 End:

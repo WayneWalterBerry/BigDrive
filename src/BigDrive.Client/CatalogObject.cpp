@@ -12,11 +12,6 @@ HRESULT CatalogObject::GetName(BSTR& bstrName)
     return GetStringProperty(L"Name", bstrName);
 }
 
-HRESULT CatalogObject::GetId(BSTR& bstrId)
-{
-    return GetValue(L"ID", bstrId);
-}
-
 HRESULT CatalogObject::GetDescription(BSTR& bstrDescription)
 {
     return GetValue(L"Description", bstrDescription);

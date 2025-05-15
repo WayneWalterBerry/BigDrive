@@ -54,6 +54,14 @@ public:
         }
     }
 
+    /// <summary>
+    /// Thread-safe initialization of the application collection.
+    /// If the internal application array has not been initialized, this method retrieves
+    /// all COM+ applications and populates the array. Uses InterlockedCompareExchangePointer
+    /// to ensure only one thread performs the initialization, and cleans up any redundant
+    /// allocations if another thread wins the race. Returns S_OK if already initialized
+    /// or if initialization succeeds; otherwise, returns an error HRESULT.
+    /// </summary>
     HRESULT Initialize();
 
     /// <summary>
@@ -62,11 +70,27 @@ public:
     /// <param name="index">The zero-based index of the Application to retrieve.</param>
     /// <param name="ppApplication">Pointer to receive the Application object at the specified index.</param>
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
-    HRESULT GetItem(size_t index, Application** ppApplication) const;
+    HRESULT GetItem(size_t index, Application** ppApplication);
+
+    /// <summary>
+    /// Searches for an application in the collection by its name.
+    /// Iterates through all applications, calling GetName on each and comparing the result to the specified name.
+    /// If a match is found, clones the application into ppApplication and returns S_OK.
+    /// Returns HRESULT_FROM_WIN32(ERROR_NOT_FOUND) if no match is found, or an error HRESULT on failure.
+    /// Logs errors using the event logger.
+    /// </summary>
+    HRESULT QueryApplicationByName(LPCWSTR bstrName, Application** ppApplication);
 
     friend class BigDriveClientTest::ApplicationCollectionTests;
 
 private:
+
+    /// <summary>
+    /// Retrieves all Application objects in the collection and returns them as an array of Application pointers.
+    /// </summary>
+    /// <param name="pppApplications">Address of a pointer that receives the array of Application pointers.</param>
+    /// <param name="lSize">Reference to a LONG that receives the number of applications in the array.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
 
     HRESULT GetApplications(Application*** pppApplications, LONG& lSize);
 };

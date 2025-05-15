@@ -1,4 +1,4 @@
-// <copyright file="COMAdminCatalog.cpp" company="Wayne Walter Berry">
+// <copyright file="COMAdminCatalog.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -32,6 +32,11 @@ private:
 
 public:
 
+    /// <summary>
+    /// Creates an instance of the COMAdminCatalog class and initializes it with a COMAdminCatalog COM object.
+    /// </summary>
+    /// <param name="ppCOMAdminCatalog">Address of a pointer that receives the created COMAdminCatalog instance.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
     static HRESULT Create(COMAdminCatalog **ppCOMAdminCatalog);
     
     HRESULT GetApplicationsCollection(ApplicationCollection** ppApplicationCollection);
@@ -45,6 +50,24 @@ public:
     HRESULT GetComponentCollection(Application *pApplication, ComponentCollection **ppComponentCollection);
 
     HRESULT GetCollectionByQuery(LPWSTR collectionName, BSTR appKey, IDispatch** pIDispatch);
+
+    /// <summary>
+    /// Starts the specified COM+ application using the COMAdminCatalog.
+    /// Retrieves the application's name, obtains the ICOMAdminCatalog2 interface,
+    /// and calls StartApplication to launch the application. Logs errors if any step fails.
+    /// </summary>
+    /// <param name="pApplication">Pointer to the Application object to start.</param>
+    /// <returns>HRESULT indicating success or failure of the operation.</returns>
+    HRESULT Start(Application* pApplication);
+
+    /// <summary>
+    /// Searches for a COM+ application by its name in the catalog.
+    /// Retrieves the applications collection and calls QueryApplicationByName to find an application
+    /// whose name matches the specified value. If found, clones the application into ppApplication and returns S_OK.
+    /// Returns HRESULT_FROM_WIN32(ERROR_NOT_FOUND) if no match is found, or an error HRESULT on failure.
+    /// Logs errors using the event logger.
+    /// </summary>
+    HRESULT QueryApplicationByName(LPWSTR bstrName, Application** ppApplication);
 
     friend class BigDriveClientTest::COMAdminCatalogTests;
 
