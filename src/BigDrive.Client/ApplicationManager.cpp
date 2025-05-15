@@ -111,7 +111,7 @@ HRESULT ApplicationManager::RegisterApplications()
                 goto End;
             }
 
-            hr = ::CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IBigDriveRegistration, (void**)&pBigDriveRegistration);
+            hr = ::CoCreateInstance(clsid, nullptr, CLSCTX_LOCAL_SERVER, IID_IBigDriveRegistration, (void**)&pBigDriveRegistration);
             switch (hr)
             {
             case S_OK:
