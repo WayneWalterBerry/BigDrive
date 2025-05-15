@@ -28,7 +28,14 @@ namespace BigDriveClientTest
     TEST_CLASS(ApplicationCollectionTests)
     {
 
-    private:
+    public:
+
+        ApplicationCollectionTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
+
+    public:
 
         TEST_METHOD(QueryApplicationByName_FindsApplication)
         {
@@ -101,6 +108,7 @@ namespace BigDriveClientTest
             }
 
             delete pApplicationCollection;
+            delete pCOMAdminCatalog;
         }
 
         TEST_METHOD(GetICatalogCollectionTest)
@@ -120,6 +128,10 @@ namespace BigDriveClientTest
             hr = pApplicationCollection->GetICatalogCollection(&pICatalogCollection);
             Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection() failed.");
             Assert::IsNotNull(pICatalogCollection, L"GetApplicationsCollection() failed.");
+
+            delete pApplicationCollection;
+            pICatalogCollection->Release();
+            delete pCOMAdminCatalog;
         }
 
         TEST_METHOD(GetApplications)
@@ -156,6 +168,9 @@ namespace BigDriveClientTest
                 ppApplications = nullptr;
                 lSize = 0;
             }
+
+            delete pApplicationCollection;
+            delete pCOMAdminCatalog;
         }
     };
 }

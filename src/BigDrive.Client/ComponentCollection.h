@@ -32,7 +32,26 @@ public:
 
     ~ComponentCollection()
     {
+        if (m_ppComponents != nullptr)
+        {
+            for (LONG j = 0; j < m_lSize; j++)
+            {
+                if (m_ppComponents[j] != nullptr)
+                {
+                    delete (m_ppComponents)[j];
+                }
+            }
+            ::CoTaskMemFree(m_ppComponents);
+            m_ppComponents = nullptr;
+            m_lSize = 0;
+        }
     }
+
+    /// <summary>
+    /// Override the Release() method
+    /// </summary>
+    /// <returns></returns>
+    ULONG Release() override;
 
     HRESULT GetName(BSTR& bstrString);
 

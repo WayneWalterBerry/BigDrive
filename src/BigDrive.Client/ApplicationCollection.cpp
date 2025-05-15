@@ -9,6 +9,13 @@
 #include "ApplicationManager.h"
 
 /// <inheritdoc />
+ULONG ApplicationCollection::Release()
+{
+    // Call delete on the object, not release.
+    return E_FAIL;
+}
+
+/// <inheritdoc />
 HRESULT ApplicationCollection::Initialize()
 {
     if (m_ppApplications == NULL)

@@ -25,13 +25,17 @@ namespace BigDriveClientTest
 {
     TEST_CLASS(ApplicationManagerTests)
     {
-
     private:
 
         // Big Drive Sample Provider CLSID
         const CLSID CLSID_BigDriveSampleProvider = { 0xF8FE2E5A, 0xE8B8, 0x4207, { 0xBC, 0x04, 0xEA, 0x4B, 0xCD, 0x4C, 0x43, 0x61 } };
 
     public:
+
+        ApplicationManagerTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
 
         /// <summary>
         /// Test case for RegisterApplications

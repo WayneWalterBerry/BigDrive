@@ -8,5 +8,12 @@
 #ifndef PCH_H
 #define PCH_H
 
-#pragma warning(pop)
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+
+// Ensure this is a function call, not a redefinition
+inline void EnableMemoryLeakChecks() {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+}
+
 #endif //PCH_H

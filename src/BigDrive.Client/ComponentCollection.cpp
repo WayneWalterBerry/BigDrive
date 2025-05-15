@@ -13,6 +13,13 @@
 // Local
 #include "Component.h"
 
+/// <inheritdoc />
+ULONG ComponentCollection::Release()
+{
+    // Call delete on the object, not release.
+    return E_FAIL;
+}
+
 HRESULT ComponentCollection::Initialize()
 {
     if (m_ppComponents == nullptr)

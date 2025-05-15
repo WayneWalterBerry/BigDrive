@@ -55,6 +55,12 @@ public:
     }
 
     /// <summary>
+    /// Override the Release() method
+    /// </summary>
+    /// <returns></returns>
+    ULONG Release() override;
+
+    /// <summary>
     /// Thread-safe initialization of the application collection.
     /// If the internal application array has not been initialized, this method retrieves
     /// all COM+ applications and populates the array. Uses InterlockedCompareExchangePointer
