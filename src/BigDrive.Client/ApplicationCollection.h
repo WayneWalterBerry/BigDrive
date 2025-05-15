@@ -72,6 +72,15 @@ public:
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
     HRESULT GetItem(size_t index, Application** ppApplication);
 
+    /// <summary>
+    /// Searches for an application in the collection by its name.
+    /// Iterates through all applications, calling GetName on each and comparing the result to the specified name.
+    /// If a match is found, clones the application into ppApplication and returns S_OK.
+    /// Returns HRESULT_FROM_WIN32(ERROR_NOT_FOUND) if no match is found, or an error HRESULT on failure.
+    /// Logs errors using the event logger.
+    /// </summary>
+    HRESULT QueryApplicationByName(LPCWSTR bstrName, Application** ppApplication);
+
     friend class BigDriveClientTest::ApplicationCollectionTests;
 
 private:

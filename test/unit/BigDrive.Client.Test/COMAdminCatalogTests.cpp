@@ -26,41 +26,64 @@ namespace BigDriveClientTest
 {
     TEST_CLASS(COMAdminCatalogTests)
     {
+        TEST_METHOD(COMAdminCatalog_QueryApplicationByName_FindsApplication)
+        {
+            HRESULT hr = S_OK;
+
+            // Arrange: Create COMAdminCatalog
+            COMAdminCatalog* pCOMAdminCatalog = nullptr;
+            hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hr), L"COMAdminCatalog::Create failed.");
+            Assert::IsNotNull(pCOMAdminCatalog, L"pCOMAdminCatalog is null.");
+
+            // Act: Query for the application by name
+            Application* pBigDriveProviderSampleApplication = nullptr;
+            hr = pCOMAdminCatalog->QueryApplicationByName(L"BigDrive.Provider.Sample", &pBigDriveProviderSampleApplication);
+
+            // Assert: Should succeed and return a non-null application pointer
+            Assert::IsTrue(SUCCEEDED(hr), L"QueryApplicationByName failed.");
+            Assert::IsNotNull(pBigDriveProviderSampleApplication, L"QueryApplicationByName did not return an application.");
+
+            // Optionally, verify the name matches
+            BSTR bstrName = nullptr;
+            hr = pBigDriveProviderSampleApplication->GetName(bstrName);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetName failed on found application.");
+            Assert::IsTrue(bstrName != nullptr, L"GetName returned null.");
+            Assert::IsTrue(wcscmp(bstrName, L"BigDrive.Provider.Sample") == 0, L"Returned application name does not match.");
+
+            // Cleanup
+            if (bstrName) ::SysFreeString(bstrName);
+            delete pBigDriveProviderSampleApplication;
+            delete pCOMAdminCatalog;
+        }
+
         TEST_METHOD(Start_ValidApplication_Succeeds)
         {
             HRESULT hr = S_OK;
 
             // Arrange: Create COMAdminCatalog and get an Application
-            COMAdminCatalog* pCatalog = nullptr;
-            hr = COMAdminCatalog::Create(&pCatalog);
+            COMAdminCatalog* pCOMAdminCatalog = nullptr;
+            hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
             Assert::IsTrue(SUCCEEDED(hr), L"COMAdminCatalog::Create failed.");
-            Assert::IsNotNull(pCatalog, L"pCatalog is null.");
+            Assert::IsNotNull(pCOMAdminCatalog, L"pCatalog is null.");
 
-            ApplicationCollection* pAppCollection = nullptr;
-            hr = pCatalog->GetApplicationsCollection(&pAppCollection);
-            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection failed.");
-            Assert::IsNotNull(pAppCollection, L"pAppCollection is null.");
+            // Act: Query for the application by name
+            Application* pBigDriveProviderSampleApplication = nullptr;
+            hr = pCOMAdminCatalog->QueryApplicationByName(L"BigDrive.Provider.Sample", &pBigDriveProviderSampleApplication);
 
-            LONG lCount = 0;
-            hr = pAppCollection->GetCount(lCount);
-            Assert::IsTrue(SUCCEEDED(hr), L"GetCount failed.");
-            Assert::IsTrue(lCount > 0, L"No applications found.");
-
-            Application* pApp = nullptr;
-            hr = pAppCollection->GetItem(0, &pApp);
-            Assert::IsTrue(SUCCEEDED(hr), L"GetItem failed.");
-            Assert::IsNotNull(pApp, L"pApp is null.");
+            // Assert: Should succeed and return a non-null application pointer
+            Assert::IsTrue(SUCCEEDED(hr), L"QueryApplicationByName failed.");
+            Assert::IsNotNull(pBigDriveProviderSampleApplication, L"QueryApplicationByName did not return an application.");
 
             // Act: Start the application
-            hr = pCatalog->Start(pApp);
+            hr = pCOMAdminCatalog->Start(pBigDriveProviderSampleApplication);
 
             // Assert: Should succeed or return a documented COM+ error
             Assert::IsTrue(SUCCEEDED(hr), L"Start failed.");
 
             // Cleanup
-            delete pApp;
-            delete pAppCollection;
-            delete pCatalog;
+            delete pBigDriveProviderSampleApplication;
+            delete pCOMAdminCatalog;
         }
 
         TEST_METHOD(TestGetApplicationsCollection)

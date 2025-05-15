@@ -30,6 +30,46 @@ namespace BigDriveClientTest
 
     private:
 
+        TEST_METHOD(QueryApplicationByName_FindsApplication)
+        {
+            HRESULT hr = S_OK;
+
+            // Arrange: Create COMAdminCatalog and get ApplicationCollection
+            COMAdminCatalog* pCOMAdminCatalog = nullptr;
+            hr = COMAdminCatalog::Create(&pCOMAdminCatalog);
+            Assert::IsTrue(SUCCEEDED(hr), L"COMAdminCatalog::Create failed.");
+
+            ApplicationCollection* pApplicationCollection = nullptr;
+            hr = pCOMAdminCatalog->GetApplicationsCollection(&pApplicationCollection);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetApplicationsCollection failed.");
+            Assert::IsNotNull(pApplicationCollection, L"pApplicationCollection is null.");
+
+            hr = pApplicationCollection->Initialize();
+            Assert::IsTrue(SUCCEEDED(hr), L"Initialize failed.");
+
+            // Act: Query for the application by name
+            Application* pFoundApp = nullptr;
+            hr = pApplicationCollection->QueryApplicationByName(L"BigDrive.Provider.Sample", &pFoundApp);
+
+            // Assert: Should succeed and return a non-null application pointer
+            Assert::IsTrue(SUCCEEDED(hr), L"QueryApplicationByName failed.");
+            Assert::IsNotNull(pFoundApp, L"QueryApplicationByName did not return an application.");
+
+            // Optionally, verify the name matches
+            BSTR bstrName = nullptr;
+            hr = pFoundApp->GetName(bstrName);
+            Assert::IsTrue(SUCCEEDED(hr), L"GetName failed on found application.");
+            Assert::IsTrue(bstrName != nullptr, L"GetName returned null.");
+            Assert::IsTrue(wcscmp(bstrName, L"BigDrive.Provider.Sample") == 0, L"Returned application name does not match.");
+
+            // Cleanup
+            if (bstrName) ::SysFreeString(bstrName);
+            delete pFoundApp;
+            delete pApplicationCollection;
+            delete pCOMAdminCatalog;
+        }
+
+
         TEST_METHOD(GetApplicationsCollection_Populate)
         {
             HRESULT hrReturn = S_OK;

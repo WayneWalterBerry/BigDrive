@@ -106,7 +106,7 @@ End:
     return hr;
 }
 
-/// </inheritdoc>
+/// <inheritdoc />
 HRESULT COMAdminCatalog::GetComponentCollection(Application* pApplication, ComponentCollection** ppComponentCollection)
 {
     HRESULT hr = S_OK;
@@ -244,6 +244,34 @@ HRESULT COMAdminCatalog::GetCollectionByQuery(LPWSTR szCollectionName, BSTR appK
     ::VariantClear(&varKey);
 
     return S_OK;
+}
+
+/// <inheritdoc />
+HRESULT COMAdminCatalog::QueryApplicationByName(LPWSTR szName, Application** ppApplication)
+{
+    if (szName == nullptr || ppApplication == nullptr)
+    {
+        s_eventLogger.WriteError(L"QueryApplicationByName: Invalid argument(s).");
+        return E_POINTER;
+    }
+
+    ApplicationCollection* pApplicationCollection = nullptr;
+    HRESULT hr = GetApplicationsCollection(&pApplicationCollection);
+    if (FAILED(hr) || pApplicationCollection == nullptr)
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Failed to get ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    hr = pApplicationCollection->QueryApplicationByName(szName, ppApplication);
+
+    if (FAILED(hr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: QueryApplicationByName failed. HRESULT: 0x%08X", hr);
+    }
+
+    delete pApplicationCollection;
+    return hr;
 }
 
 /// </inheritdoc>

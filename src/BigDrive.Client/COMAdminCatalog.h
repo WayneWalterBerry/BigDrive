@@ -60,6 +60,15 @@ public:
     /// <returns>HRESULT indicating success or failure of the operation.</returns>
     HRESULT Start(Application* pApplication);
 
+    /// <summary>
+    /// Searches for a COM+ application by its name in the catalog.
+    /// Retrieves the applications collection and calls QueryApplicationByName to find an application
+    /// whose name matches the specified value. If found, clones the application into ppApplication and returns S_OK.
+    /// Returns HRESULT_FROM_WIN32(ERROR_NOT_FOUND) if no match is found, or an error HRESULT on failure.
+    /// Logs errors using the event logger.
+    /// </summary>
+    HRESULT QueryApplicationByName(LPWSTR bstrName, Application** ppApplication);
+
     friend class BigDriveClientTest::COMAdminCatalogTests;
 
 private:

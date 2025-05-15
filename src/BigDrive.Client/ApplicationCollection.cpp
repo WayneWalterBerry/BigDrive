@@ -70,6 +70,59 @@ HRESULT ApplicationCollection::GetItem(size_t index, Application** ppApplication
 }
 
 /// <inheritdoc />
+HRESULT ApplicationCollection::QueryApplicationByName(LPCWSTR szName, Application** ppApplication)
+{
+    HRESULT hr = S_OK;
+
+    if (szName == nullptr || ppApplication == nullptr)
+    {
+        s_eventLogger.WriteError(L"QueryApplicationByName: Invalid argument(s).");
+        return E_POINTER;
+    }
+
+    hr = Initialize();
+    if (FAILED(hr) || (m_ppApplications == nullptr))
+    {
+        s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Failed to initialize ApplicationCollection. HRESULT: 0x%08X", hr);
+        return hr;
+    }
+
+    *ppApplication = nullptr;
+
+    for (LONG i = 0; i < m_lSize; ++i)
+    {
+        BSTR bstrCurrentName = nullptr;
+        HRESULT hrName = m_ppApplications[i]->GetName(bstrCurrentName);
+        if (FAILED(hrName))
+        {
+            s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: GetName failed for index %d. HRESULT: 0x%08X", i, hrName);
+            continue;
+        }
+
+        if (bstrCurrentName && wcscmp(bstrCurrentName, szName) == 0)
+        {
+            HRESULT hrClone = m_ppApplications[i]->Clone(ppApplication);
+            ::SysFreeString(bstrCurrentName);
+            if (FAILED(hrClone))
+            {
+                s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: Clone failed for index %d. HRESULT: 0x%08X", i, hrClone);
+                return hrClone;
+            }
+            return S_OK;
+        }
+
+        if (bstrCurrentName)
+        {
+            ::SysFreeString(bstrCurrentName);
+        }
+    }
+
+    s_eventLogger.WriteErrorFormmated(L"QueryApplicationByName: No application found with name '%s'.", szName);
+    return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+}
+
+
+/// <inheritdoc />
 HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
 {
     HRESULT hrReturn = S_OK;
@@ -146,3 +199,5 @@ End:
 
     return hrReturn;
 }
+
+
