@@ -72,6 +72,8 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
     PIDLIST_RELATIVE* ppidl,
     ULONG* pdwAttributes)
 {
+    LaunchDebugger();
+
     // Validate output pointer
     if (!ppidl) 
     {
@@ -166,6 +168,8 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
+    LaunchDebugger();
+
     // Validate output pointer
     if (!ppenumIDList)
     {
@@ -275,6 +279,8 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
+    LaunchDebugger();
+
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -303,6 +309,8 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl,
     REFIID riid, UINT* rgfReserved, void** ppv)
 {
+    LaunchDebugger();
+
     // Placeholder implementation
     return E_NOTIMPL;
 }

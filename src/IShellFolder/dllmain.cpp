@@ -58,6 +58,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
+    bool bitMatch = FALSE;
 
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
@@ -78,6 +79,20 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
     SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+
+    hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
+    if (FAILED(hr))
+    {
+        // Log the error and return failure.
+        goto End;
+    }
+
+    if (!bitMatch)
+    {        
+        // Log a message indicating that the bitness of the DLL and OS do not match.
+        hr = E_FAIL;
+        goto End;
+    }
 
     /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
     /// and registers each as a shell folder in Windows Explorer. For each drive, this method

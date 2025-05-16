@@ -8,6 +8,9 @@
 #include <objbase.h> // For COM initialization
 #include <string>
 
+// Shared
+#include "..\Shared\EventLogger.h"
+
 /// <summary>
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
 /// Provides functionality for interacting with the shell folder hierarchy.
@@ -15,6 +18,9 @@
 class BigDriveShellFolder : public IShellFolder
 {
 private:
+
+    static EventLogger s_eventLogger;
+
     /// <summary>
     /// Reference count for the COM object.
     /// </summary>

@@ -125,7 +125,7 @@
       <RegisterOutput>false</RegisterOutput>
     </Link>
     <PostBuildEvent>
-      <Command>     C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
+      <Command>C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -166,6 +166,7 @@
     <ClCompile Include="BigDriveShellFolder-IDispatch.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
+    <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
