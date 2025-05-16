@@ -58,6 +58,19 @@ public:
 private:
 
     /// <summary>
+    /// Registers the COM in-process server for the specified drive shell folder CLSID under
+    /// HKEY_CLASSES_ROOT\CLSID\{guid}\InprocServer32. This method sets the default value to the
+    /// module path of the DLL and configures the ThreadingModel as "Apartment". It also creates
+    /// the required Implemented Categories subkey for CATID_ShellFolder
+    /// ({00021490-0000-0000-C000-000000000046}), which identifies the object as a shell folder
+    /// extension. All registry operations use WCHAR strings and include error handling.
+    /// </summary>
+    /// <param name="guidDrive">The CLSID of the drive shell folder to register.</param>
+    /// <param name="bstrName">The display name of the drive shell folder.</param>
+    /// <returns>HRESULT indicating success or failure of the registration operation.</returns>
+    static HRESULT RegisterInprocServer32(GUID guidDrive, BSTR bstrName);
+
+    /// <summary>
     /// Gets the configuration from the registry by calling the BigDriveConfiguration COM object.
     /// </summary>
     static HRESULT GetConfiguration(GUID guid, DriveConfiguration& driveConfiguration);
