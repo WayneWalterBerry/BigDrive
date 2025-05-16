@@ -152,6 +152,7 @@
     <ClInclude Include="..\Shared\EventLogger.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
+    <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ItemIdList.h" />
     <ClInclude Include="LaunchDebugger.h" />
@@ -162,7 +163,9 @@
     <ClCompile Include="..\Shared\EventLogger.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="BigDriveShellFolder.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IDispatch.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">

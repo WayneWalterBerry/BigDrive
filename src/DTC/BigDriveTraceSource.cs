@@ -24,8 +24,6 @@ namespace BigDrive.Service
 
         static BigDriveTraceSource()
         {
-            System.Diagnostics.Debugger.Launch();
-
             EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
             Instance.Listeners.Add(eventLogListener);
             Instance.Switch = new SourceSwitch("BigDriveSwitch", "All");

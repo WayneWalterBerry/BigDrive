@@ -73,6 +73,12 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
     // "BigDrive.ShellFolder" substring, then unregisters and deletes their related registry keys.
     RegistrationManager::CleanUpShellFolders();
 
+    // Refresh the Windows Explorer shell to reflect the changes made by the cleanup process.
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
+
+    // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
+    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+
     /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
     /// and registers each as a shell folder in Windows Explorer. For each drive, this method
     /// obtains its configuration, then creates the necessary registry entries to expose the
@@ -82,6 +88,12 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
     {
         goto End;
     }
+
+    // Refresh the Windows Explorer shell to reflect the changes made by the registration process.
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
+
+    // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
+    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
 End:
 
@@ -108,7 +120,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <returns>HRESULT indicating success or failure.</returns>
 STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     CLSID* pclsid = nullptr;
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
@@ -123,10 +135,10 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
     // Ensure the output pointer is initialized to nullptr.
     *ppv = nullptr;
 
-    hrReturn = RegistrationManager::GetRegisteredCLSIDs(&pclsid, dwSize);
-    if (FAILED(hrReturn))
+    hr = RegistrationManager::GetRegisteredCLSIDs(&pclsid, dwSize);
+    if (FAILED(hr))
     {
-        return hrReturn;
+        return hr;
     }
 
     for (int i = 0; pclsid[i] != GUID_NULL; i++)
@@ -140,8 +152,8 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
                 return E_OUTOFMEMORY;
             }
 
-            hrReturn = pFactory->QueryInterface(riid, ppv);
-            if (FAILED(hrReturn))
+            hr = pFactory->QueryInterface(riid, ppv);
+            if (FAILED(hr))
             {
                 goto End;
             }
@@ -150,7 +162,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
         }
     }
 
-    hrReturn = CLASS_E_CLASSNOTAVAILABLE;
+    hr = CLASS_E_CLASSNOTAVAILABLE;
 
 End:
 
@@ -168,7 +180,7 @@ End:
         pclsid = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>

@@ -20,8 +20,6 @@ namespace BigDrive.ConfigProvider
         /// </summary>
         public static IEnumerable<DriveConfiguration> ReadConfigurations(CancellationToken cancellationToken)
         {
-            System.Diagnostics.Debugger.Launch();
-
             string drivesRegistryPath = Path.Combine("Software\\BigDrive", "Drives");
 
             using (RegistryKey drivesKey = Registry.CurrentUser.OpenSubKey(@"Software\BigDrive\Drives"))
