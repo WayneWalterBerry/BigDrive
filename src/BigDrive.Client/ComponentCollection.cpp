@@ -13,6 +13,13 @@
 // Local
 #include "Component.h"
 
+/// <inheritdoc />
+ULONG ComponentCollection::Release()
+{
+    // Call delete on the object, not release.
+    return E_FAIL;
+}
+
 HRESULT ComponentCollection::Initialize()
 {
     if (m_ppComponents == nullptr)
@@ -80,29 +87,29 @@ HRESULT ComponentCollection::GetItem(size_t index, Component** ppComponent)
 /// <inheritdoc />
 HRESULT ComponentCollection::GetComponents(Component*** pppComponents, LONG& lSize)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     lSize = 0;
 
     ICatalogCollection* pICatalogCollection = nullptr;
-    hrReturn = GetICatalogCollection(&pICatalogCollection);
-    if (FAILED(hrReturn))
+    hr = GetICatalogCollection(&pICatalogCollection);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = pICatalogCollection->Populate();
-    if (FAILED(hrReturn))
+    hr = pICatalogCollection->Populate();
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate component collection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate component collection. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = pICatalogCollection->get_Count(&lSize);
-    if (FAILED(hrReturn))
+    hr = pICatalogCollection->get_Count(&lSize);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of components. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of components. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -110,7 +117,7 @@ HRESULT ComponentCollection::GetComponents(Component*** pppComponents, LONG& lSi
     *pppComponents = (Component**)::CoTaskMemAlloc(sizeof(Component*) * lSize);
     if (*pppComponents == nullptr)
     {
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
         s_eventLogger.WriteError(L"GetApplications: Memory allocation for component pointers failed.");
         goto End;
     }
@@ -120,10 +127,10 @@ HRESULT ComponentCollection::GetComponents(Component*** pppComponents, LONG& lSi
     {
         IDispatch* pDispatch = nullptr;
 
-        hrReturn = pICatalogCollection->get_Item(i, &pDispatch);
-        if (FAILED(hrReturn) || pDispatch == nullptr)
+        hr = pICatalogCollection->get_Item(i, &pDispatch);
+        if (FAILED(hr) || pDispatch == nullptr)
         {
-            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get component at index %d. HRESULT: 0x%08X", i, hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get component at index %d. HRESULT: 0x%08X", i, hr);
             goto CleanupArray;
         }
 
@@ -152,5 +159,5 @@ CleanupArray:
 
 End:
 
-    return hrReturn;
+    return hr;
 }

@@ -23,29 +23,27 @@ namespace BigDriveShellFolderTest
         /// <summary>
         /// Test UnregisterShellFolders to ensure it removes all shell folders associated with "BigDrive".
         /// </summary>
-        TEST_METHOD(TestUnregisterShellFolders)
+        TEST_METHOD(CleanUpShellFolders)
         {
             HRESULT hr = S_OK;
 
             // Arrange
-            RegistrationManager& manager = RegistrationManager::GetInstance();
-
             GUID bigDriveGuid1 = { 0x12345678, 0x1234, 0x5678, { 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78 } };
             GUID bigDriveGuid2 = { 0x87654321, 0x4321, 0x8765, { 0x98, 0xBA, 0xDC, 0xFE, 0x21, 0x43, 0x65, 0x87 } };
             WCHAR modulePath[MAX_PATH];
 
             // Simulate registry entries for BigDrive shell folders
-            hr = manager.GetModuleFileNameW(modulePath, MAX_PATH);
+            hr = RegistrationManager::GetModuleFileNameW(modulePath, MAX_PATH);
             Assert::AreEqual(S_OK, hr, L"Failed to get the Module File Name");
 
-            hr = manager.RegisterShellFolder(bigDriveGuid1, L"BigDriveFolder1");
+            hr = RegistrationManager::RegisterShellFolder(bigDriveGuid1, L"BigDriveFolder1");
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder1.");
 
-            hr = manager.RegisterShellFolder(bigDriveGuid2, L"BigDriveFolder2");
+            hr = RegistrationManager::RegisterShellFolder(bigDriveGuid2, L"BigDriveFolder2");
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder2.");
 
             // Act
-            hr = manager.UnregisterShellFolders();
+            hr = RegistrationManager::CleanUpShellFolders();
 
             // Assert
             Assert::AreEqual(S_OK, hr, L"UnregisterShellFolders failed.");

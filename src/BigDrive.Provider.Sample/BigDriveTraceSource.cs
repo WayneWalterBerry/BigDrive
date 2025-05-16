@@ -1,10 +1,8 @@
-﻿// <copyright file="BigDriveConfiguration.cs" company="Wayne Walter Berry">
+﻿// <copyright file="BigDriveTraceSource.cs" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-using System.Diagnostics;
-
-namespace BigDrive.Service
+namespace BigDrive.Provider.Sample
 {
     using System;
     using System.Collections.Generic;
@@ -15,7 +13,7 @@ namespace BigDrive.Service
 
     internal class BigDriveTraceSource : TraceSource
     {
-        private const string SourceName = "BigDrive.Service";
+        private const string SourceName = "BigDrive.Provider.Sample";
 
         private static readonly Lazy<BigDriveTraceSource> _instance =
             new Lazy<BigDriveTraceSource>(() => new BigDriveTraceSource());
@@ -24,6 +22,7 @@ namespace BigDrive.Service
 
         static BigDriveTraceSource()
         {
+
             EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
             Instance.Listeners.Add(eventLogListener);
             Instance.Switch = new SourceSwitch("BigDriveSwitch", "All");
@@ -32,7 +31,7 @@ namespace BigDrive.Service
             Instance.Flush();
         }
 
-        private BigDriveTraceSource() 
+        private BigDriveTraceSource()
             : base(SourceName)
         {
         }
@@ -41,7 +40,7 @@ namespace BigDrive.Service
         /// Trace a message with the specified event type and event ID.
         /// </summary>
         /// <param name="message">Message with Formatter</param>
-        /// <param name="args">Arguements to Formatter</param>
+        /// <param name="args">Arguments to Formatter</param>
         public void TraceError(string message, params object[] args)
         {
             TraceEvent(TraceEventType.Error, 0, message, args);

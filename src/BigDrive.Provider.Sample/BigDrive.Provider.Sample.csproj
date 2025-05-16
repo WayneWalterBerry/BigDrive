@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BigDriveTraceSource.cs" />
     <Compile Include="Provider-IBigDriveRegistration.cs" />
     <Compile Include="Provider.IBigDriveRoot.cs" />
     <Compile Include="Provider.cs" />

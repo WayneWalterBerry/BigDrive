@@ -17,6 +17,14 @@ namespace BigDriveClientTest
 {
     TEST_CLASS(ComponentTests)
     {
+    public: 
+
+        ComponentTests()
+        {
+            ::EnableMemoryLeakChecks();
+            // _CrtSetBreakAlloc(191);
+        }
+
     public:
 
         TEST_METHOD(InitializeAndGetCountTest)

@@ -25,6 +25,12 @@ private:
 
 public:
 
+    /// <summary>
+    /// Registers all COM+ applications and their components that support the IBigDriveRegistration interface.
+    /// This method enumerates applications and their components using the COMAdminCatalog, queries for the
+    /// IBigDriveRegistration interface, and invokes the Register method on each supported component.
+    /// Returns S_OK if registration succeeds for all applicable components, or an error HRESULT if any step fails.
+    /// </summary>
     static HRESULT RegisterApplications();
 
 };

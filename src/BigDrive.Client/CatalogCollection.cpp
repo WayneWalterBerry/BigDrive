@@ -9,7 +9,7 @@
 
 HRESULT CatalogCollection::Populate()
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     DISPPARAMS params = { nullptr, nullptr, 0, 0 };
     DISPID dispidPopulate;
@@ -18,29 +18,29 @@ HRESULT CatalogCollection::Populate()
     // Get the DISPID for the "Populate" method
     LPOLESTR mutablePopulateMethod = const_cast<LPOLESTR>(populateMethod);
 
-    hrReturn = GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
-    if (FAILED(hrReturn))
+    hr = GetIDsOfNames(IID_NULL, &mutablePopulateMethod, 1, LOCALE_USER_DEFAULT, &dispidPopulate);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to get DISPID for 'Populate'. HRESULT: 0x%08X", hr);
         goto End;
     }
 
     // Invoke the "Populate" method
-    hrReturn = m_pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
-    if (FAILED(hrReturn))
+    hr = m_pIDispatch->Invoke(dispidPopulate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Populate: Failed to invoke 'Populate'. HRESULT: 0x%08X", hr);
         goto End;
     }
 
 End:
 
-    if (FAILED(hrReturn))
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Populate: Operation failed. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Populate: Operation failed. HRESULT: 0x%08X", hr);
     }
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT CatalogCollection::GetCount(LONG& lCount)
@@ -59,11 +59,11 @@ HRESULT CatalogCollection::GetCount(LONG& lCount)
 
 HRESULT CatalogCollection::GetName(BSTR& bstrName)
 {
-    HRESULT hrReturn = Populate();
-    if (FAILED(hrReturn))
+    HRESULT hr = Populate();
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
-        return hrReturn;
+        s_eventLogger.WriteErrorFormmated(L"GetCount: Failed to populate Applications collection. HRESULT: 0x%08X", hr);
+        return hr;
     }
 
     return GetStringProperty(L"Name", bstrName);

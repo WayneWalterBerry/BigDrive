@@ -36,7 +36,7 @@ EventLogger BigDriveClientConfigurationManager::s_eventLogger(L"BigDrive.Client"
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::GetDriveGuids(GUID** ppGuids, DWORD& size)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     std::vector<LPWSTR> configurations;
     DWORD index = 0;
     WCHAR subKeyName[256];
@@ -59,7 +59,7 @@ HRESULT BigDriveClientConfigurationManager::GetDriveGuids(GUID** ppGuids, DWORD&
     if (result != ERROR_SUCCESS)
     {
         s_eventLogger.WriteErrorFormmated(L"GetDriveGuids failed: Unable to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         goto End;
     }
 
@@ -90,7 +90,7 @@ HRESULT BigDriveClientConfigurationManager::GetDriveGuids(GUID** ppGuids, DWORD&
     if (!*ppGuids)
     {
         s_eventLogger.WriteError(L"GetDriveGuids failed: Out of memory while allocating GUID array.");
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
         goto End;
     }
 
@@ -100,7 +100,7 @@ HRESULT BigDriveClientConfigurationManager::GetDriveGuids(GUID** ppGuids, DWORD&
         if (SUCCEEDED(GUIDFromString(configurations[i], &(*ppGuids)[i])) == FALSE)
         {
             s_eventLogger.WriteErrorFormmated(L"GetDriveGuids failed: Invalid GUID format for subkey '%s'.", configurations[i]);
-            hrReturn = E_INVALIDARG;
+            hr = E_INVALIDARG;
             goto End;
         }
     }
@@ -117,7 +117,7 @@ End:
         ::CoTaskMemFree(str);
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -128,7 +128,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive, BSTR szName, const CLSID& clsidProvider)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     HKEY hSubKey = nullptr;
     LONG result;
@@ -159,17 +159,17 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     wchar_t szProviderId[39];
 
     // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    hrReturn = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert drive GUID to string. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert drive GUID to string. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -177,7 +177,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     result = ::RegCreateKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to create or open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
@@ -186,7 +186,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     result = ::RegCreateKeyEx(hKey, szDriveGuid, 0, nullptr, 0, KEY_WRITE, nullptr, &hSubKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to create subkey for drive GUID '%s'. Error code: 0x%08X", szDriveGuid, result);
         goto End;
     }
@@ -195,7 +195,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     result = ::RegSetValueEx(hSubKey, L"Id", 0, REG_SZ, reinterpret_cast<const BYTE*>(szDriveGuid), (DWORD)((wcslen(szDriveGuid) + 1) * sizeof(wchar_t)));
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to write 'Id' value for drive GUID '%s'. Error code: 0x%08X", szDriveGuid, result);
         goto End;
     }
@@ -204,7 +204,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     result = ::RegSetValueEx(hSubKey, L"Name", 0, REG_SZ, reinterpret_cast<const BYTE*>(szName), (DWORD)((wcslen(szName) + 1) * sizeof(wchar_t)));
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to write 'Name' value for drive GUID '%s'. Error code: 0x%08X", szDriveGuid, result);
         goto End;
     }
@@ -213,7 +213,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     result = ::RegSetValueEx(hSubKey, L"CLSID", 0, REG_SZ, reinterpret_cast<const BYTE*>(szProviderId), (DWORD)((wcslen(szProviderId) + 1) * sizeof(wchar_t)));
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to write 'CLSID' value for drive GUID '%s'. Error code: 0x%08X", szDriveGuid, result);
         goto End;
     }
@@ -234,7 +234,7 @@ End:
     }
 
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -242,7 +242,7 @@ End:
 /// </summary>
 HRESULT BigDriveClientConfigurationManager::ReadDriveGuid(GUID& guid)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     DWORD index = 0;
     WCHAR subKeyName[256];
@@ -255,7 +255,7 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveGuid(GUID& guid)
     LONG result = RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         goto End;
     }
 
@@ -263,15 +263,15 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveGuid(GUID& guid)
     result = RegEnumKeyEx(hKey, index, subKeyName, &subKeyNameSize, nullptr, nullptr, nullptr, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         goto End;
     }
 
     // Convert the subkey name (GUID string) back to a GUID
-    hrReturn = GUIDFromString(subKeyName, &guid);
-    if (FAILED(hrReturn))
+    hr = GUIDFromString(subKeyName, &guid);
+    if (FAILED(hr))
     {
-        hrReturn = E_INVALIDARG; // Failed to parse GUID
+        hr = E_INVALIDARG; // Failed to parse GUID
         goto End;
     }
 
@@ -283,7 +283,7 @@ End:
         ::RegCloseKey(hKey);
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -300,7 +300,7 @@ End:
 /// </returns>
 HRESULT BigDriveClientConfigurationManager::ReadDriveClsid(GUID guidDrive, CLSID& clsidProvider)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     DWORD index = 0;
 
@@ -315,19 +315,19 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveClsid(GUID guidDrive, CLSID
     wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
     // Convert the GUID to a string
-    hrReturn = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
+    if (FAILED(hr))
     {
-        hrReturn = E_INVALIDARG;
+        hr = E_INVALIDARG;
         s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to convert GUID to string. GUID: %p", &guidDrive);
-        return hrReturn;
+        return hr;
     }
 
     // Open the registry key
     LONG result = ::RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to open subkey '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
@@ -336,25 +336,25 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveClsid(GUID guidDrive, CLSID
     result = ::RegOpenKeyEx(hKey, guidString, 0, KEY_READ, &hSubKey);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to open subkey '%s'. Error code: 0x%08X", guidString, result);
-        return hrReturn;
+        return hr;
     }
 
     // Read the CLSID value from the subkey
     result = ::RegQueryValueEx(hSubKey, L"CLSID", nullptr, nullptr, reinterpret_cast<LPBYTE>(clsidString), &clsidStringSize);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to read CLSID value from subkey '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
 
     // Convert the CLSID string to a GUID
-    hrReturn = GUIDFromString(clsidString, &clsidProvider);
-    if (FAILED(hrReturn))
+    hr = GUIDFromString(clsidString, &clsidProvider);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to convert CLSID string '%s' to GUID. HRESULT: 0x%08X", clsidString, hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"ReadDriveClsid: Failed to convert CLSID string '%s' to GUID. HRESULT: 0x%08X", clsidString, hr);
         goto End;
     }
 
@@ -373,7 +373,7 @@ End:
         hSubKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -382,7 +382,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::DeleteAllDriveGuids()
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     LONG result;
 
@@ -396,12 +396,12 @@ HRESULT BigDriveClientConfigurationManager::DeleteAllDriveGuids()
         // If the key doesn't exist, return success
         if (result == ERROR_FILE_NOT_FOUND)
         {
-            hrReturn = S_OK;
+            hr = S_OK;
             s_eventLogger.WriteError(L"DeleteAllDriveGuids: Registry key does not exist. No action needed.");
             goto End;
         }
 
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DeleteAllDriveGuids: Failed to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
@@ -410,7 +410,7 @@ HRESULT BigDriveClientConfigurationManager::DeleteAllDriveGuids()
     result = ::RegDeleteTree(hKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DeleteAllDriveGuids: Failed to delete all subkeys under '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
@@ -426,7 +426,7 @@ End:
         hKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -437,7 +437,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::DeleteDriveGuid(const GUID& guid)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     LONG result;
 
@@ -448,7 +448,7 @@ HRESULT BigDriveClientConfigurationManager::DeleteDriveGuid(const GUID& guid)
     wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
     if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
     {
-        hrReturn = E_INVALIDARG;
+        hr = E_INVALIDARG;
         s_eventLogger.WriteErrorFormmated(L"DeleteDriveGuid: Failed to convert GUID to string. GUID: %p", &guid);
         goto End;
     }
@@ -459,12 +459,12 @@ HRESULT BigDriveClientConfigurationManager::DeleteDriveGuid(const GUID& guid)
     {
         if (result == ERROR_FILE_NOT_FOUND)
         {
-            hrReturn = S_OK; // If the key doesn't exist, treat it as success
+            hr = S_OK; // If the key doesn't exist, treat it as success
             s_eventLogger.WriteErrorFormmated(L"DeleteDriveGuid: Registry key '%s' does not exist. No action needed.", drivesRegistryPath.c_str());
             goto End;
         }
 
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DeleteDriveGuid: Failed to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
         goto End;
     }
@@ -475,12 +475,12 @@ HRESULT BigDriveClientConfigurationManager::DeleteDriveGuid(const GUID& guid)
     {
         if (result == ERROR_FILE_NOT_FOUND)
         {
-            hrReturn = S_OK; // If the subkey doesn't exist, treat it as success
+            hr = S_OK; // If the subkey doesn't exist, treat it as success
             s_eventLogger.WriteErrorFormmated(L"DeleteDriveGuid: Subkey for GUID '%s' does not exist. No action needed.", guidString);
             goto End;
         }
 
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DeleteDriveGuid: Failed to delete subkey for GUID '%s'. Error code: 0x%08X", guidString, result);
         goto End;
     }
@@ -496,7 +496,7 @@ End:
         hKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -506,7 +506,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::GetProviderClsIds(CLSID** ppClisd)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     std::vector<LPWSTR> configurations;
     DWORD index = 0;
     WCHAR subKeyName[256];
@@ -530,7 +530,7 @@ HRESULT BigDriveClientConfigurationManager::GetProviderClsIds(CLSID** ppClisd)
     if (result != ERROR_SUCCESS)
     {
         s_eventLogger.WriteErrorFormmated(L"GetProviderClsIds failed: Unable to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         goto End;
     }
 
@@ -561,7 +561,7 @@ HRESULT BigDriveClientConfigurationManager::GetProviderClsIds(CLSID** ppClisd)
     if (!*ppClisd)
     {
         s_eventLogger.WriteError(L"GetProviderClsIds failed: Out of memory while allocating GUID array.");
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
         goto End;
     }
 
@@ -571,7 +571,7 @@ HRESULT BigDriveClientConfigurationManager::GetProviderClsIds(CLSID** ppClisd)
         if (SUCCEEDED(GUIDFromString(configurations[i], &(*ppClisd)[i])) == FALSE)
         {
             s_eventLogger.WriteErrorFormmated(L"GetProviderClsIds failed: Invalid GUID format for subkey '%s'.", configurations[i]);
-            hrReturn = E_INVALIDARG;
+            hr = E_INVALIDARG;
             goto End;
         }
     }
@@ -588,7 +588,7 @@ End:
         ::CoTaskMemFree(str);
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -598,7 +598,7 @@ End:
 /// <returns>HRESULT indicating success or failure. S_OK if the subkey exists, S_FALSE if it does not exist.</returns>
 HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID& clsidProvider)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     HKEY hSubKey = nullptr;
     LONG result;
@@ -614,11 +614,11 @@ HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID&
 
     // Convert the CLSID to a string
     wchar_t clsidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    hrReturn = StringFromGUID(clsidProvider, clsidString, ARRAYSIZE(clsidString));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(clsidProvider, clsidString, ARRAYSIZE(clsidString));
+    if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"DoesProviderSubkeyExist: Failed to convert CLSID to string. CLSID: %p", &clsidProvider);
-        return hrReturn;
+        return hr;
     }
 
     // Open the registry key
@@ -631,7 +631,7 @@ HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID&
             return S_FALSE; // Registry path does not exist
         }
 
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DoesProviderSubkeyExist: Failed to open registry key '%s'. Error code: 0x%08X", providersRegistryPath, result);
         goto End;
     }
@@ -641,20 +641,20 @@ HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID&
     result = ::RegOpenKeyEx(hKey, clsidString, 0, KEY_READ, &hSubKey);
     if (result == ERROR_SUCCESS)
     {
-        hrReturn = S_OK;
+        hr = S_OK;
         goto End;
     }
     else if (result == ERROR_FILE_NOT_FOUND)
     {
         // Subkey does not exist
         s_eventLogger.WriteErrorFormmated(L"DoesProviderSubkeyExist: Subkey for CLSID '%s' does not exist.", clsidString);
-        hrReturn = S_FALSE;
+        hr = S_FALSE;
         goto End;
     }
     else
     {
         // Other error
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"DoesProviderSubkeyExist: Failed to check subkey for CLSID '%s'. Error code: 0x%08X", clsidString, result);
         goto End;
     }
@@ -674,7 +674,7 @@ End:
         hKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -685,7 +685,7 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsidProvider, BSTR szName)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     HKEY hKey = nullptr;
     HKEY hSubKey = nullptr;
     LONG result;
@@ -708,10 +708,10 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     // Convert the CLSID to a string
     wchar_t szProviderId[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
-    hrReturn = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -719,7 +719,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     result = ::RegCreateKeyEx(HKEY_CURRENT_USER, providersRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to create or open registry key '%s'. Error code: 0x%08X", providersRegistryPath.c_str(), result);
         goto End;
     }
@@ -728,7 +728,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     result = ::RegCreateKeyEx(hKey, szProviderId, 0, nullptr, 0, KEY_WRITE, nullptr, &hSubKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to create subkey for provider CLSID '%s'. Error code: 0x%08X", szProviderId, result);
         goto End;
     }
@@ -737,7 +737,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     result = ::RegSetValueEx(hSubKey, L"Id", 0, REG_SZ, reinterpret_cast<const BYTE*>(szProviderId), (DWORD)((wcslen(szProviderId) + 1) * sizeof(wchar_t)));
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to write 'Id' value for provider CLSID '%s'. Error code: 0x%08X", szProviderId, result);
         goto End;
     }
@@ -746,7 +746,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     result = ::RegSetValueEx(hSubKey, L"Name", 0, REG_SZ, reinterpret_cast<const BYTE*>(szName), (DWORD)((wcslen(szName) + 1) * sizeof(wchar_t)));
     if (result != ERROR_SUCCESS)
     {
-        hrReturn = HRESULT_FROM_WIN32(result);
+        hr = HRESULT_FROM_WIN32(result);
         s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to write 'Name' value for provider CLSID '%s'. Error code: 0x%08X", szProviderId, result);
         goto End;
     }
@@ -765,7 +765,7 @@ End:
         hSubKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -774,47 +774,47 @@ End:
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveClientConfigurationManager::CleanDrives()
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     DWORD dwSize;
     GUID* pGuids = nullptr;
 
     // Get the drive GUIDs
-    hrReturn = GetDriveGuids(&pGuids, dwSize);
-    if (FAILED(hrReturn))
+    hr = GetDriveGuids(&pGuids, dwSize);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to get drive GUIDs. HRESULT: 0x%08X", hrReturn);
-        return hrReturn;
+        s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to get drive GUIDs. HRESULT: 0x%08X", hr);
+        return hr;
     }
 
     // Iterate through all GUIDs and call ReadDriveClsid for each
     for (DWORD i = 0; i < dwSize; ++i)
     {
         CLSID clsid;
-        hrReturn = ReadDriveClsid(pGuids[i], clsid);
-        switch (hrReturn)
+        hr = ReadDriveClsid(pGuids[i], clsid);
+        switch (hr)
         {
         case S_OK:
 
             // If the CLSID Exists Then The Drive Registration Is Valid. Now
             // chck that the Provider is registered.
-            hrReturn = DoesProviderSubkeyExist(clsid);
-            switch (hrReturn)
+            hr = DoesProviderSubkeyExist(clsid);
+            switch (hr)
             {
             case S_OK:
                 // The CLSID exists, so the drive registration is valid.
                 break;
             case S_FALSE:
                 // The CLSID does not exist, so delete the drive GUID.
-                hrReturn = DeleteDriveGuid(pGuids[i]);
-                if (FAILED(hrReturn))
+                hr = DeleteDriveGuid(pGuids[i]);
+                if (FAILED(hr))
                 {
-                    s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to delete drive GUID at index %d. HRESULT: 0x%08X", i, hrReturn);
+                    s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to delete drive GUID at index %d. HRESULT: 0x%08X", i, hr);
                     goto End;
                 }
                 break;
             default:
                 // Handle failure cases
-                s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to check provider subkey existence for CLSID at index %d. HRESULT: 0x%08X", i, hrReturn);
+                s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to check provider subkey existence for CLSID at index %d. HRESULT: 0x%08X", i, hr);
                 goto End;
             }
 
@@ -822,16 +822,16 @@ HRESULT BigDriveClientConfigurationManager::CleanDrives()
 
         case S_FALSE:
             // The The Drive doesn't exist, there is nothing to do
-            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to find the drive GUID at index %d. HRESULT: 0x%08X", hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to find the drive GUID at index %d. HRESULT: 0x%08X", hr);
             break;
 
         case HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND):
-            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to find the drive GUID at index %d. HRESULT: 0x%08X", hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to find the drive GUID at index %d. HRESULT: 0x%08X", hr);
             continue;
 
         default:
             // Handle failure cases
-            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to check that the drive GUID at index %d. HRESULT: 0x%08X", i, hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"CleanDrives failed: Unable to check that the drive GUID at index %d. HRESULT: 0x%08X", i, hr);
             goto End;
         }
     }
@@ -845,5 +845,5 @@ End:
         nullptr == nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }

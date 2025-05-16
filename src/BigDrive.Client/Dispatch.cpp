@@ -24,7 +24,7 @@ DISPPARAMS Dispatch::dispparamsNoArgs = { nullptr, nullptr, 0, 0 };
 
 HRESULT Dispatch::GetProperty(LPCWSTR szName, VARIANT* pValue)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     if (!szName || !pValue)
     {
@@ -39,14 +39,14 @@ HRESULT Dispatch::GetProperty(LPCWSTR szName, VARIANT* pValue)
     // Get the property name
     LPOLESTR pOleStrName = ::SysAllocString(szName);
 
-    hrReturn = GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&pOleStrName), 1, LOCALE_USER_DEFAULT, &dispid);
-    if (FAILED(hrReturn))
+    hr = GetIDsOfNames(IID_NULL, const_cast<LPOLESTR*>(&pOleStrName), 1, LOCALE_USER_DEFAULT, &dispid);
+    if (FAILED(hr))
     {
         goto End;
     }
 
-    hrReturn = GetProperty(dispid, pValue);
-    if (FAILED(hrReturn))
+    hr = GetProperty(dispid, pValue);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -59,7 +59,7 @@ End:
         pOleStrName = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT Dispatch::GetProperty(LPCWSTR szName, LPDISPATCH* pIDispatch)
@@ -93,7 +93,7 @@ End:
 
 HRESULT Dispatch::GetProperty(DISPID dispid, VARIANT* pValue)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     if (!pValue)
     {
@@ -106,8 +106,8 @@ HRESULT Dispatch::GetProperty(DISPID dispid, VARIANT* pValue)
     ::VariantInit(&vtResult);
 
     // Invoke the property
-    hrReturn = m_pIDispatch->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &vtResult, nullptr, nullptr);
-    if (FAILED(hrReturn))
+    hr = m_pIDispatch->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &vtResult, nullptr, nullptr);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -117,12 +117,12 @@ HRESULT Dispatch::GetProperty(DISPID dispid, VARIANT* pValue)
 
 End:
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     VARIANT vtValue;
 
     if (!szName)
@@ -133,34 +133,34 @@ HRESULT Dispatch::GetStringProperty(LPCWSTR szName, BSTR& bstrString)
     ::VariantInit(&vtValue);
 
     // Get the property value
-    hrReturn = GetProperty(szName, &vtValue);
-    if (FAILED(hrReturn))
+    hr = GetProperty(szName, &vtValue);
+    if (FAILED(hr))
     {
         goto End;
     }
     // Check if the property is a string
     if (vtValue.vt != VT_BSTR)
     {
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
     bstrString = ::SysAllocString(vtValue.bstrVal);
     if (bstrString == nullptr)
     {
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
     }
 
 End:
 
     ::VariantClear(&vtValue);
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT Dispatch::GetProperty(LPCWSTR szName, CLSID& clsid)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     VARIANT vtValue;
 
     if (!szName)
@@ -171,8 +171,8 @@ HRESULT Dispatch::GetProperty(LPCWSTR szName, CLSID& clsid)
     ::VariantInit(&vtValue);
 
     // Get the property value
-    hrReturn = GetProperty(szName, &vtValue);
-    if (FAILED(hrReturn))
+    hr = GetProperty(szName, &vtValue);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -180,12 +180,12 @@ HRESULT Dispatch::GetProperty(LPCWSTR szName, CLSID& clsid)
     // Check if the property is a string
     if (vtValue.vt != VT_BSTR)
     {
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
-    hrReturn = ::CLSIDFromString(vtValue.bstrVal, &clsid);
-    if (FAILED(hrReturn))
+    hr = ::CLSIDFromString(vtValue.bstrVal, &clsid);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -194,12 +194,12 @@ End:
 
     ::VariantClear(&vtValue);
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT Dispatch::GetLongProperty(LPCWSTR szName, LONG& value)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     VARIANT vtValue;
 
     if (!szName)
@@ -210,8 +210,8 @@ HRESULT Dispatch::GetLongProperty(LPCWSTR szName, LONG& value)
     ::VariantInit(&vtValue);
 
     // Get the property value
-    hrReturn = GetProperty(szName, &vtValue);
-    if (FAILED(hrReturn))
+    hr = GetProperty(szName, &vtValue);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -219,7 +219,7 @@ HRESULT Dispatch::GetLongProperty(LPCWSTR szName, LONG& value)
     // Check if the property is a string
     if (vtValue.vt != VT_I4)
     {
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
@@ -229,7 +229,7 @@ End:
 
     ::VariantClear(&vtValue);
 
-    return hrReturn;
+    return hr;
 }
 
 HRESULT Dispatch::GetNames(BSTR** ppNames, LONG& lCount)

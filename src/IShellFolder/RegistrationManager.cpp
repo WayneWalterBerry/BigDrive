@@ -27,25 +27,16 @@ extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
 EventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
 
-/// <summary>
-/// Static method to get the singleton instance
-/// </summary>
-RegistrationManager& RegistrationManager::GetInstance()
-{
-    static RegistrationManager instance; // Guaranteed to be initialized only once
-    return instance;
-}
-
 HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     GUID* pGuids = nullptr;
     DWORD dwSize = 0;
     DWORD index = 0;
 
     // Get the drive GUIDs from the registry
-    hrReturn = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
-    if (FAILED(hrReturn))
+    hr = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
+    if (FAILED(hr))
     {
         goto End;
     }
@@ -57,21 +48,21 @@ HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
         DriveConfiguration driveConfiguration;
 
         // Get the configuration for the drive from the COM++ BigDrive.Service
-        hrReturn = GetConfiguration(guid, driveConfiguration);
-        if (FAILED(hrReturn))
+        hr = GetConfiguration(guid, driveConfiguration);
+        if (FAILED(hr))
         {
             WriteError(guid, L"Failed to get drive configuration for drive");
             break;
         }
 
-        hrReturn = RegisterShellFolder(pGuids[index], driveConfiguration.name);
-        if (FAILED(hrReturn))
+        hr = RegisterShellFolder(pGuids[index], driveConfiguration.name);
+        if (FAILED(hr))
         {
             WriteError(guid, L"Failed to register shell folder for drive.");
             break;
         }
 
-        WriteInfoFormmated(guid, L"Named: %s Regsitered As An IShellFolder", driveConfiguration.name);
+        WriteInfoFormmated(guid, L"Named: %s Registered As An IShellFolder", driveConfiguration.name);
 
         ++index;
     }
@@ -84,7 +75,7 @@ End:
         pGuids = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// <summary>
@@ -93,14 +84,14 @@ End:
 /// </summary>
 HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids, DWORD& dwSize)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     GUID* pGuids = nullptr;
 
     // Get the Drive GUIDs from the registry
-    hrReturn = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
-    if (FAILED(hrReturn))
+    hr = BigDriveClientConfigurationManager::GetDriveGuids(&pGuids, dwSize);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"Failed to get drive GUIDs from registry. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"Failed to get drive GUIDs from registry. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -109,7 +100,7 @@ HRESULT RegistrationManager::GetRegisteredCLSIDs(CLSID** ppClsids, DWORD& dwSize
     if (*ppClsids == nullptr)
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to allocate memory for CLSIDs");
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
         goto End;
     }
 
@@ -126,7 +117,7 @@ End:
         pGuids = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// </inheritdoc>
@@ -151,55 +142,58 @@ HRESULT RegistrationManager::GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSiz
 /// </ inheritdoc>
 HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     LSTATUS lResult;
 
-    wchar_t szModulePath[MAX_PATH];
+    WCHAR szModulePath[MAX_PATH];
     HKEY hKey = nullptr;
     HKEY hClsidKey = nullptr;
     const BYTE* lpData = nullptr;
     DWORD cbSize = 0;
 
     // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    wchar_t guidString[39];
+    WCHAR guidString[39];
 
-    std::wstring clsidPath;
-    std::wstring namespacePath;
-    std::wstring componentCategoryPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
+    WCHAR clsidPath[128];
+    WCHAR namespacePath[256];
+    WCHAR componentCategoryPath[] = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
+
+    DWORD nameLen;
 
     // Convert the GUID to a string
-    hrReturn = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
-    if (FAILED(hrReturn))
+    hr = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
+    if (FAILED(hr))
     {
         WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", guidString);
-        return hrReturn;
+        return hr;
     }
 
     // Get the full path of the module
-    hrReturn = GetModuleFileNameW(szModulePath, MAX_PATH);
-    if (FAILED(hrReturn))
+    hr = GetModuleFileNameW(szModulePath, MAX_PATH);
+    if (FAILED(hr))
     {
-        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to get module file name: %s, HRESULT: 0x%08X", szModulePath, hrReturn);
-        return hrReturn;
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to get module file name: %s, HRESULT: 0x%08X", szModulePath, hr);
+        return hr;
     }
 
-    clsidPath = L"CLSID\\" + std::wstring(guidString) + L"\\InprocServer32";
-    if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
+    // Build CLSID path: "CLSID\{guid}\InprocServer32"
+    swprintf_s(clsidPath, ARRAYSIZE(clsidPath), L"CLSID\\%s\\InprocServer32", guidString);
+    if (::RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidPath, 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
-        hrReturn = E_FAIL;
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", clsidPath, dwLastError);
+        hr = E_FAIL;
         goto End;
     }
 
-    cbSize = static_cast<DWORD>((wcslen(szModulePath) + 1) * sizeof(wchar_t));
+    cbSize = static_cast<DWORD>((wcslen(szModulePath) + 1) * sizeof(WCHAR));
     lpData = reinterpret_cast<const BYTE*>(szModulePath);
     lResult = ::RegSetValueExW(hKey, nullptr, 0, REG_SZ, lpData, cbSize);
     if (lResult != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", szModulePath, dwLastError);
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
@@ -207,7 +201,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", L"Apartment", dwLastError);
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
@@ -217,22 +211,24 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
         hKey = nullptr;
     }
 
-    // Register as a Drive (directly as a ShellFolder) - CHANGED TO USE HKEY_CURRENT_USER
-    namespacePath = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\" + std::wstring(guidString);
-    if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
+    // Register as a Drive (directly as a ShellFolder) - Use HKEY_CURRENT_USER\...\NameSpace\{guid}
+    swprintf_s(namespacePath, ARRAYSIZE(namespacePath),
+        L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\%s", guidString);
+    if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath, 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
-        hrReturn = E_FAIL;
+        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", namespacePath, dwLastError);
+        hr = E_FAIL;
         goto End;
     }
 
     // Set a default value (display name for the drive)
-    if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), sizeof(bstrName)) != ERROR_SUCCESS)
+    nameLen = SysStringByteLen(bstrName) + sizeof(WCHAR);
+    if (::RegSetValueExW(hKey, nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(bstrName), nameLen) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to set registry value: %s, Error: %u", bstrName, dwLastError);
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
@@ -242,64 +238,21 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
         hKey = nullptr;
     }
 
-    lResult = ::RegOpenKeyExW(HKEY_CLASSES_ROOT,
-        L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations",
-        0, KEY_WRITE | KEY_WOW64_64KEY, &hKey);
-    switch (lResult)
+    // Register in Component Categories
+    if (::RegOpenKeyExW(HKEY_CLASSES_ROOT,
+        componentCategoryPath,
+        0, KEY_WRITE | KEY_WOW64_64KEY, &hKey) != ERROR_SUCCESS)
     {
-    case ERROR_SUCCESS:
-        break;
-    case ERROR_FILE_NOT_FOUND:
-
-        lResult = ::RegCreateKeyExW(HKEY_CLASSES_ROOT,
-            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations",
-            0, nullptr, 0, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr);
-        switch (lResult)
+        // Try to create if not found
+        if (::RegCreateKeyExW(HKEY_CLASSES_ROOT,
+            componentCategoryPath,
+            0, nullptr, 0, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
         {
-        case ERROR_SUCCESS:
-            break;
-        case ERROR_ACCESS_DENIED:
-            /// The TrustedInstaller is a built-in Windows security principal responsible 
-            /// for managing system files and updates. It is part of the Windows Modules 
-            /// Installer service and controls permissions for core operating system files.
-            /// 
-            /// Key Functions:
-            /// - Protects critical system files from unauthorized modifications.
-            /// - Manages Windows Update installations.
-            /// - Ensures system stability by restricting access to key components.
-            ///
-            /// Why It Restricts Access:
-            /// - Many system files are "owned" by TrustedInstaller.
-            /// - Even administrators may need to take ownership to modify certain files.
-            /// - Altering TrustedInstaller-protected files can lead to system instability.
-            ///
-            /// Changing Ownership (If Necessary):
-            /// - Right-click the file → Properties → Security tab → Advanced.
-            /// - Change Owner to an administrator or your user account.
-            /// - Grant Full Control permissions before modifying.
-            ///
-            /// Modifying files controlled by TrustedInstaller should be done cautiously, 
-            /// as improper changes can break Windows functionality.
-            WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Access Denied -- Failed to create registry key: %s, Error: %u",
-                L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", lResult);
-            hrReturn = E_FAIL;
-            goto End;
-        default:
             DWORD dwLastError = GetLastError();
-            WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u",
-                L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
-            hrReturn = E_FAIL;
+            WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create/open registry key: %s, Error: %u", componentCategoryPath, dwLastError);
+            hr = E_FAIL;
             goto End;
         }
-
-        break;
-
-    default:
-        DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to open registry key: %s, Error: %u",
-            L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations", dwLastError);
-        hrReturn = E_FAIL;
-        goto End;
     }
 
     // Add your CLSID as a subkey under "Implementations"
@@ -307,7 +260,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", guidString, dwLastError);
-        hrReturn = E_FAIL;
+        hr = E_FAIL;
         goto End;
     }
 
@@ -325,13 +278,13 @@ End:
         hKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
 
 /// </ inheritdoc>
 HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
     wchar_t guidString[39];
     std::wstring clsidPath;
     std::wstring namespacePath;
@@ -350,7 +303,7 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
-        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+        hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
     // Delete the namespace registry key
@@ -359,7 +312,7 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
-        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+        hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
     // Delete the component category registry key
@@ -368,19 +321,16 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     {
         DWORD dwLastError = GetLastError();
         WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
-        hrReturn = HRESULT_FROM_WIN32(dwLastError);
+        hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
-    return hrReturn;
+    return hr;
 }
 
-/// <summary>
-/// Iterate All Shell Folders and remove the BigDrive ones.
-/// </summary>
-/// <returns></returns>
-HRESULT RegistrationManager::UnregisterShellFolders()
+/// </ inheritdoc>
+HRESULT RegistrationManager::CleanUpShellFolders()
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     HKEY hKey = nullptr;
     DWORD index = 0;
@@ -418,15 +368,15 @@ HRESULT RegistrationManager::UnregisterShellFolders()
                 {
                     GUID guid = GUID_NULL;
 
-                    hrReturn = GUIDFromString(szClsid, &guid);
-                    if (FAILED(hrReturn))
+                    hr = GUIDFromString(szClsid, &guid);
+                    if (FAILED(hr))
                     {
                         WriteErrorFormmated(guid, L"CleanUpShellFolders() failed to convert CLSID to GUID");
                         break;
                     }
 
-                    hrReturn = UnregisterShellFolder(guid);
-                    if (FAILED(hrReturn))
+                    hr = UnregisterShellFolder(guid);
+                    if (FAILED(hr))
                     {
                         WriteErrorFormmated(guid, L"UnregisterShellFolder() failed.");
                         break;
@@ -454,9 +404,8 @@ HRESULT RegistrationManager::UnregisterShellFolders()
         hKey = nullptr;
     }
 
-    return hrReturn;
+    return hr;
 }
-
 
 /// <summary>
 /// Logs a formatted info message with the Drive Guid
@@ -556,6 +505,3 @@ HRESULT RegistrationManager::WriteErrorFormmated(GUID guid, LPCWSTR formatter, .
 
     return s_eventLogger.WriteError(finalBuffer);
 }
-
-
-

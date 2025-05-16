@@ -19,6 +19,11 @@ namespace BigDriveClientTest
     {
     public:
 
+        ComponentCollectionTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
+
         TEST_METHOD(InitializeAndGetCountTest)
         {
             HRESULT hr = S_OK;

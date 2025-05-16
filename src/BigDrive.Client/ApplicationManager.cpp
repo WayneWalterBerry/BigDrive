@@ -20,6 +20,7 @@
 // Initialize the static EventLogger instance
 EventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");
 
+/// <inheritdoc />
 HRESULT ApplicationManager::RegisterApplications()
 {
     HRESULT hr = S_OK;
@@ -111,30 +112,39 @@ HRESULT ApplicationManager::RegisterApplications()
                 goto End;
             }
 
+            delete pComponent;
+            pComponent = nullptr;
+
             hr = ::CoCreateInstance(clsid, nullptr, CLSCTX_LOCAL_SERVER, IID_IBigDriveRegistration, (void**)&pBigDriveRegistration);
             switch (hr)
             {
             case S_OK:
+                if (pBigDriveRegistration == nullptr)
+                {
+                    hr = E_POINTER;
+                    s_eventLogger.WriteErrorFormmated(L"CoCreateInstance() failed. HRESULT: 0x%08X", hr);
+                    goto End;
+                }
 
                 // Call Register() on the IBigDriveRegistration interface
                 hr = pBigDriveRegistration->Register();
                 if (FAILED(hr))
                 {
-                    s_eventLogger.WriteErrorFormmated(L"Register() failed. HRESULT: 0x%08X", hr);
-                    goto End;
+                    s_eventLogger.WriteErrorFormmated(
+                        L"IBigDriveRegistrationRegister() failed. Application: %s, Component: %s HRESULT: 0x%08X",
+                        bstrApplicationName, 
+                        bstrComponentName, hr);
                 }
                 break;
             case REGDB_E_CLASSNOTREG:
-
                 // This COM Component Didn't Register Itself Correctly.
                 hr = S_OK;
-                continue;
+                break;
 
             case E_NOINTERFACE:
-
                 // Not Every Component Implements IBigDriveRegistration.
                 hr = S_OK;
-                continue;
+                break;
 
             default:
                 // Handle other cases if needed
@@ -148,11 +158,17 @@ HRESULT ApplicationManager::RegisterApplications()
                 bstrComponentName = nullptr;
             }
 
-            if (pComponent != nullptr)
-            {
-                pComponent->Release();
-                pComponent = nullptr;
-            }
+           if (pBigDriveRegistration)
+           {
+               pBigDriveRegistration->Release();
+               pBigDriveRegistration = nullptr;
+           }
+        }
+
+        if (pComponentCollection != nullptr)
+        {
+            delete pComponentCollection;
+            pComponentCollection = nullptr;
         }
 
         if (bstrApplicationName)
@@ -161,15 +177,9 @@ HRESULT ApplicationManager::RegisterApplications()
             bstrApplicationName = nullptr;
         }
 
-        if (pComponentCollection != nullptr)
-        {
-            pComponentCollection->Release();
-            pComponentCollection = nullptr;
-        }
-
         if (pApplication != nullptr)
         {
-            pApplication->Release();
+            delete pApplication;
             pApplication = nullptr;
         }
     }
@@ -221,9 +231,4 @@ End:
     return hr;
 
 }
-
-
-
-
-
 

@@ -9,6 +9,13 @@
 #include "ApplicationManager.h"
 
 /// <inheritdoc />
+ULONG ApplicationCollection::Release()
+{
+    // Call delete on the object, not release.
+    return E_FAIL;
+}
+
+/// <inheritdoc />
 HRESULT ApplicationCollection::Initialize()
 {
     if (m_ppApplications == NULL)
@@ -125,29 +132,29 @@ HRESULT ApplicationCollection::QueryApplicationByName(LPCWSTR szName, Applicatio
 /// <inheritdoc />
 HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, LONG& lSize)
 {
-    HRESULT hrReturn = S_OK;
+    HRESULT hr = S_OK;
 
     lSize = 0;
 
     ICatalogCollection* pICatalogCollection = nullptr;
-    hrReturn = GetICatalogCollection(&pICatalogCollection);
-    if (FAILED(hrReturn))
+    hr = GetICatalogCollection(&pICatalogCollection);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get ICatalogCollection. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = pICatalogCollection->Populate();
-    if (FAILED(hrReturn))
+    hr = pICatalogCollection->Populate();
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to populate Applications collection. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hrReturn = pICatalogCollection->get_Count(&lSize);
-    if (FAILED(hrReturn))
+    hr = pICatalogCollection->get_Count(&lSize);
+    if (FAILED(hr))
     {
-        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of applications. HRESULT: 0x%08X", hrReturn);
+        s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get count of applications. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -155,7 +162,7 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
     *pppApplications = (Application**)::CoTaskMemAlloc(sizeof(Application*) * lSize);
     if (*pppApplications == nullptr)
     {
-        hrReturn = E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
         s_eventLogger.WriteError(L"GetApplications: Memory allocation for application pointers failed.");
         goto End;
     }
@@ -165,10 +172,10 @@ HRESULT ApplicationCollection::GetApplications(Application*** pppApplications, L
     {
         IDispatch* pDispatch = nullptr;
 
-        hrReturn = pICatalogCollection->get_Item(i, &pDispatch);
-        if (FAILED(hrReturn) || pDispatch == nullptr)
+        hr = pICatalogCollection->get_Item(i, &pDispatch);
+        if (FAILED(hr) || pDispatch == nullptr)
         {
-            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get application at index %d. HRESULT: 0x%08X", i, hrReturn);
+            s_eventLogger.WriteErrorFormmated(L"GetApplications: Failed to get application at index %d. HRESULT: 0x%08X", i, hr);
             goto CleanupArray;
         }
 
@@ -197,7 +204,7 @@ CleanupArray:
 
 End:
 
-    return hrReturn;
+    return hr;
 }
 
 

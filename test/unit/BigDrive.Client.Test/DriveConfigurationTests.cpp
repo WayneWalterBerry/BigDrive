@@ -15,6 +15,11 @@ namespace BigDriveClientTest
     {
     public:
 
+        DriveConfigurationTests()
+        {
+            ::EnableMemoryLeakChecks();
+        }
+
         /// <summary>
         /// Test ParseJson with valid JSON input.
         /// </summary>

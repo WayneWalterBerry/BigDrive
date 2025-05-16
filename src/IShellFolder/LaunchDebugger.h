@@ -1,4 +1,4 @@
-// <copyright file="LaunchDebugger.cpp" company="Wayne Walter Berry">
+// <copyright file="LaunchDebugger.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
