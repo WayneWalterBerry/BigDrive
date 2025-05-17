@@ -401,5 +401,45 @@ namespace BigDriveShellFolderTest
             ::CoTaskMemFree(pidl);
             ::CoTaskMemFree(roundTrip);
         }
+
+        /// <summary>
+        /// Tests that DeserializeList correctly handles input with more than 16 items,
+        /// which triggers heap allocation for the abidLens array (stack fallback).
+        /// Verifies that the resulting ITEMIDLIST is valid and matches the input.
+        /// </summary>
+        TEST_METHOD(DeserializeList_MoreThan16Items_HeapAllocFallback)
+        {
+            // Arrange: Build a hex string for 20 items, each abID is "01"
+            std::wstring input;
+            for (int i = 0; i < 20; ++i)
+            {
+                if (i > 0) input += L'/';
+                input += L"01";
+            }
+
+            LPITEMIDLIST pidl = nullptr;
+
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(input.c_str()), &pidl);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(pidl != nullptr);
+
+            // Walk the resulting ITEMIDLIST and verify each abID is 0x01
+            BYTE* cur = (BYTE*)pidl;
+            for (int i = 0; i < 20; ++i)
+            {
+                USHORT cb = *(USHORT*)cur;
+                Assert::AreEqual((USHORT)3, cb); // 2 bytes for USHORT + 1 byte abID
+                Assert::AreEqual((BYTE)0x01, cur[2]);
+                cur += cb;
+            }
+            // Check terminator
+            USHORT term = *(USHORT*)cur;
+            Assert::AreEqual((USHORT)0, term);
+
+            ::CoTaskMemFree(pidl);
+        }
     };
 }
