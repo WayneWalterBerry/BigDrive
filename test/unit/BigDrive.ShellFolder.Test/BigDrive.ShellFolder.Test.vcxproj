@@ -157,7 +157,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DllGetClassObjectTests.cpp" />
     <ClCompile Include="DllMainTests.cpp" />
     <ClCompile Include="ItemIdListTests.cpp" />
     <ClCompile Include="pch.cpp">

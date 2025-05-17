@@ -4,14 +4,12 @@
 
 #include "pch.h"
 
-// System
-#include <debugapi.h>
-#include <objbase.h>
-#include <sstream>
-#include <windows.h>
-
 // Header
 #include "dllmain.h"
+
+// System
+#include <combaseapi.h>
+
 
 /// Local
 #include "BigDriveShellFolderFactory.h"
@@ -55,7 +53,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 /// for Windows Explorer integration.
 /// Returns S_OK if registration succeeds, or an error HRESULT if any step fails.
 /// </summary>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
+extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
@@ -115,7 +113,7 @@ End:
     return S_OK;
 }
 
-extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
+extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer()
 {
     return S_OK;
 }
@@ -133,7 +131,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
 {
     HRESULT hr = S_OK;
     CLSID* pclsid = nullptr;
