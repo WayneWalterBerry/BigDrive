@@ -9,10 +9,10 @@
 
 #include "ShItemIdUtil.h"
 
-/// <inheritdoc />
+//<inheritdoc />
 HRESULT ShItemIdUtil::Serialize(_In_ const SHITEMID* shitemid, _Out_ BSTR& bstPath)
 {
-    if (shitemid == nullptr || bstPath == nullptr)
+    if (shitemid == nullptr || &bstPath == nullptr)
     {
         return E_INVALIDARG;
     }
@@ -25,11 +25,8 @@ HRESULT ShItemIdUtil::Serialize(_In_ const SHITEMID* shitemid, _Out_ BSTR& bstPa
         return S_OK;
     }
 
-    // Each byte becomes two hex chars
-    size_t hexLen = abIdLen * 2;
-
     // Allocate BSTR with the required length (no null terminator needed, BSTR is length-prefixed)
-    bstPath = ::SysAllocStringLen(nullptr, static_cast<UINT>(hexLen));
+    bstPath = ::SysAllocStringLen(nullptr, static_cast<UINT>(abIdLen));
     if (bstPath == nullptr)
     {
         return E_OUTOFMEMORY;
@@ -38,17 +35,14 @@ HRESULT ShItemIdUtil::Serialize(_In_ const SHITEMID* shitemid, _Out_ BSTR& bstPa
     const BYTE* abID = reinterpret_cast<const BYTE*>(shitemid) + sizeof(USHORT);
     for (USHORT i = 0; i < abIdLen; ++i)
     {
-        // Write two hex digits per byte directly into the BSTR buffer
-        unsigned char byte = abID[i];
-        bstPath[i * 2] = (wchar_t)L"0123456789ABCDEF"[byte >> 4];
-        bstPath[i * 2 + 1] = (wchar_t)L"0123456789ABCDEF"[byte & 0x0F];
+        // Write each byte directly as a wchar_t
+        bstPath[i] = static_cast<wchar_t>(abID[i]);
     }
 
-    // No need to null-terminate, SysAllocStringLen handles the length
     return S_OK;
 }
 
-/// <inheritdoc />
+//<inheritdoc />
 HRESULT ShItemIdUtil::Deserialize(_In_ BSTR bstPath, _Out_ SHITEMID** pShitemid)
 {
     if (bstPath == nullptr || pShitemid == nullptr)
@@ -57,15 +51,9 @@ HRESULT ShItemIdUtil::Deserialize(_In_ BSTR bstPath, _Out_ SHITEMID** pShitemid)
     }
 
     *pShitemid = nullptr;
-    UINT hexLen = ::SysStringLen(bstPath);
+    UINT charLen = ::SysStringLen(bstPath);
 
-    // Must be even number of hex digits
-    if (hexLen % 2 != 0)
-    {
-        return E_INVALIDARG;
-    }
-
-    USHORT abIdLen = static_cast<USHORT>(hexLen / 2);
+    USHORT abIdLen = static_cast<USHORT>(charLen);
     USHORT cb = abIdLen + sizeof(USHORT);
 
     // Allocate memory for SHITEMID
@@ -80,24 +68,8 @@ HRESULT ShItemIdUtil::Deserialize(_In_ BSTR bstPath, _Out_ SHITEMID** pShitemid)
 
     for (USHORT i = 0; i < abIdLen; ++i)
     {
-        wchar_t high = bstPath[i * 2];
-        wchar_t low = bstPath[i * 2 + 1];
-
-        auto hex2nibble = [](wchar_t c) -> int {
-            if (c >= L'0' && c <= L'9') return c - L'0';
-            if (c >= L'A' && c <= L'F') return c - L'A' + 10;
-            if (c >= L'a' && c <= L'f') return c - L'a' + 10;
-            return -1;
-            };
-
-        int hi = hex2nibble(high);
-        int lo = hex2nibble(low);
-        if (hi < 0 || lo < 0)
-        {
-            ::CoTaskMemFree(shitemid);
-            return E_INVALIDARG;
-        }
-        abID[i] = static_cast<BYTE>((hi << 4) | lo);
+        // Read each wchar_t as a byte
+        abID[i] = static_cast<BYTE>(bstPath[i]);
     }
 
     *pShitemid = shitemid;

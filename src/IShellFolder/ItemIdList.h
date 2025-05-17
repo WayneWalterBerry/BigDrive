@@ -42,5 +42,5 @@ public:
     /// <param name="bstrPath">The BSTR hex string to deserialize.</param>
     /// <param name="ppidl">[out] Receives the resulting LPITEMIDLIST. Caller must free with CoTaskMemFree.</param>
     /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-    static HRESULT DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl);
+    static HRESULT DeserializeList(_In_ const BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl);
 };

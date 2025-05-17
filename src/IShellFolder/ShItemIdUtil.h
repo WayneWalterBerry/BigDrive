@@ -48,7 +48,7 @@
 /// ===========================================================================
 /// </summary>
 
-class ShItemIdUtil
+class __declspec(dllexport)  ShItemIdUtil
 {
 public:
 
@@ -59,7 +59,7 @@ public:
     /// <param name="shitemid">Pointer to the SHITEMID structure to serialize.</param>
     /// <param name="bstPath">Reference to a BSTR that receives the resulting hex string.</param>
     /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-    HRESULT Serialize(
+    static HRESULT Serialize(
         _In_ const SHITEMID* shitemid,
         _Out_ BSTR& bstPath
     );
@@ -71,7 +71,7 @@ public:
     /// <param name="bstPath">BSTR containing the hex string to deserialize.</param>
     /// <param name="pShitemid">Pointer to a SHITEMID* that receives the allocated structure. Caller must free with CoTaskMemFree.</param>
     /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-    HRESULT Deserialize(
+    static HRESULT Deserialize(
         _In_ BSTR bstPath,
         _Out_ SHITEMID** ppidl
     );
