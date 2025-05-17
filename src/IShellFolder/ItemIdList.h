@@ -7,9 +7,6 @@
 #include <windows.h>
 #include <shtypes.h>
 
-// Local
-#include "ShellItemId.h"
-
 class __declspec(dllexport) ItemIdList
 {
 private:
@@ -31,16 +28,19 @@ public:
     HRESULT NextItem(ItemIdList& next) const;
 
     /// <summary>
-    /// Retrieves the first SHITEMID in this ItemIdList as a ShellItemId.
+    /// Serializes an ITEMIDLIST (LPITEMIDLIST) into a BSTR, converting each SHITEMID's abID to a hex string,
+    /// separated by '/' characters.
     /// </summary>
-    /// <param name="itemId">[out] Receives the ShellItemId if available; otherwise, a default/null ShellItemId.</param>
-    /// <returns>S_OK if a valid item exists, S_FALSE if the list is empty, or E_POINTER if m_pidl is null.</returns>
-    HRESULT GetShellItemId(ShellItemId& itemId) const;
+    /// <param name="pidl">Pointer to the ITEMIDLIST to serialize.</param>
+    /// <param name="bstPath">Reference to a BSTR that receives the resulting hex string.</param>
+    /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
+    HRESULT SerializeList(_Out_ BSTR& brstPath);
 
     /// <summary>
-    /// Computes a hash value for the entire ItemIdList by recursively hashing each SHITEMID.
+    /// Deserializes a BSTR produced by SerializeList into an ITEMIDLIST (LPITEMIDLIST).
     /// </summary>
-    /// <param name="seed">The initial hash value to combine with each item.</param>
-    /// <returns>A uint32_t hash representing the entire ItemIdList.</returns>
-    ULONG Hash(ULONG seed = 2166136261u) const;
+    /// <param name="bstrPath">The BSTR hex string to deserialize.</param>
+    /// <param name="ppidl">[out] Receives the resulting LPITEMIDLIST. Caller must free with CoTaskMemFree.</param>
+    /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
+    static HRESULT DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl);
 };

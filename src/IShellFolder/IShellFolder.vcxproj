@@ -159,7 +159,7 @@
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
-    <ClInclude Include="ShellItemId.h" />
+    <ClInclude Include="ShItemIdUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\EventLogger.cpp">
@@ -179,6 +179,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="RegistrationManager.cpp" />
+    <ClCompile Include="ShItemIdUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj">

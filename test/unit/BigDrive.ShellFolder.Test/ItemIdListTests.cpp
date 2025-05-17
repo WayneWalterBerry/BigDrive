@@ -4,179 +4,402 @@
 
 #include "pch.h"
 
-// System
-#include <windows.h>
-#include <shtypes.h>
-
-// Test
-#include "CppUnitTest.h"
-
-// BigDrive.ShellFolder
+#include <CppUnitTest.h>
+#include <comdef.h>
 #include "ItemIdList.h"
-#include "ShellItemId.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace BigDriveShellFolderTest
 {
+
+    /// <summary>
+    /// Helper function to create a SHITEMID list (LPITEMIDLIST) from an array of abID byte arrays.
+    /// Each abID array represents the abID portion of a SHITEMID structure.
+    /// </summary>
+    /// <param name="abids">Array of pointers to abID byte arrays.</param>
+    /// <param name="abidLens">Array of lengths for each abID array.</param>
+    /// <param name="itemCount">Number of items in the list.</param>
+    /// <returns>Pointer to a newly allocated ITEMIDLIST. Caller must free with CoTaskMemFree.</returns>
+    LPITEMIDLIST CreateItemIdList(const BYTE** abids, const size_t* abidLens, size_t itemCount)
+    {
+        // Calculate total size: sum of all SHITEMID sizes + 2 bytes for terminator
+        size_t total = 0;
+        for (size_t i = 0; i < itemCount; ++i)
+            total += sizeof(USHORT) + abidLens[i];
+        total += sizeof(USHORT); // terminator
+
+        BYTE* buffer = (BYTE*)CoTaskMemAlloc(total);
+        BYTE* p = buffer;
+        for (size_t i = 0; i < itemCount; ++i)
+        {
+            USHORT cb = static_cast<USHORT>(sizeof(USHORT) + abidLens[i]);
+            *(USHORT*)p = cb;
+            if (abidLens[i] > 0)
+                memcpy(p + sizeof(USHORT), abids[i], abidLens[i]);
+            p += cb;
+        }
+        // Add terminator
+        *(USHORT*)p = 0;
+        return reinterpret_cast<LPITEMIDLIST>(buffer);
+    }
+
+    /// <summary>
+    /// Unit tests for the ItemIdList class, focusing on serialization and deserialization of ITEMIDLIST structures.
+    /// </summary>
     TEST_CLASS(ItemIdListTests)
     {
-    private:
-        /// <summary>
-        /// Helper: Allocates a SHITEMID with the given abID data. Caller must free returned pointer with delete[].
-        /// </summary>
-        static SHITEMID* CreateSHITEMID(const BYTE* abID, USHORT abIDLen)
-        {
-            USHORT totalSize = static_cast<USHORT>(sizeof(USHORT) + abIDLen);
-            BYTE* buffer = new BYTE[totalSize];
-            SHITEMID* shitemid = reinterpret_cast<SHITEMID*>(buffer);
-            shitemid->cb = totalSize;
-            for (USHORT i = 0; i < abIDLen; ++i)
-                shitemid->abID[i] = abID[i];
-            return shitemid;
-        }
-
-        /// <summary>
-        /// Helper: Allocates an ITEMIDLIST with the given SHITEMID array. Caller must free returned pointer with delete[].
-        /// </summary>
-        static LPITEMIDLIST CreateITEMIDLIST(const BYTE** abIDs, const USHORT* abIDLens, size_t count)
-        {
-            // Compute total size: sum of all SHITEMIDs + terminating zero SHITEMID
-            size_t totalSize = 0;
-            for (size_t i = 0; i < count; ++i)
-                totalSize += sizeof(USHORT) + abIDLens[i];
-            totalSize += sizeof(USHORT); // terminating SHITEMID
-
-            BYTE* buffer = new BYTE[totalSize];
-            BYTE* ptr = buffer;
-            for (size_t i = 0; i < count; ++i)
-            {
-                USHORT cb = static_cast<USHORT>(sizeof(USHORT) + abIDLens[i]);
-                *reinterpret_cast<USHORT*>(ptr) = cb;
-                ptr += sizeof(USHORT);
-                memcpy(ptr, abIDs[i], abIDLens[i]);
-                ptr += abIDLens[i];
-            }
-            // Terminating SHITEMID
-            *reinterpret_cast<USHORT*>(ptr) = 0;
-
-            return reinterpret_cast<LPITEMIDLIST>(buffer);
-        }
-
     public:
-        /// <summary>
-        /// Verifies that the hash of an empty ItemIdList is the seed value.
-        /// </summary>
-        TEST_METHOD(Hash_EmptyList_ReturnsSeed)
-        {
-            // Create an ITEMIDLIST with only the terminating SHITEMID
-            BYTE buffer[sizeof(USHORT)] = {};
-            LPITEMIDLIST pidl = reinterpret_cast<LPITEMIDLIST>(buffer);
-            pidl->mkid.cb = 0;
-            ItemIdList list(pidl);
 
-            ULONG seed = 2166136261u;
-            Assert::AreEqual(seed, list.Hash(seed));
+        /// <summary>
+        /// Tests that serializing an empty ITEMIDLIST (only terminator) returns an empty string.
+        /// </summary>
+        TEST_METHOD(SerializeList_EmptyList_ReturnsEmptyString)
+        {
+            // Arrange: Only terminator
+            LPITEMIDLIST pidl = (LPITEMIDLIST)CoTaskMemAlloc(sizeof(USHORT));
+            *(USHORT*)pidl = 0;
+            ItemIdList list(pidl);
+            BSTR result = nullptr;
+
+            // Act
+            HRESULT hr = list.SerializeList(result);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(result != nullptr);
+            Assert::AreEqual(0U, SysStringLen(result));
+            SysFreeString(result);
+            CoTaskMemFree(pidl);
         }
 
         /// <summary>
-        /// Verifies that the hash of a single-item ItemIdList matches the hash of the contained ShellItemId.
+        /// Tests that serializing a single-item ITEMIDLIST produces the correct hex string.
         /// </summary>
-        TEST_METHOD(Hash_SingleItem_EqualsShellItemIdHash)
+        TEST_METHOD(SerializeList_SingleItem)
         {
-            BYTE abID[] = { 0x42, 0x43 };
-            const BYTE* abIDs[] = { abID };
-            USHORT abIDLens[] = { 2 };
-            LPITEMIDLIST pidl = CreateITEMIDLIST(abIDs, abIDLens, 1);
-
+            // Arrange: abID = {0x12, 0xAB}
+            BYTE abid1[] = { 0x12, 0xAB };
+            const BYTE* abids[] = { abid1 };
+            size_t abidLens[] = { sizeof(abid1) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
             ItemIdList list(pidl);
+            BSTR result = nullptr;
 
-            ULONG expected = 1007278677U;
+            // Act
+            HRESULT hr = list.SerializeList(result);
 
-            Assert::AreEqual(expected, list.Hash());
-
-            delete[] reinterpret_cast<BYTE*>(pidl);
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(result != nullptr);
+            Assert::AreEqual(L"12AB", result);
+            SysFreeString(result);
+            CoTaskMemFree(pidl);
         }
 
         /// <summary>
-        /// Verifies that the hash of a multi-item ItemIdList is not equal to the hash of any single item.
+        /// Tests that serializing a multi-item ITEMIDLIST produces the correct hex string with '/' separators.
         /// </summary>
-        TEST_METHOD(Hash_MultiItem_NotEqualToAnySingleItem)
+        TEST_METHOD(SerializeList_MultipleItems)
         {
-            BYTE abID0[] = { 0x01, 0x02 };
-            BYTE abID1[] = { 0x03, 0x04 };
-            BYTE abID2[] = { 0x05, 0x06 };
-            const BYTE* abIDs[] = { abID0, abID1, abID2 };
-            USHORT abIDLens[] = { 2, 2, 2 };
-
-            LPITEMIDLIST pidl = CreateITEMIDLIST(abIDs, abIDLens, 3);
-
+            // Arrange: abID1 = {0x01}, abID2 = {0xFF, 0x00}
+            BYTE abid1[] = { 0x01 };
+            BYTE abid2[] = { 0xFF, 0x00 };
+            const BYTE* abids[] = { abid1, abid2 };
+            size_t abidLens[] = { sizeof(abid1), sizeof(abid2) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 2);
             ItemIdList list(pidl);
-            ULONG hash = list.Hash();
+            BSTR result = nullptr;
 
-            // Compute each ShellItemId hash
-            const BYTE* ptr = reinterpret_cast<const BYTE*>(&pidl->mkid);
-            for (int i = 0; i < 3; ++i)
+            // Act
+            HRESULT hr = list.SerializeList(result);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(result != nullptr);
+            Assert::AreEqual(L"01/FF00", result);
+            SysFreeString(result);
+            CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that serializing an ITEMIDLIST with a zero-length abID returns an empty string.
+        /// </summary>
+        TEST_METHOD(SerializeList_ZeroLengthabID)
+        {
+            // Arrange: abID = {}
+            BYTE abid1[] = { 0 }; // Dynamically sized array with at least one element
+            const BYTE* abids[] = { abid1 };
+            size_t abidLens[] = { 0 };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
+            ItemIdList list(pidl);
+            BSTR result = nullptr;
+
+            // Act
+            HRESULT hr = list.SerializeList(result);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(result != nullptr);
+            Assert::AreEqual(L"", result);
+            SysFreeString(result);
+            CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that passing a null BSTR pointer to SerializeList returns E_INVALIDARG.
+        /// </summary>
+        TEST_METHOD(SerializeList_NullBstrPointer)
+        {
+            // Arrange: abID = {0x01}
+            BYTE abid1[] = { 0x01 };
+            const BYTE* abids[] = { abid1 };
+            size_t abidLens[] = { sizeof(abid1) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
+            ItemIdList list(pidl);
+
+            // Act
+            HRESULT hr = list.SerializeList(*reinterpret_cast<BSTR*>(nullptr));
+
+            // Assert
+            Assert::AreEqual(E_INVALIDARG, hr);
+            CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that deserializing an empty string produces a valid ITEMIDLIST with only a terminator.
+        /// </summary>
+        TEST_METHOD(DeserializeList_EmptyString_ReturnsTerminator)
+        {
+            // Arrange
+            LPITEMIDLIST pidl = nullptr;
+
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(L""), &pidl);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(pidl != nullptr);
+            Assert::AreEqual((USHORT)0, *(USHORT*)pidl);
+            ::CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that deserializing a single-item hex string produces the correct ITEMIDLIST structure.
+        /// </summary>
+        TEST_METHOD(DeserializeList_SingleItem)
+        {
+            // Arrange
+            LPITEMIDLIST pidl = nullptr;
+
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(L"12AB"), &pidl);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(pidl != nullptr);
+            // Check first SHITEMID
+            USHORT cb = *(USHORT*)((BYTE*)pidl);
+            Assert::AreEqual((USHORT)4, cb); // 2 bytes for USHORT + 2 bytes abID
+            BYTE* abID = ((BYTE*)pidl) + sizeof(USHORT);
+            Assert::AreEqual((BYTE)0x12, abID[0]);
+            Assert::AreEqual((BYTE)0xAB, abID[1]);
+            // Check terminator
+            USHORT term = *(USHORT*)((BYTE*)pidl + cb);
+            Assert::AreEqual((USHORT)0, term);
+            ::CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that deserializing a multi-item hex string produces the correct ITEMIDLIST structure.
+        /// </summary>
+        TEST_METHOD(DeserializeList_MultipleItems)
+        {
+            // Arrange
+            LPITEMIDLIST pidl = nullptr;
+
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(L"01/FF00"), &pidl);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr);
+            Assert::IsTrue(pidl != nullptr);
+            // First item
+            USHORT cb1 = *(USHORT*)((BYTE*)pidl);
+            Assert::AreEqual((USHORT)3, cb1); // 2 bytes for USHORT + 1 byte abID
+            BYTE* abID1 = ((BYTE*)pidl) + sizeof(USHORT);
+            Assert::AreEqual((BYTE)0x01, abID1[0]);
+            // Second item
+            BYTE* next = ((BYTE*)pidl) + cb1;
+            USHORT cb2 = *(USHORT*)next;
+            Assert::AreEqual((USHORT)4, cb2); // 2 bytes for USHORT + 2 bytes abID
+            BYTE* abID2 = next + sizeof(USHORT);
+            Assert::AreEqual((BYTE)0xFF, abID2[0]);
+            Assert::AreEqual((BYTE)0x00, abID2[1]);
+            // Terminator
+            USHORT term = *(USHORT*)(next + cb2);
+            Assert::AreEqual((USHORT)0, term);
+            ::CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that deserializing a string with invalid hex characters returns E_INVALIDARG and does not allocate memory.
+        /// </summary>
+        TEST_METHOD(DeserializeList_InvalidHex_ReturnsError)
+        {
+            // Arrange
+            LPITEMIDLIST pidl = nullptr;
+
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(L"ZZ"), &pidl);
+
+            // Assert
+            Assert::AreEqual(E_INVALIDARG, hr);
+            Assert::IsTrue(pidl == nullptr);
+        }
+
+        /// <summary>
+        /// Tests that passing a null pointer for the output LPITEMIDLIST returns E_POINTER.
+        /// </summary>
+        TEST_METHOD(DeserializeList_NullPointer_ReturnsPointerError)
+        {
+            // Act
+            HRESULT hr = ItemIdList::DeserializeList(SysAllocString(L"12AB"), nullptr);
+
+            // Assert
+            Assert::AreEqual(E_POINTER, hr);
+        }
+
+        /// <summary>
+        /// Tests that serializing and then deserializing a single-item ITEMIDLIST results in an equivalent structure.
+        /// </summary>
+        TEST_METHOD(SerializeThenDeserialize_RoundTrip_SingleItem)
+        {
+            // Arrange
+            BYTE abid1[] = { 0x12, 0xAB };
+            const BYTE* abids[] = { abid1 };
+            size_t abidLens[] = { sizeof(abid1) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
+            ItemIdList list(pidl);
+            BSTR serialized = nullptr;
+            LPITEMIDLIST roundTrip = nullptr;
+
+            // Act
+            HRESULT hr1 = list.SerializeList(serialized);
+            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr1);
+            Assert::AreEqual(S_OK, hr2);
+            // Check that the round-tripped abID matches
+            USHORT cb = *(USHORT*)((BYTE*)roundTrip);
+            Assert::AreEqual((USHORT)4, cb);
+            BYTE* abID = ((BYTE*)roundTrip) + sizeof(USHORT);
+            Assert::AreEqual((BYTE)0x12, abID[0]);
+            Assert::AreEqual((BYTE)0xAB, abID[1]);
+            ::SysFreeString(serialized);
+            ::CoTaskMemFree(pidl);
+            ::CoTaskMemFree(roundTrip);
+        }
+
+        /// <summary>
+        /// Tests that serializing and then deserializing a multi-item ITEMIDLIST results in an equivalent structure.
+        /// </summary>
+        TEST_METHOD(SerializeThenDeserialize_RoundTrip_MultiItem)
+        {
+            // Arrange
+            BYTE abid1[] = { 0x01 };
+            BYTE abid2[] = { 0xFF, 0x00 };
+            BYTE abid3[] = { 0xAA, 0xBB, 0xCC };
+            const BYTE* abids[] = { abid1, abid2, abid3 };
+            size_t abidLens[] = { sizeof(abid1), sizeof(abid2), sizeof(abid3) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 3);
+            ItemIdList list(pidl);
+            BSTR serialized = nullptr;
+            LPITEMIDLIST roundTrip = nullptr;
+
+            // Act
+            HRESULT hr1 = list.SerializeList(serialized);
+            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr1);
+            Assert::AreEqual(S_OK, hr2);
+
+            // Check all abIDs
+            BYTE* cur = (BYTE*)roundTrip;
+            USHORT cb1 = *(USHORT*)cur;
+            Assert::AreEqual((USHORT)3, cb1);
+            Assert::AreEqual((BYTE)0x01, cur[2]);
+            cur += cb1;
+            USHORT cb2 = *(USHORT*)cur;
+            Assert::AreEqual((USHORT)4, cb2);
+            Assert::AreEqual((BYTE)0xFF, cur[2]);
+            Assert::AreEqual((BYTE)0x00, cur[3]);
+            cur += cb2;
+            USHORT cb3 = *(USHORT*)cur;
+            Assert::AreEqual((USHORT)5, cb3);
+            Assert::AreEqual((BYTE)0xAA, cur[2]);
+            Assert::AreEqual((BYTE)0xBB, cur[3]);
+            Assert::AreEqual((BYTE)0xCC, cur[4]);
+            cur += cb3;
+            USHORT term = *(USHORT*)cur;
+            Assert::AreEqual((USHORT)0, term);
+
+            ::SysFreeString(serialized);
+            ::CoTaskMemFree(pidl);
+            ::CoTaskMemFree(roundTrip);
+        }
+
+        /// <summary>
+        /// Tests that serializing and then deserializing an ITEMIDLIST with 8 items (with increasing abID lengths) results in an equivalent structure.
+        /// </summary>
+        TEST_METHOD(SerializeThenDeserialize_RoundTrip_8Items)
+        {
+            // Arrange: 8 items, each with 1-8 bytes
+            BYTE abid1[] = { 0x01 };
+            BYTE abid2[] = { 0x02, 0x03 };
+            BYTE abid3[] = { 0x04, 0x05, 0x06 };
+            BYTE abid4[] = { 0x07, 0x08, 0x09, 0x0A };
+            BYTE abid5[] = { 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
+            BYTE abid6[] = { 0x10, 0x11, 0x12, 0x13, 0x14, 0x15 };
+            BYTE abid7[] = { 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C };
+            BYTE abid8[] = { 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24 };
+            const BYTE* abids[] = { abid1, abid2, abid3, abid4, abid5, abid6, abid7, abid8 };
+            size_t abidLens[] = { sizeof(abid1), sizeof(abid2), sizeof(abid3), sizeof(abid4), sizeof(abid5), sizeof(abid6), sizeof(abid7), sizeof(abid8) };
+            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 8);
+            ItemIdList list(pidl);
+            BSTR serialized = nullptr;
+            LPITEMIDLIST roundTrip = nullptr;
+
+            // Act
+            HRESULT hr1 = list.SerializeList(serialized);
+            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+
+            // Assert
+            Assert::AreEqual(S_OK, hr1);
+            Assert::AreEqual(S_OK, hr2);
+
+            // Check all abIDs
+            BYTE* cur = (BYTE*)roundTrip;
+            USHORT cbs[8];
+            size_t offset = 0;
+            for (int i = 0; i < 8; ++i)
             {
-                const SHITEMID* shitemid = reinterpret_cast<const SHITEMID*>(ptr);
-                ShellItemId shellItemId(shitemid);
-                Assert::AreNotEqual(shellItemId.Hash(), hash);
-                ptr += shitemid->cb;
+                cbs[i] = *(USHORT*)(cur + offset);
+                Assert::AreEqual((USHORT)(sizeof(USHORT) + abidLens[i]), cbs[i]);
+                for (size_t j = 0; j < abidLens[i]; ++j)
+                {
+                    Assert::AreEqual(abids[i][j], *(cur + offset + sizeof(USHORT) + j));
+                }
+                offset += cbs[i];
             }
+            USHORT term = *(USHORT*)(cur + offset);
+            Assert::AreEqual((USHORT)0, term);
 
-            delete[] reinterpret_cast<BYTE*>(pidl);
-        }
-
-        /// <summary>
-        /// Verifies that different ItemIdLists produce different hashes.
-        /// </summary>
-        TEST_METHOD(Hash_DifferentLists_ProduceDifferentHashes)
-        {
-            BYTE abID1_0[] = { 0xAA, 0xBB };
-            BYTE abID1_1[] = { 0xCC, 0xDD };
-            BYTE abID2_0[] = { 0xAA, 0xBB };
-            BYTE abID2_1[] = { 0xCC, 0xDE };
-            const BYTE* abIDs1[] = { abID1_0, abID1_1 };
-            const BYTE* abIDs2[] = { abID2_0, abID2_1 };
-            USHORT abIDLens1[] = { 2, 2 };
-            USHORT abIDLens2[] = { 2, 2 };
-
-            LPITEMIDLIST pidl1 = CreateITEMIDLIST(abIDs1, abIDLens1, 2);
-            LPITEMIDLIST pidl2 = CreateITEMIDLIST(abIDs2, abIDLens2, 2);
-
-            ItemIdList list1(pidl1);
-            ItemIdList list2(pidl2);
-
-            Assert::AreNotEqual(list1.Hash(), list2.Hash());
-
-            delete[] reinterpret_cast<BYTE*>(pidl1);
-            delete[] reinterpret_cast<BYTE*>(pidl2);
-        }
-
-        /// <summary>
-        /// Verifies that the hash is sensitive to the order of items in the ItemIdList.
-        /// </summary>
-        TEST_METHOD(Hash_OrderMatters)
-        {
-            BYTE abID1_0[] = { 0x01, 0x02 };
-            BYTE abID1_1[] = { 0x03, 0x04 };
-            BYTE abID2_0[] = { 0x03, 0x04 };
-            BYTE abID2_1[] = { 0x01, 0x02 };
-            const BYTE* abIDs1[] = { abID1_0, abID1_1 };
-            const BYTE* abIDs2[] = { abID2_0, abID2_1 };
-            USHORT abIDLens1[] = { 2, 2 };
-            USHORT abIDLens2[] = { 2, 2 };
-
-            LPITEMIDLIST pidl1 = CreateITEMIDLIST(abIDs1, abIDLens1, 2);
-            LPITEMIDLIST pidl2 = CreateITEMIDLIST(abIDs2, abIDLens2, 2);
-
-            ItemIdList list1(pidl1);
-            ItemIdList list2(pidl2);
-
-            Assert::AreNotEqual(list1.Hash(), list2.Hash());
-
-            delete[] reinterpret_cast<BYTE*>(pidl1);
-            delete[] reinterpret_cast<BYTE*>(pidl2);
+            ::SysFreeString(serialized);
+            ::CoTaskMemFree(pidl);
+            ::CoTaskMemFree(roundTrip);
         }
     };
 }
