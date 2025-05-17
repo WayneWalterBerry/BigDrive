@@ -118,7 +118,6 @@ HRESULT ItemIdList::DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppid
     // Handle empty or null input string: allocate a single terminator
     if (!bstrPath || bstrPath[0] == L'\0')
     {
-        // Allocate space for just the terminator (USHORT 0)
         *ppidl = (LPITEMIDLIST)::CoTaskMemAlloc(sizeof(USHORT));
         if (!*ppidl)
         {
@@ -128,13 +127,20 @@ HRESULT ItemIdList::DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppid
         return S_OK;
     }
 
-    // First pass: count the number of items and total abID length
+    // First pass: count items and their abID hex lengths
     const wchar_t* p = bstrPath;
-    int itemCount = 1;      // At least one item (no separator yet)
-    int totalAbidLen = 0;   // Total length of all abID data
-    int i = 0;
+    int itemCount = 1;
+    int curLen = 0;
+    int totalAbidLen = 0;
 
-    // Count the number of '/' separators to determine item count
+    // We will do a single pass to count items and their hex lengths
+    // To avoid a separate allocation for abidLens, use a stack array if itemCount is small, else allocate
+    int abidLensStack[16];
+    int* abidLens = abidLensStack;
+    int abidLensCapacity = 16;
+
+    // First, count items and their hex lengths
+    // We'll do a first pass to count itemCount
     for (const wchar_t* q = p; *q; ++q)
     {
         if (*q == L'/')
@@ -143,25 +149,23 @@ HRESULT ItemIdList::DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppid
         }
     }
 
-    // Allocate array to hold the length of each abID
-    int* abidLens = (int*)::CoTaskMemAlloc(itemCount * sizeof(int));
-    if (!abidLens)
+    // If more than stack capacity, allocate
+    if (itemCount > abidLensCapacity)
     {
-        return E_OUTOFMEMORY;
-    }
-    for (i = 0; i < itemCount; ++i)
-    {
-        abidLens[i] = 0;
+        abidLens = (int*)::CoTaskMemAlloc(itemCount * sizeof(int));
+        if (!abidLens)
+        {
+            return E_OUTOFMEMORY;
+        }
     }
 
-    // Second pass: determine the length (in bytes) of each abID
-    i = 0;
-    int curLen = 0;
+    // Second pass: fill abidLens
+    int i = 0;
+    curLen = 0;
     for (const wchar_t* q = p; ; ++q)
     {
         if (*q == L'/' || *q == L'\0')
         {
-            // Each abID is represented as hex, so divide by 2
             abidLens[i++] = curLen / 2;
             totalAbidLen += curLen / 2;
             curLen = 0;
@@ -176,93 +180,63 @@ HRESULT ItemIdList::DeserializeList(_In_ BSTR bstrPath, _Out_ LPITEMIDLIST* ppid
         }
     }
 
-    // Allocate array of pointers for each abID and a buffer for all abID data
-    BYTE** abids = (BYTE**)::CoTaskMemAlloc(itemCount * sizeof(BYTE*));
-    if (!abids)
-    {
-        ::CoTaskMemFree(abidLens);
-        return E_OUTOFMEMORY;
-    }
-
-    // abidData holds all abID bytes contiguously
-    BYTE* abidData = (BYTE*)::CoTaskMemAlloc(totalAbidLen > 0 ? totalAbidLen : 1);
-    if (!abidData)
-    {
-        ::CoTaskMemFree(abidLens);
-        ::CoTaskMemFree(abids);
-        return E_OUTOFMEMORY;
-    }
-
-    int abidDataOffset = 0;
-
-    // Third pass: parse hex string into abID byte arrays
-    p = bstrPath;
-    for (i = 0; i < itemCount; ++i)
-    {
-        abids[i] = abidData + abidDataOffset;
-        int len = abidLens[i];
-        for (int j = 0; j < len; ++j)
-        {
-            // Validate hex digits
-            if (!::iswxdigit(p[0]) || !::iswxdigit(p[1]))
-            {
-                ::CoTaskMemFree(abidLens);
-                ::CoTaskMemFree(abids);
-                ::CoTaskMemFree(abidData);
-                return E_INVALIDARG;
-            }
-            // Convert two hex characters to a byte
-            wchar_t hex[3] = { p[0], p[1], 0 };
-            abids[i][j] = (BYTE)::wcstoul(hex, nullptr, 16);
-            p += 2;
-        }
-        abidDataOffset += len;
-        if (*p == L'/')
-        {
-            ++p;
-        }
-    }
-
-    // Calculate total size needed for the ITEMIDLIST structure
-    // Each SHITEMID: sizeof(USHORT) + abidLen, plus a final terminator
+    // Calculate total size for ITEMIDLIST: each SHITEMID = sizeof(USHORT) + abidLen, plus terminator
     size_t total = 0;
     for (i = 0; i < itemCount; ++i)
     {
         total += sizeof(USHORT) + abidLens[i];
     }
-    total += sizeof(USHORT); // Add space for the terminating SHITEMID
+    total += sizeof(USHORT); // terminator
 
-    // Allocate the final ITEMIDLIST buffer
+    // Allocate a single buffer for the final ITEMIDLIST and for all abID data
     BYTE* buffer = (BYTE*)::CoTaskMemAlloc(total);
     if (!buffer)
     {
-        ::CoTaskMemFree(abidLens);
-        ::CoTaskMemFree(abids);
-        ::CoTaskMemFree(abidData);
+        if (abidLens != abidLensStack)
+        {
+            ::CoTaskMemFree(abidLens);
+        }
         return E_OUTOFMEMORY;
     }
 
-    // Write each SHITEMID (length + abID bytes) into the buffer
+    // Parse hex string directly into the buffer
     BYTE* cur = buffer;
+    p = bstrPath;
     for (i = 0; i < itemCount; ++i)
     {
         USHORT cb = static_cast<USHORT>(sizeof(USHORT) + abidLens[i]);
         *(USHORT*)cur = cb;
-        if (abidLens[i] > 0)
+        BYTE* abID = cur + sizeof(USHORT);
+        for (int j = 0; j < abidLens[i]; ++j)
         {
-            ::memcpy(cur + sizeof(USHORT), abids[i], abidLens[i]);
+            if (!::iswxdigit(p[0]) || !::iswxdigit(p[1]))
+            {
+                if (abidLens != abidLensStack)
+                {
+                    ::CoTaskMemFree(abidLens);
+                }
+                ::CoTaskMemFree(buffer);
+                return E_INVALIDARG;
+            }
+            wchar_t hex[3] = { p[0], p[1], 0 };
+            abID[j] = (BYTE)::wcstoul(hex, nullptr, 16);
+            p += 2;
+        }
+        if (*p == L'/')
+        {
+            ++p;
         }
         cur += cb;
     }
 
-    // Write the terminating SHITEMID (length 0)
+    // Add terminator
     *(USHORT*)cur = 0;
     *ppidl = reinterpret_cast<LPITEMIDLIST>(buffer);
 
-    // Free temporary allocations
-    ::CoTaskMemFree(abidLens);
-    ::CoTaskMemFree(abids);
-    ::CoTaskMemFree(abidData);
+    if (abidLens != abidLensStack)
+    {
+        ::CoTaskMemFree(abidLens);
+    }
 
     return S_OK;
 }
