@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <comdef.h>
 #include <iostream>
+#include <CorError.h>
 
 // Header
 #include "ApplicationManager.h"
@@ -142,6 +143,11 @@ HRESULT ApplicationManager::RegisterApplications()
                 break;
 
             case E_NOINTERFACE:
+                // Not Every Component Implements IBigDriveRegistration.
+                hr = S_OK;
+                break;
+
+            case COR_E_TYPELOAD:
                 // Not Every Component Implements IBigDriveRegistration.
                 hr = S_OK;
                 break;

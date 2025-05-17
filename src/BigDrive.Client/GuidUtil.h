@@ -6,7 +6,6 @@
 
 #include <wtypes.h>
 #include <string>
-#include <combaseapi.h>
 
 namespace BigDriveClient
 {

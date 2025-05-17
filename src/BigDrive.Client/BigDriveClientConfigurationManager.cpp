@@ -10,7 +10,6 @@
 #include <vector>
 #include <stdexcept>
 #include <iostream>
-#include <combaseapi.h>
 
 // Header
 #include "BigDriveClientConfigurationManager.h"

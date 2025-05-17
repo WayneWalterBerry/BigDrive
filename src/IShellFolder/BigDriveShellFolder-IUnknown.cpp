@@ -15,12 +15,17 @@
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObject)
 {
+    LaunchDebugger();
+
     if (riid == IID_IUnknown || riid == IID_IShellFolder)
     {
         *ppvObject = static_cast<IShellFolder*>(this);
         AddRef();
         return S_OK;
     }
+
+    s_eventLogger.WriteErrorFormmated(L"BigDriveShellFolder::QueryInterface", L"Unknown interface requested: %s", riid.Data1);
+
     *ppvObject = nullptr;
     return E_NOINTERFACE;
 }

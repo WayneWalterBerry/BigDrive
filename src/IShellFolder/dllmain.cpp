@@ -4,14 +4,12 @@
 
 #include "pch.h"
 
-// System
-#include <debugapi.h>
-#include <objbase.h>
-#include <sstream>
-#include <windows.h>
-
 // Header
 #include "dllmain.h"
+
+// System
+#include <combaseapi.h>
+
 
 /// Local
 #include "BigDriveShellFolderFactory.h"
@@ -55,9 +53,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 /// for Windows Explorer integration.
 /// Returns S_OK if registration succeeds, or an error HRESULT if any step fails.
 /// </summary>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
+extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
+    bool bitMatch = FALSE;
 
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
@@ -78,6 +77,20 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer()
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
     SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+
+    hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
+    if (FAILED(hr))
+    {
+        // Log the error and return failure.
+        goto End;
+    }
+
+    if (!bitMatch)
+    {        
+        // Log a message indicating that the bitness of the DLL and OS do not match.
+        hr = E_FAIL;
+        goto End;
+    }
 
     /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
     /// and registers each as a shell folder in Windows Explorer. For each drive, this method
@@ -100,7 +113,7 @@ End:
     return S_OK;
 }
 
-extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
+extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer()
 {
     return S_OK;
 }
@@ -118,7 +131,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
 {
     HRESULT hr = S_OK;
     CLSID* pclsid = nullptr;
@@ -183,16 +196,5 @@ End:
     return hr;
 }
 
-/// <summary>
-/// Retrieves a class object from the DLL for the specified CLSID.
-/// </summary>
-/// <param name="rclsid">The CLSID of the object to retrieve.</param>
-/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
-/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
-/// <returns>HRESULT indicating success or failure.</returns>
 
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObjectExport(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
-{
-    return DllGetClassObject(rclsid, riid, ppv);
-}
 

@@ -4,8 +4,13 @@
 
 #pragma once
 
+#ifdef BIGDRIVE_SHELLFOLDER_EXPORTS
+#define BIGDRIVE_API __declspec(dllexport)
+#else
+#define BIGDRIVE_API __declspec(dllimport)
+#endif
+
 #include <windows.h>
-#include <objbase.h>
 
 /// <summary>
 /// Entry point for the DLL. Handles process attach and detach events.
@@ -20,29 +25,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 /// Registers the DLL by adding necessary registry entries.
 /// </summary>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer();
+extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer();
 
 /// <summary>
 /// Unregisters the DLL by removing registry entries.
 /// </summary>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer();
+extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer();
 
-/// <summary>
-/// Retrieves a class object from the DLL for the specified CLSID.
-/// </summary>
-/// <param name="rclsid">The CLSID of the object to retrieve.</param>
-/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
-/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
-/// <returns>HRESULT indicating success or failure.</returns>
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv);
+extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
 
-/// <summary>
-/// Exportable Version For Testing
-/// Retrieves a class object from the DLL for the specified CLSID.
-/// </summary>
-/// <param name="rclsid">The CLSID of the object to retrieve.</param>
-/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
-/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
-/// <returns>HRESULT indicating success or failure.</returns>
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObjectExport(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv);
