@@ -158,6 +158,7 @@
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
+    <ClInclude Include="ShellItemId.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\EventLogger.cpp">
@@ -168,6 +169,7 @@
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="ItemIdList.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

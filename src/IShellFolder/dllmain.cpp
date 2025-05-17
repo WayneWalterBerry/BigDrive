@@ -133,7 +133,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
+extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
 {
     HRESULT hr = S_OK;
     CLSID* pclsid = nullptr;
@@ -198,16 +198,5 @@ End:
     return hr;
 }
 
-/// <summary>
-/// Retrieves a class object from the DLL for the specified CLSID.
-/// </summary>
-/// <param name="rclsid">The CLSID of the object to retrieve.</param>
-/// <param name="riid">The interface identifier (IID) for the requested interface.</param>
-/// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
-/// <returns>HRESULT indicating success or failure.</returns>
 
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObjectExport(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID FAR* ppv)
-{
-    return DllGetClassObject(rclsid, riid, ppv);
-}
 
