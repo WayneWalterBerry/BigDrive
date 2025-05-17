@@ -93,7 +93,7 @@ public:
         }
 
         // Create an instance of BigDriveFolder
-        BigDriveShellFolder* pFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, s_pidlRoot);
+        BigDriveShellFolder* pFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, nullptr, s_pidlRoot);
         if (!pFolder) 
         {
             return E_OUTOFMEMORY;

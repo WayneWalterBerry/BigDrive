@@ -160,7 +160,7 @@
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="ItemIdList.h" />
+    <ClInclude Include="ILExtensions.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
@@ -176,7 +176,7 @@
     <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="ItemIdList.cpp" />
+    <ClCompile Include="ILExtensions.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
