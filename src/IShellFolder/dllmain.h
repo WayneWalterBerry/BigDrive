@@ -4,12 +4,6 @@
 
 #pragma once
 
-#ifdef BIGDRIVE_SHELLFOLDER_EXPORTS
-#define BIGDRIVE_API __declspec(dllexport)
-#else
-#define BIGDRIVE_API __declspec(dllimport)
-#endif
-
 #include <windows.h>
 
 /// <summary>
@@ -25,13 +19,31 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 /// Registers the DLL by adding necessary registry entries.
 /// </summary>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer();
+extern "C" HRESULT __stdcall DllRegisterServer();
 
 /// <summary>
 /// Unregisters the DLL by removing registry entries.
 /// </summary>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer();
+extern "C" HRESULT __stdcall DllUnregisterServer();
 
+/// <summary>
+/// Retrieves a class factory object that can create instances of a COM class identified by the specified CLSID.
+/// This function is called by COM clients to obtain an IClassFactory interface pointer for a registered COM class,
+/// enabling the creation of COM objects (such as IShellFolder implementations) provided by this DLL.
+/// 
+/// The function first validates the output pointer, then enumerates all CLSIDs registered by the component.
+/// If the requested CLSID matches one of the registered CLSIDs, it creates a new BigDriveShellFolderFactory instance
+/// associated with that CLSID. It then queries the factory for the requested interface (typically IClassFactory)
+/// and returns the interface pointer to the caller. If the CLSID is not found or an error occurs, the function
+/// returns CLASS_E_CLASSNOTAVAILABLE or the appropriate HRESULT error code.
+/// 
+/// All allocated resources are released before returning. This function is essential for COM activation and
+/// integration with Windows Explorer shell extensions.
+/// </summary>
+/// <param name="rclsid">The CLSID of the COM class object to retrieve.</param>
+/// <param name="riid">The interface identifier (IID) of the interface to retrieve (usually IID_IClassFactory).</param>
+/// <param name="ppv">Address of pointer variable that receives the interface pointer requested in riid.</param>
+/// <returns>S_OK on success, CLASS_E_CLASSNOTAVAILABLE if the CLSID is not supported, or another HRESULT error code.</returns>
 extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
 

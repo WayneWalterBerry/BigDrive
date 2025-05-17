@@ -87,6 +87,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -106,6 +107,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -123,10 +125,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <RegisterOutput>false</RegisterOutput>
+      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
-</Command>
+      <Command>
+                C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
+            </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -146,6 +150,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -169,6 +174,7 @@
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
+    <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ItemIdList.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
@@ -185,6 +191,9 @@
     <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj">
       <Project>{9c7a549e-dcd2-4c94-809f-202063596f0d}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BigDrive.ShellFolder.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

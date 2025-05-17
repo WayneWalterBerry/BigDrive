@@ -22,15 +22,35 @@ private:
     static EventLogger s_eventLogger;
 
     /// <summary>
+    /// The Drive guid 
+    /// </summary>
+    CLSID m_driveGuid;
+
+    /// <summary>
+    /// Stores the absolute PIDL (Pointer to an Item ID List) that uniquely identifies the location of this shell folder
+    /// within the shell namespace hierarchy. This allows the folder to resolve its position relative to the desktop
+    /// and is used for operations such as binding, navigation, and comparison within the shell.
+    /// </summary>
+    PIDLIST_ABSOLUTE m_pidl;
+
+    /// <summary>
     /// Reference count for the COM object.
     /// </summary>
     LONG m_refCount;
 
 public:
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="BigDriveFolder"/> class.
+    /// Constructs a new instance of the BigDriveShellFolder class, representing a shell folder in the BigDrive namespace.
+    /// Initializes the folder with the specified drive GUID and absolute PIDL, and sets the initial COM reference count to 1.
+    /// The drive GUID uniquely identifies the virtual drive, while the PIDL specifies the folder's absolute location in the shell namespace.
     /// </summary>
-    BigDriveShellFolder() : m_refCount(1) {}
+    /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
+    /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
+    BigDriveShellFolder(CLSID driveGuid, PIDLIST_ABSOLUTE pidl) :
+        m_driveGuid(driveGuid), m_pidl(pidl), m_refCount(1) 
+    {
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // IUnknown methods

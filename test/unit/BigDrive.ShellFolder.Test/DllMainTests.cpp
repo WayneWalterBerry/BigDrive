@@ -34,8 +34,6 @@ namespace BigDriveShellFolderTest
             Assert::AreEqual(S_OK, hr, L"DllRegisterServer did not return S_OK.");
         }
 
-        /*
-
         /// <summary>
         /// Test DllGetClassObject with a valid CLSID.
         /// </summary>
@@ -120,7 +118,5 @@ namespace BigDriveShellFolderTest
             Assert::AreEqual(E_NOINTERFACE, hr, L"DllGetClassObject should return E_NOINTERFACE for an unsupported IID.");
             Assert::IsNull(pUnknown, L"pUnknown should be null for an unsupported IID.");
         }
-
-        */
     };
 }

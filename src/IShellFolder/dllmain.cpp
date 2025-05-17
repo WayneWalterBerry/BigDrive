@@ -10,7 +10,6 @@
 // System
 #include <combaseapi.h>
 
-
 /// Local
 #include "BigDriveShellFolderFactory.h"
 #include "CLSIDs.h"
@@ -53,7 +52,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 /// for Windows Explorer integration.
 /// Returns S_OK if registration succeeds, or an error HRESULT if any step fails.
 /// </summary>
-extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
+extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
@@ -113,7 +112,7 @@ End:
     return S_OK;
 }
 
-extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer()
+extern "C" HRESULT __stdcall DllUnregisterServer()
 {
     return S_OK;
 }
@@ -138,8 +137,6 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    ::LaunchDebugger();
-
     if (ppv == nullptr)
     {
         return E_POINTER;
@@ -158,7 +155,8 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     {
         if (pclsid[i] == rclsid)
         {
-            // The CLSID matches, create the factory, with the CLSID as the GUID
+            // The CLSID matches, create the factory, with the CLSID as the drive guid
+            // the Shell Folder is registered as a COM component using the drive guid.
             pFactory = new BigDriveShellFolderFactory(rclsid);
             if (!pFactory)
             {

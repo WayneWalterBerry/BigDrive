@@ -72,7 +72,6 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
     PIDLIST_RELATIVE* ppidl,
     ULONG* pdwAttributes)
 {
-    LaunchDebugger();
 
     // Validate output pointer
     if (!ppidl) 
@@ -168,8 +167,6 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
-    LaunchDebugger();
-
     // Validate output pointer
     if (!ppenumIDList)
     {
@@ -237,19 +234,31 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
         return E_INVALIDARG;
     }
 
-    LaunchDebugger();
-
     *ppv = nullptr; 
 
-    // Check if the requested interface is IShellFolder
-    if (riid == IID_IShellFolder) 
+    PIDLIST_ABSOLUTE pidlSubFolder = ILCombine(m_pidl, pidl);
+
+    BigDriveShellFolder* pSubFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, pidlSubFolder);
+    if (!pSubFolder)
     {
-        BigDriveShellFolder* pSubFolder = new BigDriveShellFolder(); 
-        *ppv = static_cast<IShellFolder*>(pSubFolder);
-        return S_OK;
+        return E_OUTOFMEMORY;
     }
 
-    return E_NOINTERFACE;
+    HRESULT hr = pSubFolder->QueryInterface(riid, ppv);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
+
+    if (pSubFolder!= nullptr)
+    {
+        pSubFolder->Release(); 
+        pSubFolder = nullptr;
+    }
+
+    return hr;
 }
 
 /// <summary>
@@ -257,8 +266,6 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -268,8 +275,6 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -279,8 +284,6 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -295,8 +298,6 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
         return E_INVALIDARG;
     }
 
-    LaunchDebugger();
-
     *rgfInOut = SFGAO_FILESYSTEM;
 
     // Placeholder implementation
@@ -309,8 +310,6 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl,
     REFIID riid, UINT* rgfReserved, void** ppv)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -320,8 +319,6 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
@@ -332,8 +329,6 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 HRESULT __stdcall BigDriveShellFolder::SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName,
     SHGDNF uFlags, PITEMID_CHILD* ppidlOut)
 {
-    LaunchDebugger();
-
     // Placeholder implementation
     return E_NOTIMPL;
 }
