@@ -6,6 +6,7 @@
 
 #include <CppUnitTest.h>
 #include <comdef.h>
+
 #include "ILExtensions.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;

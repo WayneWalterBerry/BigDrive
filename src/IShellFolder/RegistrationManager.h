@@ -13,7 +13,7 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
-class __declspec(dllexport) RegistrationManager
+class RegistrationManager
 {
 private:
 
@@ -152,3 +152,8 @@ private:
     /// </returns>
     static HRESULT IsCurrentOS64Bit(bool& is64Bit);
 };
+
+// Exports for Testing and Debugging
+extern "C" __declspec(dllexport) HRESULT __stdcall CleanUpShellFoldersExport();
+extern "C" __declspec(dllexport) HRESULT __stdcall RegisterShellFolderExport(GUID guidDrive, BSTR bstrName);
+extern "C" __declspec(dllexport) HRESULT __stdcall GetModuleFileNameWExport(LPWSTR szModulePath, DWORD dwSize);

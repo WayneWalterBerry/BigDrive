@@ -8,11 +8,11 @@
 
 #include <windows.h>
 #include <objbase.h>
+#include <Unknwn.h> 
 
 #include "dllmain.h"
 
-#include "BigDriveShellFolderFactory.h"
-#include "RegistrationManager.h"
+#include "RegistrationManagerExports.h" // Add this include
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -20,7 +20,25 @@ namespace BigDriveShellFolderTest
 {
     TEST_CLASS(DllMainTests)
     {
+
     public:
+
+        TEST_CLASS_INITIALIZE(Initialize)
+        {
+            Logger::WriteMessage(L"Initialize method called");
+
+#ifdef _WIN64
+            OutputDebugString(L"Test running as 64-bit\n");
+#else
+            OutputDebugString(L"Test running as 32-bit\n");
+#endif
+            // Load DLL explicitly
+            HMODULE hModule = LoadLibrary(L"BigDrive.ShellFolder.dll");
+            Assert::IsTrue(hModule != NULL, L"Failed to load DLL");
+
+            HRESULT hr = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+            Assert::IsTrue(SUCCEEDED(hr), L"COM initialization failed");
+        }
 
         /// <summary>
         /// Test that DllRegisterServer returns S_OK.
@@ -43,10 +61,8 @@ namespace BigDriveShellFolderTest
             CLSID validCLSID = { 0xD4E5F6A7, 0xB8C9, 0x0123, { 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x12, 0x34 } };
             IID requestedIID = IID_IClassFactory;
             IClassFactory* pClassFactory = nullptr;
-            
 
-            RegistrationManager registrationManager;
-            registrationManager.RegisterShellFolder(validCLSID, L"TestShellFolder");
+            RegisterShellFolderExport(validCLSID, L"TestShellFolder");
 
             // Act
             HRESULT hr = DllGetClassObject(validCLSID, requestedIID, reinterpret_cast<void**>(&pClassFactory));
@@ -79,7 +95,7 @@ namespace BigDriveShellFolderTest
             Assert::AreEqual(CLASS_E_CLASSNOTAVAILABLE, hr, L"DllGetClassObject should return CLASS_E_CLASSNOTAVAILABLE for an invalid CLSID.");
             Assert::IsNull(pClassFactory, L"pClassFactory should be null for an invalid CLSID.");
         }
-   
+
 
         /// <summary>
         /// Test DllGetClassObject with a null ppv parameter.
@@ -107,9 +123,10 @@ namespace BigDriveShellFolderTest
             IID unsupportedIID = IID_IUnknown; // Assuming IID_IUnknown is not supported
             void* pUnknown = nullptr;
 
+            BSTR bsrName = SysAllocString(L"TestShellFolder");
+
             // Mock RegistrationManager to return the valid CLSID
-            RegistrationManager registrationManager;
-            registrationManager.RegisterShellFolder(validCLSID, L"TestShellFolder");
+            RegisterShellFolderExport(validCLSID, bsrName);
 
             // Act
             HRESULT hr = DllGetClassObject(validCLSID, unsupportedIID, &pUnknown);
@@ -117,6 +134,15 @@ namespace BigDriveShellFolderTest
             // Assert
             Assert::AreEqual(E_NOINTERFACE, hr, L"DllGetClassObject should return E_NOINTERFACE for an unsupported IID.");
             Assert::IsNull(pUnknown, L"pUnknown should be null for an unsupported IID.");
+
+            ::SysFreeString(bsrName);
+        }
+
+        // Add cleanup at the end of tests that use RegisterShellFolderExport
+        TEST_METHOD_CLEANUP(CleanUp)
+        {
+            CleanUpShellFoldersExport(); // Clean up any test shell folders
+            ::CoUninitialize();
         }
     };
 }
