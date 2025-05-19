@@ -211,12 +211,10 @@
     <ItemGroup>
         <CustomBuild Include="BigDriveEvents.man">
             <Message>Compiling ETW manifest BigDriveEvents.man</Message>
-            <Command>mc.exe -um -h "$(ProjectDir)Generated" -r "$(ProjectDir)Generated" "$(ProjectDir)BigDriveEvents.man"</Command>
-            <Outputs>$(ProjectDir)Generated\BigDriveEvents.h;$(ProjectDir)Generated\BigDriveEvents.rc</Outputs>
-            <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-            <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-            <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-            <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+            <Command>cd "$(ProjectDir)" &amp;&amp; mc.exe -um -h Generated -r Generated -z BigDriveEvents BigDriveEvents.man</Command>
+            <Outputs>$(ProjectDir)Generated\BigDriveEvents.h;$(ProjectDir)Generated\BigDriveEvents.rc;$(ProjectDir)Generated\BigDriveEvents.BIN</Outputs>
+            <ExcludedFromBuild>false</ExcludedFromBuild>
+            <FileType>Document</FileType>
         </CustomBuild>
     </ItemGroup>
     <ItemGroup>

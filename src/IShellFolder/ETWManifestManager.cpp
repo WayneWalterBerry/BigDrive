@@ -126,7 +126,7 @@ End:
     {
         // Free the manifest path memory
         ::CoTaskMemFree(manifestPath);
-        manifestPath = nullptr
+        manifestPath = nullptr;
     }
 
     return hr;

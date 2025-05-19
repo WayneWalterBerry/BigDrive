@@ -10,3 +10,6 @@ packages/
 *.vcxproj.filters
 *.vcxproj.user
 
+# ETW generated files
+src/IShellFolder/Generated/
+
