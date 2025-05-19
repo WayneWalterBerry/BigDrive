@@ -84,38 +84,26 @@ public:
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // IClassFactory methods
 
-    HRESULT __stdcall CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override 
-    {
-        if (pUnkOuter != nullptr)
-        {
-            // Aggregation is not supported
-            return CLASS_E_NOAGGREGATION;
-        }
-
-        // Create an instance of BigDriveFolder
-        BigDriveShellFolder* pFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, nullptr, s_pidlRoot);
-        if (!pFolder) 
-        {
-            return E_OUTOFMEMORY;
-        }
-
-        // Query the requested interface
-        HRESULT hr = pFolder->QueryInterface(riid, ppvObject);
-        if (FAILED(hr)) 
-        {
-            goto End;
-        }
-
-    End:
-
-        if (pFolder != nullptr) 
-        {
-            pFolder->Release(); 
-            pFolder = nullptr;
-        }
-
-        return hr;
-    }
+    /// <summary>
+    /// Implements the IClassFactory::CreateInstance method to instantiate BigDriveShellFolder objects.
+    /// Creates a new shell folder object that represents the BigDrive namespace extension in Windows Explorer.
+    /// The created object is initialized with the factory's drive GUID and is responsible for handling
+    /// shell browsing operations like item enumeration, context menus, and property retrieval.
+    /// 
+    /// This method follows COM object creation semantics:
+    /// - Returns E_INVALIDARG if ppvObject is NULL
+    /// - Returns CLASS_E_NOAGGREGATION if aggregation is attempted (pUnkOuter != NULL)
+    /// - Creates the shell folder object and queries it for the requested interface (riid)
+    /// - Returns pointers only for supported interfaces
+    /// </summary>
+    /// <param name="pUnkOuter">Pointer to controlling IUnknown if aggregation is used. Must be NULL as aggregation is not supported.</param>
+    /// <param name="riid">The interface identifier (IID) of the interface the caller wants to retrieve.</param>
+    /// <param name="ppvObject">Address of pointer variable that receives the interface pointer if successful.</param>
+    /// <returns>
+    /// S_OK if successful; E_INVALIDARG if ppvObject is NULL;
+    /// CLASS_E_NOAGGREGATION if pUnkOuter is not NULL; or other error codes if creation fails.
+    /// </returns>
+    HRESULT __stdcall CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override;
 
     HRESULT __stdcall LockServer(BOOL fLock) override {
         // Lock or unlock the server

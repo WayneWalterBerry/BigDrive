@@ -16,6 +16,8 @@
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
 #include "ApplicationManager.h"
+#include "BigDriveETWLogger.h"
+#include "ETWManifestManager.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -29,16 +31,27 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+
+        // Initialize the module
+        BigDriveETWLogger::Initialize();
+
         // Initialize COM
-        hr = CoInitialize(NULL);
-        if (FAILED(hr)) {
+        hr = ::CoInitialize(NULL);
+        if (FAILED(hr)) 
+        {
             // Handle the error (e.g., log it or return FALSE to indicate failure)
             return FALSE;
         }
+
+
         break;
     case DLL_PROCESS_DETACH:
+        
+        // Uninitialize the module
+        BigDriveETWLogger::Cleanup();
+        
         // Uninitialize COM
-        CoUninitialize();
+        ::CoUninitialize();
         break;
     }
 
@@ -56,6 +69,12 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
+
+    hr = ETWManifestManager::RegisterManifest();
+    if (FAILED(hr))
+    {
+        goto End;
+    }
 
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
@@ -75,7 +94,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
-    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
     hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
     if (FAILED(hr))
@@ -105,7 +124,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
-    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
 End:
 
@@ -114,7 +133,17 @@ End:
 
 extern "C" HRESULT __stdcall DllUnregisterServer()
 {
-    return S_OK;
+    HRESULT hr = S_OK;
+
+    hr = ETWManifestManager::UnregisterManifest(L"BigDriveEvents.man");
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
+
+    return hr;
 }
 
 /// <summary>
