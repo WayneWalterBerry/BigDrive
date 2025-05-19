@@ -10,13 +10,14 @@
 // System
 #include <combaseapi.h>
 
-
 /// Local
 #include "BigDriveShellFolderFactory.h"
 #include "CLSIDs.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
 #include "ApplicationManager.h"
+#include "BigDriveETWLogger.h"
+#include "ETWManifestManager.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -30,16 +31,27 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+
+        // Initialize the module
+        BigDriveETWLogger::Initialize();
+
         // Initialize COM
-        hr = CoInitialize(NULL);
-        if (FAILED(hr)) {
+        hr = ::CoInitialize(NULL);
+        if (FAILED(hr)) 
+        {
             // Handle the error (e.g., log it or return FALSE to indicate failure)
             return FALSE;
         }
+
+
         break;
     case DLL_PROCESS_DETACH:
+        
+        // Uninitialize the module
+        BigDriveETWLogger::Cleanup();
+        
         // Uninitialize COM
-        CoUninitialize();
+        ::CoUninitialize();
         break;
     }
 
@@ -53,10 +65,16 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 /// for Windows Explorer integration.
 /// Returns S_OK if registration succeeds, or an error HRESULT if any step fails.
 /// </summary>
-extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
+extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
+
+    hr = ETWManifestManager::RegisterManifest();
+    if (FAILED(hr))
+    {
+        goto End;
+    }
 
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
@@ -76,7 +94,7 @@ extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
-    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
     hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
     if (FAILED(hr))
@@ -106,16 +124,26 @@ extern "C" BIGDRIVE_API HRESULT __stdcall DllRegisterServer()
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, NULL, NULL);
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
-    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
+    ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
 End:
 
     return S_OK;
 }
 
-extern "C" BIGDRIVE_API HRESULT __stdcall DllUnregisterServer()
+extern "C" HRESULT __stdcall DllUnregisterServer()
 {
-    return S_OK;
+    HRESULT hr = S_OK;
+
+    hr = ETWManifestManager::UnregisterManifest(L"BigDriveEvents.man");
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
+
+    return hr;
 }
 
 /// <summary>
@@ -138,8 +166,6 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    ::LaunchDebugger();
-
     if (ppv == nullptr)
     {
         return E_POINTER;
@@ -158,7 +184,8 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     {
         if (pclsid[i] == rclsid)
         {
-            // The CLSID matches, create the factory, with the CLSID as the GUID
+            // The CLSID matches, create the factory, with the CLSID as the drive guid
+            // the Shell Folder is registered as a COM component using the drive guid.
             pFactory = new BigDriveShellFolderFactory(rclsid);
             if (!pFactory)
             {

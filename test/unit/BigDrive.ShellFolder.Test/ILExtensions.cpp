@@ -1,4 +1,4 @@
-// <copyright file="ItemIdListTests.cpp" company="Wayne Walter Berry">
+// <copyright file="ILExtensions.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -6,7 +6,8 @@
 
 #include <CppUnitTest.h>
 #include <comdef.h>
-#include "ItemIdList.h"
+
+#include "ILExtensions.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -43,24 +44,17 @@ namespace BigDriveShellFolderTest
         return reinterpret_cast<LPITEMIDLIST>(buffer);
     }
 
-    /// <summary>
-    /// Unit tests for the ItemIdList class, focusing on serialization and deserialization of ITEMIDLIST structures.
-    /// </summary>
-    TEST_CLASS(ItemIdListTests)
+    TEST_CLASS(ILExtensions)
     {
     public:
 
-        /// <summary>
-        /// Tests that serializing an empty ITEMIDLIST (only terminator) returns an empty string.
-        /// </summary>
-        TEST_METHOD(SerializeList_EmptyList_ReturnsEmptyString)
+        TEST_METHOD(ILSerialize_EmptyList_ReturnsEmptyString)
         {
             LPITEMIDLIST pidl = (LPITEMIDLIST)CoTaskMemAlloc(sizeof(USHORT));
             *(USHORT*)pidl = 0;
-            ItemIdList list(pidl);
             BSTR result = nullptr;
 
-            HRESULT hr = list.SerializeList(result);
+            HRESULT hr = ILSerialize(pidl, result);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(result != nullptr);
@@ -69,19 +63,15 @@ namespace BigDriveShellFolderTest
             CoTaskMemFree(pidl);
         }
 
-        /// <summary>
-        /// Tests that serializing a single-item ITEMIDLIST produces the correct string.
-        /// </summary>
-        TEST_METHOD(SerializeList_SingleItem)
+        TEST_METHOD(ILSerialize_SingleItem)
         {
             BYTE abid1[] = { 'A', 'B' };
             const BYTE* abids[] = { abid1 };
             size_t abidLens[] = { sizeof(abid1) };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
-            ItemIdList list(pidl);
             BSTR result = nullptr;
 
-            HRESULT hr = list.SerializeList(result);
+            HRESULT hr = ILSerialize(pidl, result);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(result != nullptr);
@@ -91,20 +81,16 @@ namespace BigDriveShellFolderTest
             CoTaskMemFree(pidl);
         }
 
-        /// <summary>
-        /// Tests that serializing a multi-item ITEMIDLIST produces the correct string with '/' separators.
-        /// </summary>
-        TEST_METHOD(SerializeList_MultipleItems)
+        TEST_METHOD(ILSerialize_MultipleItems)
         {
             BYTE abid1[] = { 'X' };
             BYTE abid2[] = { 'Y', 'Z' };
             const BYTE* abids[] = { abid1, abid2 };
             size_t abidLens[] = { sizeof(abid1), sizeof(abid2) };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 2);
-            ItemIdList list(pidl);
             BSTR result = nullptr;
 
-            HRESULT hr = list.SerializeList(result);
+            HRESULT hr = ILSerialize(pidl, result);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(result != nullptr);
@@ -114,19 +100,15 @@ namespace BigDriveShellFolderTest
             CoTaskMemFree(pidl);
         }
 
-        /// <summary>
-        /// Tests that serializing an ITEMIDLIST with a zero-length abID returns an empty string.
-        /// </summary>
-        TEST_METHOD(SerializeList_ZeroLengthabID)
+        TEST_METHOD(ILSerialize_ZeroLengthabID)
         {
             BYTE abid1[] = { 0 };
             const BYTE* abids[] = { abid1 };
             size_t abidLens[] = { 0 };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
-            ItemIdList list(pidl);
             BSTR result = nullptr;
 
-            HRESULT hr = list.SerializeList(result);
+            HRESULT hr = ILSerialize(pidl, result);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(result != nullptr);
@@ -135,32 +117,12 @@ namespace BigDriveShellFolderTest
             CoTaskMemFree(pidl);
         }
 
-        /// <summary>
-        /// Tests that passing a null BSTR pointer to SerializeList returns E_INVALIDARG.
-        /// </summary>
-        TEST_METHOD(SerializeList_NullBstrPointer)
-        {
-            BYTE abid1[] = { 'A' };
-            const BYTE* abids[] = { abid1 };
-            size_t abidLens[] = { sizeof(abid1) };
-            LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
-            ItemIdList list(pidl);
-
-            HRESULT hr = list.SerializeList(*reinterpret_cast<BSTR*>(nullptr));
-
-            Assert::AreEqual(E_INVALIDARG, hr);
-            CoTaskMemFree(pidl);
-        }
-
-        /// <summary>
-        /// Tests that deserializing an empty string produces a valid ITEMIDLIST with only a terminator.
-        /// </summary>
-        TEST_METHOD(DeserializeList_EmptyString_ReturnsTerminator)
+        TEST_METHOD(ILDeserialize_EmptyString_ReturnsTerminator)
         {
             LPITEMIDLIST pidl = nullptr;
             BSTR bstr = ::SysAllocString(L"");
 
-            HRESULT hr = ItemIdList::DeserializeList(bstr, &pidl);
+            HRESULT hr = ILDeserialize(bstr, &pidl);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(pidl != nullptr);
@@ -169,15 +131,12 @@ namespace BigDriveShellFolderTest
             SysFreeString(bstr);
         }
 
-        /// <summary>
-        /// Tests that deserializing a single-item string produces the correct ITEMIDLIST structure.
-        /// </summary>
-        TEST_METHOD(DeserializeList_SingleItem)
+        TEST_METHOD(ILDeserialize_SingleItem)
         {
             LPITEMIDLIST pidl = nullptr;
             BSTR bstr = ::SysAllocString(L"AB");
 
-            HRESULT hr = ItemIdList::DeserializeList(bstr, &pidl);
+            HRESULT hr = ILDeserialize(bstr, &pidl);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(pidl != nullptr);
@@ -192,61 +151,51 @@ namespace BigDriveShellFolderTest
             SysFreeString(bstr);
         }
 
-        /// <summary>
-        /// Tests that deserializing a multi-item string produces the correct ITEMIDLIST structure.
-        /// </summary>
-        TEST_METHOD(DeserializeList_MultipleItems)
+        TEST_METHOD(ILDeserialize_MultipleItems)
         {
             LPITEMIDLIST pidl = nullptr;
             BSTR bstr = ::SysAllocString(L"X/YZ");
 
-            HRESULT hr = ItemIdList::DeserializeList(bstr, &pidl);
+            HRESULT hr = ILDeserialize(bstr, &pidl);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(pidl != nullptr);
-            USHORT cb1 = *(USHORT*)((BYTE*)pidl);
+            BYTE* cur = (BYTE*)pidl;
+            USHORT cb1 = *(USHORT*)cur;
             Assert::AreEqual((USHORT)3, cb1);
-            BYTE* abID1 = ((BYTE*)pidl) + sizeof(USHORT);
-            Assert::AreEqual((BYTE)'X', abID1[0]);
-            BYTE* next = ((BYTE*)pidl) + cb1;
-            USHORT cb2 = *(USHORT*)next;
+            Assert::AreEqual((BYTE)'X', cur[2]);
+            cur += cb1;
+            USHORT cb2 = *(USHORT*)cur;
             Assert::AreEqual((USHORT)4, cb2);
-            BYTE* abID2 = next + sizeof(USHORT);
-            Assert::AreEqual((BYTE)'Y', abID2[0]);
-            Assert::AreEqual((BYTE)'Z', abID2[1]);
-            USHORT term = *(USHORT*)(next + cb2);
+            Assert::AreEqual((BYTE)'Y', cur[2]);
+            Assert::AreEqual((BYTE)'Z', cur[3]);
+            cur += cb2;
+            USHORT term = *(USHORT*)cur;
             Assert::AreEqual((USHORT)0, term);
             ::CoTaskMemFree(pidl);
             SysFreeString(bstr);
         }
 
-        /// <summary>
-        /// Tests that passing a null pointer for the output LPITEMIDLIST returns E_POINTER.
-        /// </summary>
-        TEST_METHOD(DeserializeList_NullPointer_ReturnsPointerError)
+        TEST_METHOD(ILDeserialize_NullPointer_ReturnsPointerError)
         {
             BSTR bstr = ::SysAllocString(L"AB");
-            HRESULT hr = ItemIdList::DeserializeList(bstr, nullptr);
+            HRESULT hr = ILDeserialize(bstr, nullptr);
 
             Assert::AreEqual(E_POINTER, hr);
             SysFreeString(bstr);
         }
 
-        /// <summary>
-        /// Tests that serializing and then deserializing a single-item ITEMIDLIST results in an equivalent structure.
-        /// </summary>
-        TEST_METHOD(SerializeThenDeserialize_RoundTrip_SingleItem)
+        TEST_METHOD(ILSerializeThenDeserialize_RoundTrip_SingleItem)
         {
             BYTE abid1[] = { 'A', 'B' };
             const BYTE* abids[] = { abid1 };
             size_t abidLens[] = { sizeof(abid1) };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 1);
-            ItemIdList list(pidl);
             BSTR serialized = nullptr;
             LPITEMIDLIST roundTrip = nullptr;
 
-            HRESULT hr1 = list.SerializeList(serialized);
-            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+            HRESULT hr1 = ILSerialize(pidl, serialized);
+            HRESULT hr2 = ILDeserialize(serialized, &roundTrip);
 
             Assert::AreEqual(S_OK, hr1);
             Assert::AreEqual(S_OK, hr2);
@@ -260,10 +209,7 @@ namespace BigDriveShellFolderTest
             ::CoTaskMemFree(roundTrip);
         }
 
-        /// <summary>
-        /// Tests that serializing and then deserializing a multi-item ITEMIDLIST results in an equivalent structure.
-        /// </summary>
-        TEST_METHOD(SerializeThenDeserialize_RoundTrip_MultiItem)
+        TEST_METHOD(ILSerializeThenDeserialize_RoundTrip_MultiItem)
         {
             BYTE abid1[] = { 'X' };
             BYTE abid2[] = { 'Y', 'Z' };
@@ -271,12 +217,11 @@ namespace BigDriveShellFolderTest
             const BYTE* abids[] = { abid1, abid2, abid3 };
             size_t abidLens[] = { sizeof(abid1), sizeof(abid2), sizeof(abid3) };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 3);
-            ItemIdList list(pidl);
             BSTR serialized = nullptr;
             LPITEMIDLIST roundTrip = nullptr;
 
-            HRESULT hr1 = list.SerializeList(serialized);
-            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+            HRESULT hr1 = ILSerialize(pidl, serialized);
+            HRESULT hr2 = ILDeserialize(serialized, &roundTrip);
 
             Assert::AreEqual(S_OK, hr1);
             Assert::AreEqual(S_OK, hr2);
@@ -305,10 +250,7 @@ namespace BigDriveShellFolderTest
             ::CoTaskMemFree(roundTrip);
         }
 
-        /// <summary>
-        /// Tests that serializing and then deserializing an ITEMIDLIST with 8 items (with increasing abID lengths) results in an equivalent structure.
-        /// </summary>
-        TEST_METHOD(SerializeThenDeserialize_RoundTrip_8Items)
+        TEST_METHOD(ILSerializeThenDeserialize_RoundTrip_8Items)
         {
             BYTE abid1[] = { 'A' };
             BYTE abid2[] = { 'B', 'C' };
@@ -321,12 +263,11 @@ namespace BigDriveShellFolderTest
             const BYTE* abids[] = { abid1, abid2, abid3, abid4, abid5, abid6, abid7, abid8 };
             size_t abidLens[] = { sizeof(abid1), sizeof(abid2), sizeof(abid3), sizeof(abid4), sizeof(abid5), sizeof(abid6), sizeof(abid7), sizeof(abid8) };
             LPITEMIDLIST pidl = CreateItemIdList(abids, abidLens, 8);
-            ItemIdList list(pidl);
             BSTR serialized = nullptr;
             LPITEMIDLIST roundTrip = nullptr;
 
-            HRESULT hr1 = list.SerializeList(serialized);
-            HRESULT hr2 = ItemIdList::DeserializeList(serialized, &roundTrip);
+            HRESULT hr1 = ILSerialize(pidl, serialized);
+            HRESULT hr2 = ILDeserialize(serialized, &roundTrip);
 
             Assert::AreEqual(S_OK, hr1);
             Assert::AreEqual(S_OK, hr2);
@@ -352,12 +293,7 @@ namespace BigDriveShellFolderTest
             ::CoTaskMemFree(roundTrip);
         }
 
-        /// <summary>
-        /// Tests that DeserializeList correctly handles input with more than 16 items,
-        /// which triggers heap allocation for the abidLens array (stack fallback).
-        /// Verifies that the resulting ITEMIDLIST is valid and matches the input.
-        /// </summary>
-        TEST_METHOD(DeserializeList_MoreThan16Items_HeapAllocFallback)
+        TEST_METHOD(ILDeserialize_MoreThan16Items_HeapAllocFallback)
         {
             // 20 items, each abID is 'Q', separated by '/'
             std::wstring input;
@@ -370,7 +306,7 @@ namespace BigDriveShellFolderTest
             BSTR bstr = ::SysAllocString(input.c_str());
             LPITEMIDLIST pidl = nullptr;
 
-            HRESULT hr = ItemIdList::DeserializeList(bstr, &pidl);
+            HRESULT hr = ILDeserialize(bstr, &pidl);
 
             Assert::AreEqual(S_OK, hr);
             Assert::IsTrue(pidl != nullptr);

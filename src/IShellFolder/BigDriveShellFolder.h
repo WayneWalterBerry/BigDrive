@@ -8,6 +8,9 @@
 #include <objbase.h> // For COM initialization
 #include <string>
 
+// Local
+#include "ILExtensions.h"
+
 // Shared
 #include "..\Shared\EventLogger.h"
 
@@ -22,15 +25,50 @@ private:
     static EventLogger s_eventLogger;
 
     /// <summary>
+    /// The Drive guid 
+    /// </summary>
+    CLSID m_driveGuid;
+
+    BigDriveShellFolder* m_pParentShellFolder;
+
+    /// <summary>
+    /// The relative PIDL (Pointer to an Item ID List) that identifies this shell folder's location 
+    /// relative to its parent folder in the shell namespace. This PIDL is cloned and owned by the instance,
+    /// and is released upon destruction.
+    /// </summary>
+    PCUIDLIST_RELATIVE m_pidl;
+
+    /// <summary>
     /// Reference count for the COM object.
     /// </summary>
     LONG m_refCount;
 
 public:
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="BigDriveFolder"/> class.
+    /// Constructs a new instance of the BigDriveShellFolder class, representing a shell folder in the BigDrive namespace.
+    /// Initializes the folder with the specified drive GUID and absolute PIDL, and sets the initial COM reference count to 1.
+    /// The drive GUID uniquely identifies the virtual drive, while the PIDL specifies the folder's absolute location in the shell namespace.
     /// </summary>
-    BigDriveShellFolder() : m_refCount(1) {}
+    /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
+    /// <param name="pParentShellFolder">Pointer to the parent shell folder, if any. Can be nullptr for root folders.</param>
+    /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
+    BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl) :
+        m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidl(nullptr), m_refCount(1)
+    {
+        // Clone the PIDL to ensure it is owned by this instance
+        m_pidl = ILClone(pidl);
+    }
+
+    ~BigDriveShellFolder()
+    {
+        // Free the PIDL when the object is destroyed
+        if (m_pidl != nullptr)
+        {
+            ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
+            m_pidl = nullptr;
+        }
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // IUnknown methods
@@ -164,4 +202,8 @@ public:
     /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT __stdcall SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName,
         SHGDNF uFlags, PITEMID_CHILD* ppidlOut) override;
+
+private:
+
+    HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
 };

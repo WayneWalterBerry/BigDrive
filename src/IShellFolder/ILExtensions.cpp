@@ -1,41 +1,14 @@
-// <copyright file="ItemIdList.cpp" company="Wayne Walter Berry">
+// <copyright file="ILExtensions.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
 #include "pch.h"
 
 // Header
-#include "ItemIdList.h"
+#include "ILExtensions.h"
 
 /// <inheritdoc />
-HRESULT ItemIdList::NextItem(ItemIdList& next) const
-{
-    next = ItemIdList(nullptr);
-
-    const BYTE* current = reinterpret_cast<const BYTE*>(&m_pidl->mkid);
-    USHORT cb = reinterpret_cast<const SHITEMID*>(current)->cb;
-
-    if (cb == 0)
-    {
-        // End of list
-        return S_FALSE;
-    }
-
-    const BYTE* nextPtr = current + cb;
-    const SHITEMID* nextItem = reinterpret_cast<const SHITEMID*>(nextPtr);
-
-    if (nextItem->cb == 0)
-    {
-        // No more items
-        return S_FALSE;
-    }
-
-    next = ItemIdList(reinterpret_cast<LPITEMIDLIST>(const_cast<BYTE*>(nextPtr)));
-    return S_OK;
-}
-
-/// <inheritdoc />
-HRESULT ItemIdList::SerializeList(_Out_ BSTR& bstPath)
+HRESULT ILSerialize(_In_ LPCITEMIDLIST pidl, _Out_ BSTR& bstPath)
 {
     if (&bstPath == nullptr)
     {
@@ -45,7 +18,7 @@ HRESULT ItemIdList::SerializeList(_Out_ BSTR& bstPath)
     // First, calculate the total length needed for the BSTR (in wchar_t)
     size_t totalCharLen = 0;
     size_t itemCount = 0;
-    const BYTE* pCur = reinterpret_cast<const BYTE*>(m_pidl);
+    const BYTE* pCur = reinterpret_cast<const BYTE*>(pidl);
 
     // Walk the list to calculate length
     while (true)
@@ -76,7 +49,7 @@ HRESULT ItemIdList::SerializeList(_Out_ BSTR& bstPath)
     }
 
     // Walk again and serialize
-    pCur = reinterpret_cast<const BYTE*>(m_pidl);
+    pCur = reinterpret_cast<const BYTE*>(pidl);
     UINT pos = 0;
     size_t itemIdx = 0;
     while (true)
@@ -104,7 +77,7 @@ HRESULT ItemIdList::SerializeList(_Out_ BSTR& bstPath)
 }
 
 /// <inheritdoc />
-HRESULT ItemIdList::DeserializeList(_In_ const BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl)
+HRESULT ILDeserialize(_In_ const BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl)
 {
     if (!ppidl)
     {

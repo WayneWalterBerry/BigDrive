@@ -1,0 +1,12 @@
+LIBRARY "BigDrive.ShellFolder"
+
+EXPORTS
+    DllGetClassObject           @1
+    DllRegisterServer           @2
+    DllUnregisterServer         @3
+
+    ILSerialize                 @100
+    ILDeserialize               @101
+    CleanUpShellFoldersExport   @102
+    RegisterShellFolderExport   @103
+    GetModuleFileNameWExport    @104

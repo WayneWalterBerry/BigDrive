@@ -15,8 +15,6 @@
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObject)
 {
-    LaunchDebugger();
-
     if (riid == IID_IUnknown || riid == IID_IShellFolder)
     {
         *ppvObject = static_cast<IShellFolder*>(this);

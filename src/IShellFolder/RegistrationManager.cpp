@@ -24,9 +24,29 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Exports For Testing
+
 extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
 
 EventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
+
+extern "C" __declspec(dllexport) HRESULT __stdcall CleanUpShellFoldersExport() 
+{
+    return RegistrationManager::CleanUpShellFolders();
+}
+
+extern "C" __declspec(dllexport) HRESULT __stdcall RegisterShellFolderExport(GUID guidDrive, BSTR bstrName)
+{
+    return RegistrationManager::RegisterShellFolder(guidDrive, bstrName);
+}
+
+extern "C" __declspec(dllexport) HRESULT __stdcall GetModuleFileNameWExport(LPWSTR szModulePath, DWORD dwSize)
+{
+    return RegistrationManager::GetModuleFileNameW(szModulePath, dwSize);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 HRESULT RegistrationManager::RegisterShellFoldersFromRegistry()
 {

@@ -1,4 +1,4 @@
-// <copyright file="ShItemIdUtil.h" company="Wayne Walter Berry">
+// <copyright file="ILExtensions.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -48,31 +48,19 @@
 /// ===========================================================================
 /// </summary>
 
-class __declspec(dllexport)  ShItemIdUtil
-{
-public:
+/// <summary>
+/// Serializes an ITEMIDLIST (LPITEMIDLIST) into a BSTR, converting each SHITEMID's abID to a hex string,
+/// separated by '/' characters.
+/// </summary>
+/// <param name="pidl">Pointer to the ITEMIDLIST to serialize.</param>
+/// <param name="bstPath">Reference to a BSTR that receives the resulting hex string.</param>
+/// <returns>S_OK on success, or an error HRESULT on failure.</returns>
+extern "C" HRESULT __stdcall ILSerialize(_In_ LPCITEMIDLIST pidl, _Out_ BSTR& brstPath);
 
-    /// <summary>
-    /// Serializes a SHITEMID structure into a hexadecimal string representation stored in a BSTR.
-    /// Each byte of the SHITEMID's abID array is converted to two uppercase hexadecimal characters.
-    /// </summary>
-    /// <param name="shitemid">Pointer to the SHITEMID structure to serialize.</param>
-    /// <param name="bstPath">Reference to a BSTR that receives the resulting hex string.</param>
-    /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-    static HRESULT Serialize(
-        _In_ const SHITEMID* shitemid,
-        _Out_ BSTR& bstPath
-    );
-
-    /// <summary>
-    /// Deserializes a hexadecimal string representation from a BSTR into a newly allocated SHITEMID structure.
-    /// Each pair of hex characters in the BSTR is converted back to a byte in the SHITEMID's abID array.
-    /// </summary>
-    /// <param name="bstPath">BSTR containing the hex string to deserialize.</param>
-    /// <param name="pShitemid">Pointer to a SHITEMID* that receives the allocated structure. Caller must free with CoTaskMemFree.</param>
-    /// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-    static HRESULT Deserialize(
-        _In_ BSTR bstPath,
-        _Out_ SHITEMID** ppidl
-    );
-};
+/// <summary>
+/// Deserializes a BSTR produced by SerializeList into an ITEMIDLIST (LPITEMIDLIST).
+/// </summary>
+/// <param name="bstrPath">The BSTR hex string to deserialize.</param>
+/// <param name="ppidl">[out] Receives the resulting LPITEMIDLIST. Caller must free with CoTaskMemFree.</param>
+/// <returns>S_OK on success, or an error HRESULT on failure.</returns>
+extern "C" HRESULT __stdcall ILDeserialize(_In_ const BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl);

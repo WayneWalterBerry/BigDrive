@@ -8,16 +8,12 @@
 
 #include "dllmain.h"
 
-#include "BigDriveShellFolderFactory.h"
-#include "RegistrationManager.h"
+#include "RegistrationManagerExports.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace BigDriveShellFolderTest
 {
-    /// <summary>
-    /// Unit tests for the DllGetClassObject function in dllmain.cpp.
-    /// </summary>
     TEST_CLASS(RegistrationManagerTests)
     {
         /// <summary>
@@ -32,18 +28,22 @@ namespace BigDriveShellFolderTest
             GUID bigDriveGuid2 = { 0x87654321, 0x4321, 0x8765, { 0x98, 0xBA, 0xDC, 0xFE, 0x21, 0x43, 0x65, 0x87 } };
             WCHAR modulePath[MAX_PATH];
 
+            // Allocate BSTRs properly
+            BSTR name1 = ::SysAllocString(L"BigDriveFolder1");
+            BSTR name2 = ::SysAllocString(L"BigDriveFolder2");
+
             // Simulate registry entries for BigDrive shell folders
-            hr = RegistrationManager::GetModuleFileNameW(modulePath, MAX_PATH);
+            hr = GetModuleFileNameWExport(modulePath, MAX_PATH);
             Assert::AreEqual(S_OK, hr, L"Failed to get the Module File Name");
 
-            hr = RegistrationManager::RegisterShellFolder(bigDriveGuid1, L"BigDriveFolder1");
+            hr = RegisterShellFolderExport(bigDriveGuid1, name1);
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder1.");
 
-            hr = RegistrationManager::RegisterShellFolder(bigDriveGuid2, L"BigDriveFolder2");
+            hr = RegisterShellFolderExport(bigDriveGuid2, name2);
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder2.");
 
             // Act
-            hr = RegistrationManager::CleanUpShellFolders();
+            hr = CleanUpShellFoldersExport();
 
             // Assert
             Assert::AreEqual(S_OK, hr, L"UnregisterShellFolders failed.");
@@ -65,6 +65,9 @@ namespace BigDriveShellFolderTest
                 LONG result = RegOpenKeyEx(HKEY_CLASSES_ROOT, clsidPath.c_str(), 0, KEY_READ, &hKey);
                 Assert::AreEqual(ERROR_FILE_NOT_FOUND, result, L"BigDriveFolder2 was not removed.");
             }
+
+            ::SysFreeString(name1);
+            ::SysFreeString(name2);
         }
     };
 }

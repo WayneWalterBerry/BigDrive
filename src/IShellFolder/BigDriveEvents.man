@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<instrumentationManifest xmlns="http://schemas.microsoft.com/win/2004/08/events"
+                        xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events">
+    <instrumentation>
+        <events>
+            <provider
+              name="BigDrive"
+              guid="{B7A1A2C3-4D5E-6F70-8191-92A3B4C5D6E7}"
+              symbol="BIGDRIVE_PROVIDER"
+              resourceFileName="BigDrive.ShellFolder.dll"
+              messageFileName="BigDrive.ShellFolder.dll">
+                <channels>
+                    <channel name="Admin" chid="ADMIN" type="Admin" />
+                    <channel name="BigDriveAnalytic" chid="ANALYTIC" type="Analytic" />
+                </channels>
+                <tasks>
+                    <task name="General" value="1" />
+                </tasks>
+                <events>
+                    <event
+                      value="1"
+                      version="0"
+                      level="win:Informational"
+                      symbol="BIGDRIVE_EVENT_INFO"
+                      task="General"
+                      opcode="win:Info"
+                      channel="ADMIN"
+                      message="$(string.BIGDRIVE_EVENT_INFO_MSG)"
+                      template="T1" />
+                    <event
+                      value="2"
+                      version="0"
+                      level="win:Error"
+                      symbol="BIGDRIVE_EVENT_ERROR"
+                      task="General"
+                      opcode="win:Info"
+                      channel="ADMIN"
+                      message="$(string.BIGDRIVE_EVENT_ERROR_MSG)"
+                      template="T1" />
+                    <event
+                      value="3"
+                      version="0"
+                      level="win:Verbose"
+                      symbol="BIGDRIVE_EVENT_ENTER"
+                      task="General"
+                      opcode="win:Start"
+                      channel="ANALYTIC"
+                      message="$(string.BIGDRIVE_EVENT_ENTER_MSG)"
+                      template="T2" />
+                    <event
+                      value="4"
+                      version="0"
+                      level="win:Verbose"
+                      symbol="BIGDRIVE_EVENT_LEAVE"
+                      task="General"
+                      opcode="win:Stop"
+                      channel="ANALYTIC"
+                      message="$(string.BIGDRIVE_EVENT_LEAVE_MSG)"
+                      template="T3" />
+                </events>
+                <templates>
+                    <template tid="T1">
+                        <data name="Message" inType="win:UnicodeString" />
+                    </template>
+                    <template tid="T2">
+                        <data name="Function" inType="win:AnsiString" />
+                        <data name="Line" inType="win:UInt32" />
+                    </template>
+                    <template tid="T3">
+                        <data name="Function" inType="win:AnsiString" />
+                        <data name="Line" inType="win:UInt32" />
+                        <data name="Result" inType="win:HexInt32" />
+                    </template>
+                </templates>
+            </provider>
+        </events>
+    </instrumentation>
+    <localization>
+        <resources culture="en-US">
+            <stringTable>
+                <string id="BIGDRIVE_EVENT_INFO_MSG" value="BigDrive informational event: %1" />
+                <string id="BIGDRIVE_EVENT_ERROR_MSG" value="BigDrive error event: %1" />
+                <string id="BIGDRIVE_EVENT_ENTER_MSG" value="Entering function %1 at line %2" />
+                <string id="BIGDRIVE_EVENT_LEAVE_MSG" value="Leaving function %1 at line %2 with HRESULT 0x%3" />
+            </stringTable>
+        </resources>
+    </localization>
+</instrumentationManifest>
