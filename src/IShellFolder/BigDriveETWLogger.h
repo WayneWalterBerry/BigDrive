@@ -13,6 +13,8 @@
 // Include the generated ETW header
 #include "Generated/BigDriveEvents.h"
 
+#include "LaunchDebugger.h"
+
 /// <summary>
 /// Helper class for BigDrive ETW (Event Tracing for Windows) logging operations.
 /// Provides static methods to initialize the ETW provider, log information and error events,
@@ -30,7 +32,7 @@ public:
     /// </returns>
     static BOOL Initialize()
     {
-        ULONG status = EventRegisterBigDrive();
+        ULONG status = EventRegisterBigDriveAnalytic();
         return (status == ERROR_SUCCESS);
     }
 
@@ -40,7 +42,7 @@ public:
     /// </summary>
     static void Cleanup()
     {
-        EventUnregisterBigDrive();
+        EventRegisterBigDriveAnalytic();
     }
 
     /// <summary>

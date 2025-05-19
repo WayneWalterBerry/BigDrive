@@ -22,8 +22,6 @@ class BigDriveShellFolder : public IShellFolder
 {
 private:
 
-    static EventLogger s_eventLogger;
-
     /// <summary>
     /// The Drive guid 
     /// </summary>

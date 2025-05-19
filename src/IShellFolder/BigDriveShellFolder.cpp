@@ -13,8 +13,6 @@
 // Shared
 #include "..\Shared\EventLogger.h"
 
-EventLogger BigDriveShellFolder::s_eventLogger(L"BigDrive.ShellFolder");
-
 HRESULT BigDriveShellFolder::GetProviderCLSID(CLSID& clsidProvider) const
 {
     return S_OK;

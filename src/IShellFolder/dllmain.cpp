@@ -70,13 +70,13 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
 
-    LaunchDebugger();
-
+    /*
     hr = ETWManifestManager::UnregisterManifest();
     if (FAILED(hr))
     {
         goto End;
     }
+    */
 
     hr = ETWManifestManager::RegisterManifest();
     if (FAILED(hr))

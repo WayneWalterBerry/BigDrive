@@ -166,7 +166,6 @@ HRESULT ETWManifestManager::RegisterManifest()
         return hr;
     }
 
-
     // Register the manifest
     hr = RegisterManifest(szManifestPath);
     if (FAILED(hr))
@@ -175,12 +174,14 @@ HRESULT ETWManifestManager::RegisterManifest()
         goto End;
     }
 
+    /*
     hr = VerifyManifestRegistration(szManifestPath);
     if (FAILED(hr))
     {
         // Failed to register the manifest
         goto End;
     }
+    */
 
 End:
 
