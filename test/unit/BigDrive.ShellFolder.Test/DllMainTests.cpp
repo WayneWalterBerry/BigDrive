@@ -10,9 +10,9 @@
 #include <objbase.h>
 #include <Unknwn.h> 
 
-#include "dllmain.h"
-
-#include "RegistrationManagerExports.h" // Add this include
+#include "..\..\..\src\IShellFolder\dllmain.h"
+#include "..\..\..\src\IShellFolder\RegistrationManager.h" 
+#include "..\..\..\src\IShellFolder\RegistrationManagerExports.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -20,24 +20,31 @@ namespace BigDriveShellFolderTest
 {
     TEST_CLASS(DllMainTests)
     {
+    private:
+        static HRESULT s_hrCoInitialize;
 
     public:
 
-        TEST_CLASS_INITIALIZE(Initialize)
+        TEST_CLASS_INITIALIZE(InitializeCOM)
         {
-            Logger::WriteMessage(L"Initialize method called");
+            // Initialize COM for this test class
+            s_hrCoInitialize = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+            Assert::IsTrue(SUCCEEDED(s_hrCoInitialize), L"CoInitializeEx failed");
 
-#ifdef _WIN64
-            OutputDebugString(L"Test running as 64-bit\n");
-#else
-            OutputDebugString(L"Test running as 32-bit\n");
-#endif
-            // Load DLL explicitly
-            HMODULE hModule = LoadLibrary(L"BigDrive.ShellFolder.dll");
-            Assert::IsTrue(hModule != NULL, L"Failed to load DLL");
+            // Optional: Load the DLL if it's not automatically loaded or if you need the HMODULE
+            // HMODULE hModule = LoadLibrary(L"BigDrive.ShellFolder.dll");
+            // Assert::IsNotNull(hModule, L"Failed to load BigDrive.ShellFolder.dll. Check path and dependencies.");
+            // if (hModule) { /* Store or use hModule if needed, then FreeLibrary in ClassCleanup */ }
+        }
 
-            HRESULT hr = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-            Assert::IsTrue(SUCCEEDED(hr), L"COM initialization failed");
+        TEST_CLASS_CLEANUP(CleanupCOM)
+        {
+            // Uninitialize COM after all tests in this class have run
+            if (SUCCEEDED(s_hrCoInitialize))
+            {
+                ::CoUninitialize();
+            }
+            // if (hModule was loaded) { FreeLibrary(hModule); }
         }
 
         /// <summary>
@@ -139,10 +146,13 @@ namespace BigDriveShellFolderTest
         }
 
         // Add cleanup at the end of tests that use RegisterShellFolderExport
-        TEST_METHOD_CLEANUP(CleanUp)
+        TEST_METHOD_CLEANUP(CleanUpShellFolderExports) // Renamed for clarity
         {
             CleanUpShellFoldersExport(); // Clean up any test shell folders
-            ::CoUninitialize();
+            // ::CoUninitialize(); // Removed from here, handled by TEST_CLASS_CLEANUP
         }
     };
+
+    // Initialize static member
+    HRESULT DllMainTests::s_hrCoInitialize = E_FAIL;
 }

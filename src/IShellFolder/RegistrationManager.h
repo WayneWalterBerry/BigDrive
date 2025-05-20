@@ -8,7 +8,7 @@
 #include <guiddef.h>
 
 // Local
-#include "DriveConfiguration.h"
+#include "..\BigDrive.Client\DriveConfiguration.h"
 
 // Shared
 #include "..\Shared\EventLogger.h"
@@ -153,7 +153,3 @@ private:
     static HRESULT IsCurrentOS64Bit(bool& is64Bit);
 };
 
-// Exports for Testing and Debugging
-extern "C" __declspec(dllexport) HRESULT __stdcall CleanUpShellFoldersExport();
-extern "C" __declspec(dllexport) HRESULT __stdcall RegisterShellFolderExport(GUID guidDrive, BSTR bstrName);
-extern "C" __declspec(dllexport) HRESULT __stdcall GetModuleFileNameWExport(LPWSTR szModulePath, DWORD dwSize);

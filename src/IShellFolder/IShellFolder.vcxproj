@@ -179,7 +179,6 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BigDriveShellFolder-IDispatch.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
@@ -208,7 +207,7 @@
     <CustomBuild Include="BigDriveEvents.man">
       <Message>Compiling ETW manifest BigDriveEvents.man</Message>
       <Command>cd "$(ProjectDir)" &amp;&amp; mc.exe -um -h Generated -r Generated -z BigDriveEvents BigDriveEvents.man</Command>
-      <Outputs>$(ProjectDir)Generated\BigDriveEvents.h;$(ProjectDir)Generated\BigDriveEvents.rc;$(ProjectDir)Generated\BigDriveEvents.BIN</Outputs>
+      <Outputs>$(ProjectDir)Generated\BigDriveEvents.h;$(ProjectDir)Generated\BigDriveEvents.rc;$(ProjectDir)Generated\BigDriveEvents_MSG00001.BIN</Outputs>
       <ExcludedFromBuild>false</ExcludedFromBuild>
       <FileType>Document</FileType>
     </CustomBuild>

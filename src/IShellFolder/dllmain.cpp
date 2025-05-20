@@ -69,14 +69,14 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
-
+    
     /*
     hr = ETWManifestManager::UnregisterManifest();
     if (FAILED(hr))
     {
         goto End;
     }
-    */
+  
 
     hr = ETWManifestManager::RegisterManifest();
     if (FAILED(hr))
@@ -134,7 +134,11 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
+
+
 End:
+  
+  */
 
     return S_OK;
 }
