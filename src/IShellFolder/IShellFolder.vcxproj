@@ -196,11 +196,6 @@
     <ClCompile Include="RegistrationManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj">
-      <Project>{9c7a549e-dcd2-4c94-809f-202063596f0d}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="BigDrive.ShellFolder.def" />
   </ItemGroup>
   <ItemGroup>
