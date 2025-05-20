@@ -10,9 +10,6 @@
 // Local
 #include "LaunchDebugger.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 HRESULT BigDriveShellFolder::GetProviderCLSID(CLSID& clsidProvider) const
 {
     return S_OK;

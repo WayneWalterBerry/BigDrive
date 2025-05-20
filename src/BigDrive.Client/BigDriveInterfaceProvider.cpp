@@ -11,15 +11,13 @@
 // Header
 #include "BigDriveInterfaceProvider.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
+#include "BigDriveClientEventLogger.h"
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "Interfaces/IBigDriveRoot.h"
 
 // Initialize the static EventLogger instance
-EventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
+BigDriveClientEventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
 
 /// <summary>
 /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified CLSID.

@@ -14,18 +14,16 @@
 // Header
 #include "BigDriveClientConfigurationManager.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
+#include "BigDriveClientEventLogger.h"
 #include "GuidUtil.h"
 #include "DriveConfiguration.h"
 #include "BigDriveConfigurationClient.h"
 
 using namespace BigDriveClient;
 
-// Initialize the static EventLogger instance
-EventLogger BigDriveClientConfigurationManager::s_eventLogger(L"BigDrive.Client");
+// Initialize the static BigDriveClientEventLogger instance
+BigDriveClientEventLogger BigDriveClientConfigurationManager::s_eventLogger(L"BigDrive.Client");
 
 /// <summary>
 /// Retrieves the GUIDs of all drives managed by the BigDrive client.

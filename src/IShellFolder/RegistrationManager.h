@@ -9,15 +9,13 @@
 
 // Local
 #include "..\BigDrive.Client\DriveConfiguration.h"
-
-// Shared
-#include "..\Shared\EventLogger.h"
+#include "BigDriveShellFolderEventLogger.h"
 
 class RegistrationManager
 {
 private:
 
-    static EventLogger s_eventLogger;
+    static BigDriveShellFolderEventLogger s_eventLogger;
 
 public:
 

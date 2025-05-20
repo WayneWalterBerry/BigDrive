@@ -87,7 +87,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
@@ -110,7 +110,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
@@ -131,7 +131,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <RegisterOutput>false</RegisterOutput>
-      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -157,22 +157,21 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>BigDrive.ShellFolder.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Shared\EventLogger.h" />
     <ClInclude Include="BigDriveETWLogger.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="ETWManifestManager.h" />
+    <ClInclude Include="BigDriveShellFolderEventLogger.h" />
     <ClInclude Include="Generated\BigDriveEvents.h" />
-    <ClInclude Include="RegistrationManagerExports.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ILExtensions.h" />
     <ClInclude Include="LaunchDebugger.h" />
@@ -180,15 +179,13 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Shared\EventLogger.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ETWManifestManager.cpp" />
+    <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
     <ClCompile Include="ILExtensions.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
@@ -200,7 +197,7 @@
     <ClCompile Include="RegistrationManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="BigDrive.ShellFolder.def" />
+    <None Include="BigDriveShellFolder.def" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="BigDriveEvents.man">

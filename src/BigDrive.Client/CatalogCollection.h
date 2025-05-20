@@ -4,9 +4,6 @@
 
 #pragma once
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
 #include "Dispatch.h"
 #include "Interfaces/ICatalogCollection.h"

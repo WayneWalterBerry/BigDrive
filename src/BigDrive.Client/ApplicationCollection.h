@@ -7,10 +7,8 @@
 // System
 #include <comdef.h>
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
+#include "BigDriveClientEventLogger.h"
 #include "Application.h"
 #include "CatalogCollection.h"
 

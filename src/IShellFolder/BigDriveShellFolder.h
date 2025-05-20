@@ -11,9 +11,6 @@
 // Local
 #include "ILExtensions.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 /// <summary>
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
 /// Provides functionality for interacting with the shell folder hierarchy.
