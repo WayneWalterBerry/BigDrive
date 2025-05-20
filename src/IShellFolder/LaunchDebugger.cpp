@@ -4,34 +4,40 @@
 
 #include "pch.h"
 #include <windows.h>
-#include <sstream>
+#include <wchar.h>
 
 bool LaunchDebugger()
 {
     // Get System directory (typically C:\Windows\System32)
     wchar_t systemDir[MAX_PATH];
-    if (GetSystemDirectoryW(systemDir, MAX_PATH) == 0) {
+    if (::GetSystemDirectoryW(systemDir, MAX_PATH) == 0) 
+    {
         return false;
     }
 
     // Get process ID and create the command line
-    DWORD pid = GetCurrentProcessId();
-    std::wstringstream cmdLine;
-    cmdLine << systemDir << L"\\vsjitdebugger.exe -p " << pid;
+    DWORD pid = ::GetCurrentProcessId();
+    wchar_t cmdLine[MAX_PATH * 2];
+    int count = ::swprintf_s(cmdLine, L"%s\\vsjitdebugger.exe -p %lu", systemDir, static_cast<unsigned long>(pid));
+    if (count < 0) {
+        return false;
+    }
 
     // Start debugger process
     STARTUPINFOW si = { sizeof(si) };
     PROCESS_INFORMATION pi;
-    if (!CreateProcessW(NULL, (LPWSTR)cmdLine.str().c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+    if (!::CreateProcessW(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) 
+    {
         return false;
     }
 
     // Close debugger process handles to prevent resource leaks
-    CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
+    ::CloseHandle(pi.hThread);
+    ::CloseHandle(pi.hProcess);
 
     // Wait for the debugger to attach
-    while (!IsDebuggerPresent()) {
+    while (!::IsDebuggerPresent()) 
+    {
         Sleep(100);
     }
 

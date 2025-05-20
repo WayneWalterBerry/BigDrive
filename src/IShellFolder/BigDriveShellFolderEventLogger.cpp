@@ -18,8 +18,7 @@ BigDriveShellFolderEventLogger::BigDriveShellFolderEventLogger(LPCWSTR eventSour
     hEventLog = RegisterEventSourceW(nullptr, eventSourceName);
     if (hEventLog == nullptr)
     {
-        // Failed to register the event source
-        std::wcerr << L"Failed to register event source: " << eventSourceName << std::endl;
+
     }
 }
 

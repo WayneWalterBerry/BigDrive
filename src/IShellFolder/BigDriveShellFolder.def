@@ -1,4 +1,4 @@
-LIBRARY "BigDrive.ShellFolder"
+LIBRARY "BigDrive.ShellFolder.dll"
 
 EXPORTS
     DllGetClassObject           @1

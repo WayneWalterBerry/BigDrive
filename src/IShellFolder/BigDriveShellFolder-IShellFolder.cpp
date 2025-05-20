@@ -237,7 +237,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
     PIDLIST_ABSOLUTE pidlSubFolder = ILCombine(m_pidl, pidl);
 
-    BigDriveShellFolder* pSubFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
+    BigDriveShellFolder* pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
     if (!pSubFolder)
     {
         return E_OUTOFMEMORY;
