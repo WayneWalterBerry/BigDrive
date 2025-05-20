@@ -31,8 +31,10 @@ HRESULT TrustedInstaller::StartService(DWORD* tiPid)
 
     SERVICE_STATUS_PROCESS ssp = {};
     DWORD bytesNeeded = 0;
+
     BOOL ok = ::QueryServiceStatusEx(hSvc, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(ssp), &bytesNeeded);
-    if (!ok) {
+    if (!ok)
+    {
         DWORD err = GetLastError();
         ::CloseServiceHandle(hSvc);
         ::CloseServiceHandle(hSCM);
@@ -79,6 +81,107 @@ HRESULT TrustedInstaller::GetProcessHandle(DWORD tiPid, HANDLE* hProcess)
     return *hProcess ? S_OK : HRESULT_FROM_WIN32(GetLastError());
 }
 
+HRESULT TrustedInstaller::EnablePrivilege(LPCWSTR privName)
+{
+    HANDLE hToken = nullptr;
+    TOKEN_PRIVILEGES tp = {};
+    LUID luid = {};
+
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+        return HRESULT_FROM_WIN32(GetLastError());
+
+    if (!LookupPrivilegeValueW(NULL, privName, &luid)) {
+        CloseHandle(hToken);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL)) {
+        CloseHandle(hToken);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // AdjustTokenPrivileges may succeed, but GetLastError() could still indicate failure
+    DWORD lastErr = GetLastError();
+    CloseHandle(hToken);
+    return (lastErr == ERROR_SUCCESS) ? S_OK : HRESULT_FROM_WIN32(lastErr);
+}
+
+HRESULT TrustedInstaller::CheckSeDebugPrivilege()
+{
+    HANDLE hToken = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+        printf("OpenProcessToken failed: %lu\n", GetLastError());
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // First, get the required buffer size
+    DWORD dwSize = 0;
+    GetTokenInformation(hToken, TokenPrivileges, nullptr, 0, &dwSize);
+    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        printf("GetTokenInformation (size query) failed: %lu\n", GetLastError());
+        CloseHandle(hToken);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // Allocate buffer and get the privileges
+    PTOKEN_PRIVILEGES pPrivs = (PTOKEN_PRIVILEGES)malloc(dwSize);
+    if (!pPrivs) {
+        printf("Memory allocation failed\n");
+        CloseHandle(hToken);
+        return E_OUTOFMEMORY;
+    }
+
+    if (!GetTokenInformation(hToken, TokenPrivileges, pPrivs, dwSize, &dwSize)) {
+        printf("GetTokenInformation failed: %lu\n", GetLastError());
+        free(pPrivs);
+        CloseHandle(hToken);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // Lookup the LUID for SE_DEBUG_NAME
+    LUID luid;
+    if (!LookupPrivilegeValueW(nullptr, SE_DEBUG_NAME, &luid)) {
+        printf("LookupPrivilegeValue failed: %lu\n", GetLastError());
+        free(pPrivs);
+        CloseHandle(hToken);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // Check if SE_DEBUG_NAME is enabled
+    BOOL found = FALSE;
+    BOOL enabled = FALSE;
+    for (DWORD i = 0; i < pPrivs->PrivilegeCount; ++i) {
+        if (pPrivs->Privileges[i].Luid.LowPart == luid.LowPart &&
+            pPrivs->Privileges[i].Luid.HighPart == luid.HighPart) {
+            found = TRUE;
+            if (pPrivs->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED) {
+                printf("SE_DEBUG_NAME is ENABLED\n");
+                enabled = TRUE;
+            }
+            else {
+                printf("SE_DEBUG_NAME is present but NOT enabled\n");
+            }
+            break;
+        }
+    }
+    if (!found) {
+        printf("SE_DEBUG_NAME is not present in the token\n");
+    }
+
+    free(pPrivs);
+    CloseHandle(hToken);
+
+    if (!found)
+        return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+    if (!enabled)
+        return HRESULT_FROM_WIN32(ERROR_PRIVILEGE_NOT_HELD);
+    return S_OK;
+}
+
 HRESULT TrustedInstaller::Impersonate(HANDLE* hImpersonationToken)
 {
     if (!hImpersonationToken) return E_POINTER;
@@ -86,20 +189,37 @@ HRESULT TrustedInstaller::Impersonate(HANDLE* hImpersonationToken)
 
     DWORD tiPid = 0;
     HRESULT hr = StartService(&tiPid);
-    if (FAILED(hr)) {
+    if (FAILED(hr)) 
+    {
         printf("Failed to start TrustedInstaller service.\n");
         return hr;
     }
 
+	hr = EnablePrivilege(SE_DEBUG_NAME);
+    if (FAILED(hr))
+    {
+        printf("Failed to enable SE_DEBUG_NAME privilege.\n");
+        return hr;
+	}
+
+	hr = CheckSeDebugPrivilege();
+    if (FAILED(hr))
+    {
+        printf("SE_DEBUG_NAME privilege is not enabled.\n");
+		return hr;
+    }
+
     HANDLE hProc = nullptr;
     hr = GetProcessHandle(tiPid, &hProc);
-    if (FAILED(hr)) {
-        printf("Failed to open TrustedInstaller process.\n");
+    if (FAILED(hr) || hProc == nullptr)
+    {
+        printf("Failed to open TrustedInstaller process. hr=0x%08X, hProc=%p\n", hr, hProc);
         return hr;
     }
 
     HANDLE hToken = nullptr;
-    if (!::OpenProcessToken(hProc, TOKEN_DUPLICATE | TOKEN_QUERY, &hToken)) {
+    if (!::OpenProcessToken(hProc, TOKEN_DUPLICATE | TOKEN_QUERY, &hToken)) 
+    {
         DWORD err = GetLastError();
         printf("Failed to open TrustedInstaller process token.\n");
         ::CloseHandle(hProc);
@@ -107,7 +227,8 @@ HRESULT TrustedInstaller::Impersonate(HANDLE* hImpersonationToken)
     }
 
     HANDLE hDupToken = nullptr;
-    if (!::DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityImpersonation, TokenImpersonation, &hDupToken)) {
+    if (!::DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityImpersonation, TokenImpersonation, &hDupToken))
+    {
         DWORD err = GetLastError();
         printf("Failed to duplicate token.\n");
         ::CloseHandle(hToken);
@@ -115,7 +236,8 @@ HRESULT TrustedInstaller::Impersonate(HANDLE* hImpersonationToken)
         return HRESULT_FROM_WIN32(err);
     }
 
-    if (!::ImpersonateLoggedOnUser(hDupToken)) {
+    if (!::ImpersonateLoggedOnUser(hDupToken)) 
+    {
         DWORD err = GetLastError();
         printf("Failed to impersonate TrustedInstaller.\n");
         ::CloseHandle(hDupToken);
