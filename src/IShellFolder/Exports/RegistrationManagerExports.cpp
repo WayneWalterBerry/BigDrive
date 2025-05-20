@@ -8,14 +8,15 @@
 
 #include "RegistrationManagerExports.h"
 
-
 extern "C" {
 
-    HRESULT RegisterShellFoldersFromRegistry() {
+    HRESULT RegisterShellFoldersFromRegistry() 
+    {
         return RegistrationManager::RegisterShellFoldersFromRegistry();
     }
 
-    HRESULT GetRegisteredCLSIDs(CLSID** ppClsids, DWORD* pdwSize) {
+    HRESULT GetRegisteredCLSIDs(CLSID** ppClsids, DWORD* pdwSize) 
+    {
         if (!pdwSize) return E_POINTER;
         DWORD dwSize = 0;
         HRESULT hr = RegistrationManager::GetRegisteredCLSIDs(ppClsids, dwSize);
@@ -23,15 +24,18 @@ extern "C" {
         return hr;
     }
 
-    HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName) {
+    HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName) 
+    {
         return RegistrationManager::RegisterShellFolder(guidDrive, bstrName);
     }
 
-    HRESULT GetModuleFileNameW_Export(LPWSTR szModulePath, DWORD dwSize) {
+    HRESULT GetModuleFileNameW_Export(LPWSTR szModulePath, DWORD dwSize) 
+    {
         return RegistrationManager::GetModuleFileNameW(szModulePath, dwSize);
     }
 
-    HRESULT CheckDllAndOSBitnessMatch(BOOL* pIsMatch) {
+    HRESULT CheckDllAndOSBitnessMatch(BOOL* pIsMatch) 
+    {
         if (!pIsMatch) return E_POINTER;
         bool isMatch = false;
         HRESULT hr = RegistrationManager::CheckDllAndOSBitnessMatch(isMatch);
@@ -39,7 +43,8 @@ extern "C" {
         return hr;
     }
 
-    HRESULT CleanUpShellFolders() {
+    HRESULT CleanUpShellFolders() 
+    {
         return RegistrationManager::CleanUpShellFolders();
     }
 
