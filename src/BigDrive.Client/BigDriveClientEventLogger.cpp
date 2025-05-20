@@ -1,15 +1,18 @@
-// <copyright file="EventLogger.cpp" company="Wayne Walter Berry">
+// <copyright file="BigDriveClientEventLogger.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-#include "EventLogger.h"
+#include "pch.h"
+
 #include <iostream>
+
+#include "BigDriveClientEventLogger.h"
 
 /// <summary>
 /// Constructor to initialize the event log handle with the specified event source name.
 /// </summary>
 /// <param name="eventSourceName">The name of the event source to register with the Event Viewer.</param>
-EventLogger::EventLogger(LPCWSTR eventSourceName)
+BigDriveClientEventLogger::BigDriveClientEventLogger(LPCWSTR eventSourceName)
 {
     // Register the event source
     hEventLog = RegisterEventSourceW(nullptr, eventSourceName);
@@ -23,7 +26,7 @@ EventLogger::EventLogger(LPCWSTR eventSourceName)
 /// <summary>
 /// Destructor to clean up the event log handle.
 /// </summary>
-EventLogger::~EventLogger()
+BigDriveClientEventLogger::~BigDriveClientEventLogger()
 {
     if (hEventLog != nullptr)
     {
@@ -34,7 +37,7 @@ EventLogger::~EventLogger()
 /// <summary>
 /// Write an error message to the Event Viewer.
 /// </summary>
-HRESULT EventLogger::WriteError(LPCWSTR message)
+HRESULT BigDriveClientEventLogger::WriteError(LPCWSTR message)
 {
     return WriteToEventViewer(message, EVENTLOG_ERROR_TYPE);
 }
@@ -42,7 +45,7 @@ HRESULT EventLogger::WriteError(LPCWSTR message)
 /// <summary>
 /// Write a formatted error message to the Event Viewer.
 /// </summary>
-HRESULT EventLogger::WriteErrorFormmated(LPCWSTR formatter, ...)
+HRESULT BigDriveClientEventLogger::WriteErrorFormmated(LPCWSTR formatter, ...)
 {
     va_list args;
     va_start(args, formatter);
@@ -58,7 +61,7 @@ HRESULT EventLogger::WriteErrorFormmated(LPCWSTR formatter, ...)
 /// <summary>
 /// Write an informational message to the Event Viewer.
 /// </summary>
-HRESULT EventLogger::WriteInfo(LPCWSTR formatter, ...)
+HRESULT BigDriveClientEventLogger::WriteInfo(LPCWSTR formatter, ...)
 {
     va_list args;
     va_start(args, formatter);
@@ -74,7 +77,7 @@ HRESULT EventLogger::WriteInfo(LPCWSTR formatter, ...)
 /// <summary>
 /// Write to the Event Viewer.
 /// </summary>
-HRESULT EventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
+HRESULT BigDriveClientEventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
 {
     if (hEventLog == nullptr)
     {
@@ -102,7 +105,7 @@ HRESULT EventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
 /// <summary>
 /// Overload function to WriteToEventViewer with LPCSTR formatter and arguments.
 /// </summary>
-HRESULT EventLogger::WriteToEventViewer(LPCSTR formatter, WORD eventType, ...)
+HRESULT BigDriveClientEventLogger::WriteToEventViewer(LPCSTR formatter, WORD eventType, ...)
 {
     char buffer[1024];
 

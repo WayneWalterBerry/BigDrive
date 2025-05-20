@@ -9,6 +9,7 @@
 
 // Local
 #include "LaunchDebugger.h"
+#include "BigDriveETWLogger.h"
 
 /// <summary>
 /// Queries the object for a pointer to one of its supported interfaces.
@@ -21,8 +22,6 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
         AddRef();
         return S_OK;
     }
-
-    s_eventLogger.WriteErrorFormmated(L"BigDriveShellFolder::QueryInterface", L"Unknown interface requested: %s", riid.Data1);
 
     *ppvObject = nullptr;
     return E_NOINTERFACE;

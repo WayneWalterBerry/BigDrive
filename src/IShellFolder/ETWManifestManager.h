@@ -17,7 +17,14 @@ public:
     /// <summary>
     /// Registers The Big Drive ETW manifest file with the operating system.
     /// </summary>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
     static HRESULT RegisterManifest();
+
+    /// <summary>
+    /// Unregisters a previously registered manifest.
+    /// </summary>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
+    static HRESULT UnregisterManifest();
 
     /// <summary>
     /// Registers an ETW manifest file with the operating system.
@@ -36,6 +43,44 @@ public:
 private:
 
     static HRESULT GetManifestPath(LPWSTR* ppManifestPath);
+
+    /// <summary>
+    /// Checks if the EventLog service has sufficient access to the specified file.
+    /// </summary>
+    /// <param name="path">Path to the file to check for permissions</param>
+    /// <param name="bHasAccess">BOOL that receives TRUE if the EventLog has access, FALSE otherwise</param>
+    /// <returns>S_OK if the check completed successfully; otherwise, an error code</returns>
+    static HRESULT CheckEventLogAccess(LPCWSTR path, bool& bHasAccess);
+
+    /// <summary>
+    /// Grants read and execute permissions to the NT SERVICE\EventLog service for the specified file.
+    /// </summary>
+    /// <param name="path">Path to the file to modify permissions</param>
+    /// <returns>S_OK if permissions were granted successfully; otherwise, an error code</returns>
+    static HRESULT GrantEventLogAccess(LPCWSTR path);
+
+    /// <summary>
+    /// Ensures the EventLog service has read and execute access to the module DLL.
+    /// The Event Log service requires these permissions to access the embedded ETW manifest 
+    /// resources when the manifest is registered with wevtutil.
+    /// </summary>
+    /// <returns>S_OK if access check/granting was successful; E_ACCESSDENIED or another error code on failure</returns>
+    static HRESULT GrantEventLogServiceAccess();
+
+    /// <summary>
+    /// Retrieves the Security Identifier (SID) for the NT SERVICE\EventLog service.
+    /// This SID is used for checking and granting permissions to the EventLog service.
+    /// </summary>
+    /// <param name="ppSid">Pointer to receive the allocated SID. The caller must free this using FreeSid when no longer needed.</param>
+    /// <returns>S_OK if the SID was retrieved successfully; otherwise, an error code</returns>
+    static HRESULT GetEventLogServiceSid(PSID *ppSid);
+
+    /// <summary>
+    /// Validates that the ETW manifest was properly registered in the registry.
+    /// </summary>
+    /// <param name="manifestPath">Path to the ETW manifest file</param>
+    /// <returns>S_OK if registry entry exists correctly; otherwise, an error code</returns>
+    static HRESULT VerifyManifestRegistration(LPCWSTR manifestPath);
 
     /// <summary>
     /// Helper method that executes wevtutil with the specified command line.

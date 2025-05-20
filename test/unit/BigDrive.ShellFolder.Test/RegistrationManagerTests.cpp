@@ -4,11 +4,11 @@
 
 #include "pch.h"
 
+#include <windows.h>
+
 #include "CppUnitTest.h"
 
-#include "dllmain.h"
-
-#include "RegistrationManagerExports.h"
+#include "..\..\..\src\IShellFolder\Exports\RegistrationManagerImports.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -26,24 +26,21 @@ namespace BigDriveShellFolderTest
             // Arrange
             GUID bigDriveGuid1 = { 0x12345678, 0x1234, 0x5678, { 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78 } };
             GUID bigDriveGuid2 = { 0x87654321, 0x4321, 0x8765, { 0x98, 0xBA, 0xDC, 0xFE, 0x21, 0x43, 0x65, 0x87 } };
-            WCHAR modulePath[MAX_PATH];
 
             // Allocate BSTRs properly
             BSTR name1 = ::SysAllocString(L"BigDriveFolder1");
             BSTR name2 = ::SysAllocString(L"BigDriveFolder2");
 
             // Simulate registry entries for BigDrive shell folders
-            hr = GetModuleFileNameWExport(modulePath, MAX_PATH);
-            Assert::AreEqual(S_OK, hr, L"Failed to get the Module File Name");
 
-            hr = RegisterShellFolderExport(bigDriveGuid1, name1);
+            hr = ::RegisterShellFolder(bigDriveGuid1, name1);
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder1.");
 
-            hr = RegisterShellFolderExport(bigDriveGuid2, name2);
+            hr = ::RegisterShellFolder(bigDriveGuid2, name2);
             Assert::AreEqual(S_OK, hr, L"Failed to register BigDriveFolder2.");
 
             // Act
-            hr = CleanUpShellFoldersExport();
+            hr = ::CleanUpShellFolders();
 
             // Assert
             Assert::AreEqual(S_OK, hr, L"UnregisterShellFolders failed.");

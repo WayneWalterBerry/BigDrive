@@ -7,6 +7,8 @@
 #include "BigDriveShellFolderFactory.h"
 #include "BigDriveETWLogger.h"
 
+#include <windows.h>
+
 // Define the static member outside the class
 PIDLIST_ABSOLUTE BigDriveShellFolderFactory::s_pidlRoot = ILCreateFromPathW(L"::");
 
@@ -30,7 +32,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
     }
 
     // Create an instance of BigDriveFolder
-    pFolder = new (std::nothrow) BigDriveShellFolder(m_driveGuid, nullptr, s_pidlRoot);
+    pFolder = new BigDriveShellFolder(m_driveGuid, nullptr, s_pidlRoot);
     if (!pFolder)
     {
         hr = E_OUTOFMEMORY;

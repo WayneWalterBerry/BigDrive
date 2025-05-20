@@ -11,13 +11,13 @@
 #include "Dispatch.h"
 
 // Shared
-#include "..\Shared\EventLogger.h"
+#include "BigDriveClientEventLogger.h"
 
 // Local
 #include "FuncDesc.h"
 
-// Initialize the static EventLogger instance
-EventLogger Dispatch::s_eventLogger(L"BigDrive.Client");
+// Initialize the static BigDriveClientEventLogger instance
+BigDriveClientEventLogger Dispatch::s_eventLogger(L"BigDrive.Client");
 
 // Define the static member outside the class
 DISPPARAMS Dispatch::dispparamsNoArgs = { nullptr, nullptr, 0, 0 };

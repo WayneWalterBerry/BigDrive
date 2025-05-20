@@ -1,0 +1,13 @@
+LIBRARY "BigDrive.ShellFolder.dll"
+
+EXPORTS
+    DllGetClassObject           @1
+    DllRegisterServer           @2
+    DllUnregisterServer         @3
+
+    RegisterShellFoldersFromRegistry
+    GetRegisteredCLSIDs
+    RegisterShellFolder
+    GetModuleFileNameW_Export
+    CheckDllAndOSBitnessMatch
+    CleanUpShellFolders

@@ -16,9 +16,10 @@
 #include "ComponentCollection.h"
 #include "VariantUtil.h"
 #include "COMUtility.h"
+#include "BigDriveClientEventLogger.h"
 
-// Initialize the static EventLogger instance
-EventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
+// Initialize the static BigDriveClientEventLogger instance
+BigDriveClientEventLogger COMAdminCatalog::s_eventLogger(L"BigDrive.Client");
 
 HRESULT COMAdminCatalog::Create(COMAdminCatalog** ppCOMAdminCatalog)
 {

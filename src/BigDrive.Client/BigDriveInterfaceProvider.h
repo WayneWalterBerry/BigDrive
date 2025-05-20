@@ -8,12 +8,10 @@
 #include <windows.h>
 #include <comdef.h>
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
-#include "Interfaces/IBigDriveConfiguration.h"
+#include "BigDriveClientEventLogger.h"
 #include "Interfaces/IBigDriveRoot.h"
+#include "Interfaces/IBigDriveConfiguration.h"
 #include "DriveConfiguration.h"
 
 /// <summary>
@@ -26,7 +24,7 @@ private:
     /// <summary>
     /// Static instance of EventLogger for logging events.
     /// </summary>
-    static EventLogger s_eventLogger;
+    static BigDriveClientEventLogger s_eventLogger;
 
     /// <summary>
     /// The CLSID of the COM+ class.

@@ -11,6 +11,7 @@
 #include "ApplicationCollection.h"
 #include "Dispatch.h"
 #include "Interfaces/ICOMAdminCatalog2.h"
+#include "BigDriveClientEventLogger.h"
 
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\COMAdminCatalogTests.h"
@@ -22,7 +23,7 @@ private:
     /// <summary>
     /// Static instance of EventLogger for logging events.
     /// </summary>
-    static EventLogger s_eventLogger;
+    static BigDriveClientEventLogger s_eventLogger;
 
 
     COMAdminCatalog(LPDISPATCH pDispatch)

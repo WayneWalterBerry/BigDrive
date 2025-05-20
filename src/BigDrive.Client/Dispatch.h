@@ -7,10 +7,8 @@
 // System
 #include <comdef.h>
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Local
+#include "BigDriveClientEventLogger.h"
 #include "FuncDesc.h"
 
 class Dispatch : public IDispatch
@@ -20,7 +18,7 @@ protected:
     /// <summary>
     /// Static instance of EventLogger for logging events.
     /// </summary>
-    static EventLogger s_eventLogger;
+    static BigDriveClientEventLogger s_eventLogger;
 
     static DISPPARAMS dispparamsNoArgs;
 

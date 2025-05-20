@@ -4,7 +4,7 @@
     <instrumentation>
         <events>
             <provider
-              name="BigDrive"
+              name="BigDriveAnalytic"
               guid="{B7A1A2C3-4D5E-6F70-8191-92A3B4C5D6E7}"
               symbol="BIGDRIVE_PROVIDER"
               resourceFileName="BigDrive.ShellFolder.dll"

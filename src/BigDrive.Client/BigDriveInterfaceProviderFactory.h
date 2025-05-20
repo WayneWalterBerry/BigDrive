@@ -4,10 +4,10 @@
 
 #pragma once
 
+// Header
 #include "BigDriveInterfaceProvider.h"
 
-#include "..\Shared\EventLogger.h"
-
+// Local
 #include "DriveConfiguration.h"
 
 /// <summary>

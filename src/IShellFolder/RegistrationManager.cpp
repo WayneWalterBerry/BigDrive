@@ -8,7 +8,6 @@
 #include <windows.h>
 #include <debugapi.h>
 #include <objbase.h>
-#include <sstream>
 #include <shobjidl.h>
 
 // Header
@@ -16,35 +15,14 @@
 
 // Local
 #include "LaunchDebugger.h"
+#include "TrustedInstaller.h"
 
 // BigDrive.Client
 #include "..\BigDrive.Client\BigDriveClientConfigurationManager.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Exports For Testing
-
-extern "C" IMAGE_DOS_HEADER __ImageBase; // Correct declaration of __ImageBase
-
-EventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
-
-extern "C" __declspec(dllexport) HRESULT __stdcall CleanUpShellFoldersExport() 
-{
-    return RegistrationManager::CleanUpShellFolders();
-}
-
-extern "C" __declspec(dllexport) HRESULT __stdcall RegisterShellFolderExport(GUID guidDrive, BSTR bstrName)
-{
-    return RegistrationManager::RegisterShellFolder(guidDrive, bstrName);
-}
-
-extern "C" __declspec(dllexport) HRESULT __stdcall GetModuleFileNameWExport(LPWSTR szModulePath, DWORD dwSize)
-{
-    return RegistrationManager::GetModuleFileNameW(szModulePath, dwSize);
-}
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+BigDriveShellFolderEventLogger RegistrationManager::s_eventLogger(L"BigDrive.ShellFolder");
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -485,9 +463,9 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
 {
     HRESULT hr = S_OK;
     wchar_t guidString[39];
-    std::wstring clsidPath;
-    std::wstring namespacePath;
-    std::wstring componentCategoryPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
+    WCHAR clsidPath[128];
+    WCHAR namespacePath[256];
+    WCHAR componentCategoryPath[256] = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
 
     // Convert the GUID to a string
     if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
@@ -497,31 +475,58 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
     }
 
     // Delete the CLSID registry key
-    clsidPath = L"CLSID\\" + std::wstring(guidString);
-    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, clsidPath.c_str()) != ERROR_SUCCESS)
+    swprintf_s(clsidPath, ARRAYSIZE(clsidPath), L"CLSID\\%s", guidString);
+    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, clsidPath) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", clsidPath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", clsidPath, dwLastError);
         hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
     // Delete the namespace registry key
-    namespacePath = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\" + std::wstring(guidString);
-    if (::RegDeleteTreeW(HKEY_CURRENT_USER, namespacePath.c_str()) != ERROR_SUCCESS)
+    swprintf_s(namespacePath, ARRAYSIZE(namespacePath), L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\%s", guidString);
+    if (::RegDeleteTreeW(HKEY_CURRENT_USER, namespacePath) != ERROR_SUCCESS)
     {
         DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", namespacePath.c_str(), dwLastError);
+        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", namespacePath, dwLastError);
         hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
-    // Delete the component category registry key
-    componentCategoryPath += L"\\" + std::wstring(guidString);
-    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath.c_str()) != ERROR_SUCCESS)
     {
-        DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath.c_str(), dwLastError);
-        hr = HRESULT_FROM_WIN32(dwLastError);
+        HANDLE hToken;
+        hr = TrustedInstaller::Impersonate(&hToken);
+        if (FAILED(hr))
+        {
+            WriteErrorFormmated(guid, L"Failed to Impersonate Server.");
+            goto End;
+        }
+
+        // Delete the component category registry key
+        swprintf_s(componentCategoryPath + wcslen(componentCategoryPath), ARRAYSIZE(componentCategoryPath) - wcslen(componentCategoryPath), L"\\%s", guidString);
+        if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath) != ERROR_SUCCESS)
+        {
+            TrustedInstaller::Revert(hToken);
+            ::CloseHandle(hToken);
+            hToken = NULL;
+
+            DWORD dwLastError = GetLastError();
+            WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath, dwLastError);
+            hr = HRESULT_FROM_WIN32(dwLastError);
+            goto End;
+        }
+
+        hr = TrustedInstaller::Revert(hToken);
+        if (FAILED(hr))
+        {
+            WriteErrorFormmated(guid, L"Failed toRevert To Self.");
+            goto End;
+        }
+
+        ::CloseHandle(hToken);
+        hToken = NULL;
     }
+
+    End:
 
     return hr;
 }
@@ -562,6 +567,13 @@ HRESULT RegistrationManager::CleanUpShellFolders()
             result = ::RegQueryValueEx(hSubKey, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(inprocServerPath), &valueSize);
             if (result == ERROR_SUCCESS)
             {
+                // Close the subkey
+                if (hSubKey)
+                {
+                    ::RegCloseKey(hSubKey);
+                    hSubKey = nullptr;
+                }
+
                 // Check if the value contains "BigDrive.ShellFolder"
                 if (wcsstr(inprocServerPath, L"BigDrive.ShellFolder") != nullptr)
                 {

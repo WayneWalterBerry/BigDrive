@@ -15,14 +15,14 @@
 #include "BigDriveConfigurationClient.h" 
 
 // Shared
-#include "..\Shared\EventLogger.h"
+#include "BigDriveClientEventLogger.h"
 
 // Local
 #include "DriveConfiguration.h"
 #include "interfaces/IBigDriveConfiguration.h"
 
-// Initialize the static EventLogger instance
-EventLogger BigDriveConfigurationClient::s_eventLogger(L"BigDrive.Client");
+// Initialize the static BigDriveClientEventLogger instance
+BigDriveClientEventLogger BigDriveConfigurationClient::s_eventLogger(L"BigDrive.Client");
 
 /// </inheritdoc>
 HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* pszConfiguration)

@@ -8,9 +8,6 @@
 #include "Dispatch.h"
 #include "Interfaces/ICatalogObject.h"
 
-// Shared
-#include "..\Shared\EventLogger.h"
-
 // Forward Declarations Of Test Classes
 #include "..\..\test\unit\BigDrive.Client.Test\ApplicationTests.h"
 

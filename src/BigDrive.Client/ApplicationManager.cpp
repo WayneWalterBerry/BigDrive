@@ -17,9 +17,10 @@
 #include "Dispatch.h"
 #include "COMAdminCatalog.h"
 #include "Interfaces/IBigDriveRegistration.h"
+#include "BigDriveClientEventLogger.h"
 
 // Initialize the static EventLogger instance
-EventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");
+BigDriveClientEventLogger ApplicationManager::s_eventLogger(L"BigDrive.Client");
 
 /// <inheritdoc />
 HRESULT ApplicationManager::RegisterApplications()

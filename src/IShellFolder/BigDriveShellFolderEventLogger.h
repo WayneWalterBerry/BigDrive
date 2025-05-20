@@ -1,4 +1,4 @@
-// <copyright file="EventLogger.h" company="Wayne Walter Berry">
+// <copyright file="BigDriveShellFolderEventLogger.h" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -10,7 +10,7 @@
 /// <summary>
 /// Provides functionality to log messages to the Windows Event Viewer.
 /// </summary>
-class __declspec(dllexport) EventLogger
+class BigDriveShellFolderEventLogger
 {
 private:
     /// <summary>
@@ -23,12 +23,12 @@ public:
     /// Constructor to initialize the event log handle with the specified event source name.
     /// </summary>
     /// <param name="eventSourceName">The name of the event source to register with the Event Viewer.</param>
-    explicit EventLogger(LPCWSTR eventSourceName);
+    explicit BigDriveShellFolderEventLogger(LPCWSTR eventSourceName);
 
     /// <summary>
     /// Destructor to clean up the event log handle.
     /// </summary>
-    ~EventLogger();
+    ~BigDriveShellFolderEventLogger();
 
     /// <summary>
     /// Write an error message to the Event Viewer.
