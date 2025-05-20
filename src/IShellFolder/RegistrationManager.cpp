@@ -539,6 +539,13 @@ HRESULT RegistrationManager::CleanUpShellFolders()
             result = ::RegQueryValueEx(hSubKey, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(inprocServerPath), &valueSize);
             if (result == ERROR_SUCCESS)
             {
+                // Close the subkey
+                if (hSubKey)
+                {
+                    ::RegCloseKey(hSubKey);
+                    hSubKey = nullptr;
+                }
+
                 // Check if the value contains "BigDrive.ShellFolder"
                 if (wcsstr(inprocServerPath, L"BigDrive.ShellFolder") != nullptr)
                 {
