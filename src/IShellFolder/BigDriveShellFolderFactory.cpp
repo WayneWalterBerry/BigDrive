@@ -7,6 +7,8 @@
 #include "BigDriveShellFolderFactory.h"
 #include "BigDriveETWLogger.h"
 
+#include <windows.h>
+
 // Define the static member outside the class
 PIDLIST_ABSOLUTE BigDriveShellFolderFactory::s_pidlRoot = ILCreateFromPathW(L"::");
 

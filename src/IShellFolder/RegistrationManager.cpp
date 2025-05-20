@@ -15,6 +15,7 @@
 
 // Local
 #include "LaunchDebugger.h"
+#include "TrustedInstaller.h"
 
 // BigDrive.Client
 #include "..\BigDrive.Client\BigDriveClientConfigurationManager.h"
@@ -491,14 +492,41 @@ HRESULT RegistrationManager::UnregisterShellFolder(GUID guid)
         hr = HRESULT_FROM_WIN32(dwLastError);
     }
 
-    // Delete the component category registry key
-    swprintf_s(componentCategoryPath + wcslen(componentCategoryPath), ARRAYSIZE(componentCategoryPath) - wcslen(componentCategoryPath), L"\\%s", guidString);
-    if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath) != ERROR_SUCCESS)
     {
-        DWORD dwLastError = GetLastError();
-        WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath, dwLastError);
-        hr = HRESULT_FROM_WIN32(dwLastError);
+        HANDLE hToken;
+        hr = TrustedInstaller::Impersonate(&hToken);
+        if (FAILED(hr))
+        {
+            WriteErrorFormmated(guid, L"Failed to Impersonate Server.");
+            goto End;
+        }
+
+        // Delete the component category registry key
+        swprintf_s(componentCategoryPath + wcslen(componentCategoryPath), ARRAYSIZE(componentCategoryPath) - wcslen(componentCategoryPath), L"\\%s", guidString);
+        if (::RegDeleteTreeW(HKEY_CLASSES_ROOT, componentCategoryPath) != ERROR_SUCCESS)
+        {
+            TrustedInstaller::Revert(hToken);
+            ::CloseHandle(hToken);
+            hToken = NULL;
+
+            DWORD dwLastError = GetLastError();
+            WriteErrorFormmated(guid, L"Failed to delete registry key: %s, Error: %u", componentCategoryPath, dwLastError);
+            hr = HRESULT_FROM_WIN32(dwLastError);
+            goto End;
+        }
+
+        hr = TrustedInstaller::Revert(hToken);
+        if (FAILED(hr))
+        {
+            WriteErrorFormmated(guid, L"Failed toRevert To Self.");
+            goto End;
+        }
+
+        ::CloseHandle(hToken);
+        hToken = NULL;
     }
+
+    End:
 
     return hr;
 }
