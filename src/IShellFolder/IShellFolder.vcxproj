@@ -164,6 +164,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\EventLogger.h" />
     <ClInclude Include="BigDriveETWLogger.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
@@ -179,6 +180,9 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\EventLogger.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
@@ -209,6 +213,11 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Generated\BigDriveEvents.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj">
+      <Project>{9c7a549e-dcd2-4c94-809f-202063596f0d}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

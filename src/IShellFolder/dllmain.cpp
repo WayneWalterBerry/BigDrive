@@ -15,7 +15,7 @@
 #include "CLSIDs.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
-#include "ApplicationManager.h"
+#include "..\BigDrive.Client\ApplicationManager.h"
 #include "BigDriveETWLogger.h"
 #include "ETWManifestManager.h"
 

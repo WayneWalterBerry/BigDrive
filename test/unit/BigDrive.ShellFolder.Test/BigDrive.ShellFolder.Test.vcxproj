@@ -185,6 +185,11 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\IShellFolder\IShellFolder.vcxproj">
+      <Project>{ca6d72a1-fedf-4040-8ccf-9793437dad97}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
