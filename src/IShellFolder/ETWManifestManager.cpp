@@ -215,21 +215,31 @@ End:
 }
 
 /// <inheritdoc />
-HRESULT ETWManifestManager::RegisterManifest(LPCWSTR manifestPath)
+HRESULT ETWManifestManager::RegisterManifest(LPCWSTR szManifestPath)
 {
 	// Maximum command line length (adjust if needed)
 	const SIZE_T CMD_BUFFER_SIZE = 2048;
 	WCHAR cmdLine[CMD_BUFFER_SIZE];
 
 	// Build the command line for installation
-	HRESULT hr = BuildCommandLine(L"im", manifestPath, cmdLine, CMD_BUFFER_SIZE);
+	HRESULT hr = BuildCommandLine(L"im", szManifestPath, cmdLine, CMD_BUFFER_SIZE);
 	if (FAILED(hr))
 	{
 		// Failed to build command line (path too long)
 		return hr;
 	}
 
-	return ExecuteWevtutil(cmdLine);
+	// Set the working directory to the directory containing the manifest
+	WCHAR dirPath[MAX_PATH];
+	wcsncpy_s(dirPath, szManifestPath, _TRUNCATE);
+	WCHAR* lastBackslash = wcsrchr(dirPath, L'\\');
+	if (lastBackslash)
+	{
+		*(lastBackslash + 1) = L'\0'; // Keep the trailing backslash
+		::SetCurrentDirectoryW(dirPath);
+	}
+
+	return ExecuteWevtutil(dirPath, cmdLine);
 }
 
 /// <inheritdoc />
@@ -265,21 +275,31 @@ End:
 }
 
 /// <inheritdoc />
-HRESULT ETWManifestManager::UnregisterManifest(LPCWSTR manifestPath)
+HRESULT ETWManifestManager::UnregisterManifest(LPCWSTR szManifestPath)
 {
 	// Maximum command line length (adjust if needed)
 	const SIZE_T CMD_BUFFER_SIZE = 2048;
 	WCHAR cmdLine[CMD_BUFFER_SIZE];
 
 	// Build the command line for uninstallation
-	HRESULT hr = BuildCommandLine(L"um", manifestPath, cmdLine, CMD_BUFFER_SIZE);
+	HRESULT hr = BuildCommandLine(L"um", szManifestPath, cmdLine, CMD_BUFFER_SIZE);
 	if (FAILED(hr))
 	{
 		// Failed to build command line (path too long)
 		return hr;
 	}
 
-	return ExecuteWevtutil(cmdLine);
+	// Set the working directory to the directory containing manifest
+	WCHAR dirPath[MAX_PATH];
+	wcsncpy_s(dirPath, szManifestPath, _TRUNCATE);
+	WCHAR* lastBackslash = wcsrchr(dirPath, L'\\');
+	if (lastBackslash)
+	{
+		*(lastBackslash + 1) = L'\0'; // Keep the trailing backslash
+		::SetCurrentDirectoryW(dirPath);
+	}
+
+	return ExecuteWevtutil(dirPath, cmdLine);
 }
 
 /// <inheritdoc />
@@ -330,7 +350,7 @@ bool ETWManifestManager::wstr_contains(const WCHAR* haystack, const WCHAR* needl
 }
 
 /// <inheritdoc />
-HRESULT ETWManifestManager::ExecuteWevtutil(LPCWSTR cmdLine)
+HRESULT ETWManifestManager::ExecuteWevtutil(LPCWSTR szCurrentDirectory, LPCWSTR cmdLine)
 {
 	// Declare all local variables at the beginning
 	HRESULT hr = S_OK;
@@ -400,7 +420,7 @@ HRESULT ETWManifestManager::ExecuteWevtutil(LPCWSTR cmdLine)
 		TRUE,                   // Set handle inheritance to TRUE for redirection
 		CREATE_NO_WINDOW,       // Don't create a window
 		NULL,                   // Use parent's environment block
-		NULL,                   // Use parent's starting directory
+		szCurrentDirectory,     // Use the manfest directory as the current directory
 		&si,                    // Pointer to STARTUPINFO structure
 		&pi                     // Pointer to PROCESS_INFORMATION structure
 	);

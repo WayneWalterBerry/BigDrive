@@ -78,6 +78,10 @@ HRESULT BigDriveShellFolderEventLogger::WriteInfo(LPCWSTR formatter, ...)
 /// </summary>
 HRESULT BigDriveShellFolderEventLogger::WriteToEventViewer(LPCWSTR message, WORD eventType)
 {
+    // Write to the Visual Studio Debug Output window
+    OutputDebugStringW(message);
+    OutputDebugStringW(L"\n"); // Optional: add a newline for readability
+
     if (hEventLog == nullptr)
     {
         return E_FAIL; // Event log handle is not initialized

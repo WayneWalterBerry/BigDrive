@@ -99,7 +99,7 @@ private:
     /// </summary>
     /// <param name="cmdLine">The full command line to execute</param>
     /// <returns>S_OK if the command executed successfully; otherwise, an error code</returns>
-    static HRESULT ExecuteWevtutil(LPCWSTR cmdLine);
+    static HRESULT ExecuteWevtutil(LPCWSTR szCurrentDirectory, LPCWSTR cmdLine);
 
     /// <summary>
     /// Builds a complete wevtutil command line with the given action and manifest path.
