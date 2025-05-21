@@ -10,3 +10,6 @@ EXPORTS
     RegisterShellFolder
     CheckDllAndOSBitnessMatch
     CleanUpShellFolders
+
+    RegisterManifest
+    UnregisterManifest

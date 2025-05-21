@@ -12,7 +12,6 @@
 
 /// Local
 #include "BigDriveShellFolderFactory.h"
-#include "CLSIDs.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
@@ -142,7 +141,7 @@ extern "C" HRESULT __stdcall DllUnregisterServer()
 {
     HRESULT hr = S_OK;
 
-    hr = ETWManifestManager::UnregisterManifest(L"BigDriveEvents.man");
+    hr = ETWManifestManager::UnregisterManifest();
     if (FAILED(hr))
     {
         goto End;

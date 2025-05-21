@@ -171,6 +171,8 @@
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="ETWManifestManager.h" />
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />
+    <ClInclude Include="Exports\ETWManifestManagerExports.h" />
+    <ClInclude Include="Exports\ETWManifestManagerImports.h" />
     <ClInclude Include="Exports\RegistrationManagerExports.h" />
     <ClInclude Include="Exports\RegistrationManagerImports.h" />
     <ClInclude Include="Generated\BigDriveEvents.h" />
@@ -188,6 +190,7 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ETWManifestManager.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
+    <ClCompile Include="Exports\ETWManifestManagerExports.cpp" />
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
     <ClCompile Include="ILExtensions.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />

@@ -6,12 +6,18 @@
 
 #include <windows.h>
 
+#include "BigDriveShellFolderEventLogger.h"
+
 /// <summary>
 /// Utility class for registering and unregistering ETW manifests with the operating system.
 /// Uses wevtutil.exe to install/uninstall event provider manifests.
 /// </summary>
 class ETWManifestManager
 {
+private:
+
+    static BigDriveShellFolderEventLogger s_eventLogger;
+
 public:
 
     /// <summary>
@@ -25,6 +31,8 @@ public:
     /// </summary>
     /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
     static HRESULT UnregisterManifest();
+
+private:
 
     /// <summary>
     /// Registers an ETW manifest file with the operating system.
@@ -40,8 +48,12 @@ public:
     /// <returns>S_OK if successful; otherwise, an error code</returns>
     static HRESULT UnregisterManifest(LPCWSTR manifestPath);
 
-private:
-
+    /// <summary>
+    /// Retrieves the full path to the ETW manifest file used for registration and unregistration.
+    /// Allocates a string containing the manifest path; the caller is responsible for freeing it with CoTaskMemFree.
+    /// </summary>
+    /// <param name="ppManifestPath">Receives a pointer to the allocated string containing the manifest file path.</param>
+    /// <returns>S_OK if the path was retrieved successfully; otherwise, an error code.</returns>
     static HRESULT GetManifestPath(LPWSTR* ppManifestPath);
 
     /// <summary>
@@ -98,4 +110,22 @@ private:
     /// <param name="bufferSize">Size of the buffer in characters</param>
     /// <returns>S_OK if the command was built successfully; E_INVALIDARG if buffer is too small</returns>
     static HRESULT BuildCommandLine(LPCWSTR action, LPCWSTR manifestPath, LPWSTR buffer, SIZE_T bufferSize);
+
+    /// <summary>
+    /// Determines whether the specified wide-character substring exists within a given wide-character string,
+    /// ignoring differences in whitespace, carriage return, and line feed characters.
+    /// </summary>
+    /// <param name="haystack">The string to search within.</param>
+    /// <param name="needle">The substring to search for.</param>
+    /// <returns>True if the substring is found (ignoring whitespace and line endings); otherwise, false.</returns>
+    static bool wstr_contains(const WCHAR* haystack, const WCHAR* needle);
+
+    /// <summary>
+    /// Registers the event provider under HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\{ProviderName}.
+    /// This is required for legacy event log support and for some event viewer scenarios.
+    /// </summary>
+    /// <param name="providerName">The name of the event provider (e.g., "BigDriveAnalytic").</param>
+    /// <param name="messageFilePath">Full path to the message DLL or EXE (typically the module path).</param>
+    /// <returns>S_OK if successful, otherwise an HRESULT error code.</returns>
+    static HRESULT RegisterEventLogProvider(LPCWSTR providerName, LPCWSTR messageFilePath);
 };
