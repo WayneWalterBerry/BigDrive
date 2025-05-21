@@ -11,6 +11,27 @@
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "BigDriveShellFolderEventLogger.h"
 
+/// <summary>
+/// Provides a set of static methods for registering, unregistering, and managing custom shell folder extensions
+/// in the Windows registry for the BigDrive application. This class handles the creation and removal of all
+/// necessary registry entries to expose virtual drives as IShellFolder objects in Windows Explorer, including
+/// COM registration, namespace integration, icon registration, and component category management.
+///
+/// Key responsibilities include:
+/// - Enumerating and registering all configured drives as shell folders, including error handling and logging.
+/// - Creating and removing registry keys under HKEY_CLASSES_ROOT and HKEY_CURRENT_USER to integrate drives
+///   into Explorer's namespace and COM infrastructure.
+/// - Managing security and permissions for protected registry keys, including taking ownership and granting
+///   full control to the current user when required by OS restrictions.
+/// - Registering and unregistering default icons and COM in-process servers for each drive shell folder.
+/// - Providing utility methods for bitness checks, privilege elevation, and SID retrieval to support
+///   secure and robust registry operations.
+/// - Logging all significant operations and errors to the Windows Event Viewer for diagnostics.
+///
+/// This class is designed for use by installer, configuration, and maintenance tools that need to
+/// programmatically manage the lifecycle of BigDrive shell folder extensions on Windows systems.
+/// All methods are static and thread-safe for use in multi-threaded scenarios.
+/// </summary>
 class RegistrationManager
 {
 private:
@@ -43,8 +64,6 @@ public:
     /// <returns>HRESULT indicating success or failure</returns>
     static HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName);
 
-    static HRESULT GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize);
-
     /// <summary>
     /// Checks whether the bitness (32-bit or 64-bit) of the current DLL matches the bitness of the operating system.
     /// This method retrieves the current module's file path, determines its bitness, and compares it to the OS bitness.
@@ -65,6 +84,27 @@ public:
     static HRESULT CleanUpShellFolders();
 
 private:
+
+    /// <summary>
+    /// Retrieves the full path of the current module (DLL or EXE) associated with the BigDrive shell extension.
+    /// This method wraps the Windows API GetModuleFileNameW, using the module handle for the current image,
+    /// and writes the result to the provided buffer. Returns S_OK on success, or an HRESULT error code if the
+    /// path cannot be retrieved.
+    /// </summary>
+    static HRESULT GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize);
+
+    /// <summary>
+    /// Takes ownership and grants full control of the specified registry key to the current user.
+    /// </summary>
+    /// <returns>S_OK on success, or an HRESULT error code on failure.</returns>
+	/// <remarks>
+    /// <summary>
+    /// CLSID {00021493-0000-0000-C000-000000000046} is linked to Windows Shell Link objects,
+    /// used for shortcuts. OS restrictions enforce COM security to ensure only authorized
+    /// processes interact with them, preventing unauthorized access and potential exploits.
+    /// </summary>
+    ///</remarks>
+    static HRESULT TakeOwnershipAndGrantFullControl(HRESULT (*callback)(GUID), GUID guid);
 
     /// <summary>
     /// Registers the DefaultIcon registry entry for the specified drive shell extension CLSID,
@@ -149,5 +189,32 @@ private:
     /// E_FAIL if the processor architecture is unknown or unsupported.
     /// </returns>
     static HRESULT IsCurrentOS64Bit(bool& is64Bit);
+
+    /// <summary>
+    /// Deletes the component category registry key for the specified drive GUID under
+    /// "Component Categories\{00021493-0000-0000-C000-000000000046}\Implementations".
+    /// This is used to remove the shell folder registration for a drive.
+    /// </summary>
+    static HRESULT DeleteComponentCategoryRegistryKey(GUID guid);
+
+    /// <summary>
+    /// Creates the component category registry key for the specified drive GUID under
+    /// "Component Categories\{00021493-0000-0000-C000-000000000046}\Implementations".
+    /// This is used to register the shell folder for a drive in the component category.
+    /// </summary>
+    static HRESULT CreateComponentCategoryRegistryKey(GUID guidDrive);
+
+    /// <summary>
+    /// Retrieves the current process's user SID and returns it in the output parameter.
+    /// The caller is responsible for freeing the returned SID with free().
+    /// </summary>
+    static HRESULT GetCurrentProcessSID(PSID* pOwner);
+
+    /// <summary>
+    /// Enables the specified privilege in the current process token, such as SeTakeOwnershipPrivilege.
+    /// This is required for certain registry and security operations.
+    /// </summary>
+    static HRESULT EnablePrivilege(LPCWSTR privilege);
+
 };
 

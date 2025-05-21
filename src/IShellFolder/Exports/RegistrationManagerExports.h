@@ -13,7 +13,6 @@ extern "C" {
     __declspec(dllexport) HRESULT RegisterShellFoldersFromRegistry();
     __declspec(dllexport) HRESULT GetRegisteredCLSIDs(CLSID** ppClsids, DWORD* pdwSize);
     __declspec(dllexport) HRESULT RegisterShellFolder(GUID guidDrive, BSTR bstrName);
-    __declspec(dllexport) HRESULT GetModuleFileNameW_Export(LPWSTR szModulePath, DWORD dwSize);
     __declspec(dllexport) HRESULT CheckDllAndOSBitnessMatch(BOOL* pIsMatch);
     __declspec(dllexport) HRESULT CleanUpShellFolders();
 

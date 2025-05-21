@@ -69,7 +69,6 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
     
-    /*
     hr = ETWManifestManager::UnregisterManifest();
     if (FAILED(hr))
     {
@@ -134,11 +133,8 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
 
-
 End:
   
-  */
-
     return S_OK;
 }
 
