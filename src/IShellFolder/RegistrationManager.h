@@ -67,6 +67,12 @@ public:
 private:
 
     /// <summary>
+    /// Takes ownership and grants full control of the specified registry key to the current user.
+    /// </summary>
+    /// <returns>S_OK on success, or an HRESULT error code on failure.</returns>
+    static HRESULT TakeOwnershipAndGrantFullControl(HRESULT (*callback)(GUID), GUID guid);
+
+    /// <summary>
     /// Registers the DefaultIcon registry entry for the specified drive shell extension CLSID,
     /// setting it to use the standard Windows file system drive icon. This ensures that the
     /// shell extension appears with the same icon as local drives in File Explorer.
@@ -149,5 +155,11 @@ private:
     /// E_FAIL if the processor architecture is unknown or unsupported.
     /// </returns>
     static HRESULT IsCurrentOS64Bit(bool& is64Bit);
+
+    static HRESULT DeleteComponentCategoryRegistryKey(GUID guid);
+
+    static HRESULT GetCurrentProcessSID(PSID* pOwner);
+
+    static HRESULT EnablePrivilege(LPCWSTR privilege);
 };
 
