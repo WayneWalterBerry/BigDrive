@@ -179,7 +179,6 @@
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
-    <ClInclude Include="TrustedInstaller.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
@@ -199,7 +198,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="RegistrationManager.cpp" />
-    <ClCompile Include="TrustedInstaller.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BigDriveShellFolder.def" />

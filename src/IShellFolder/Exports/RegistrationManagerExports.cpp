@@ -29,11 +29,6 @@ extern "C" {
         return RegistrationManager::RegisterShellFolder(guidDrive, bstrName);
     }
 
-    HRESULT GetModuleFileNameW_Export(LPWSTR szModulePath, DWORD dwSize) 
-    {
-        return RegistrationManager::GetModuleFileNameW(szModulePath, dwSize);
-    }
-
     HRESULT CheckDllAndOSBitnessMatch(BOOL* pIsMatch) 
     {
         if (!pIsMatch) return E_POINTER;

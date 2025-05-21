@@ -178,6 +178,7 @@ HRESULT RegistrationManager::RegisterDefaultIcon(GUID guidDrive)
 		&hKey,
 		nullptr
 	);
+
 	if (lResult != ERROR_SUCCESS)
 	{
 		DWORD dwLastError = GetLastError();
@@ -196,6 +197,7 @@ HRESULT RegistrationManager::RegisterDefaultIcon(GUID guidDrive)
 		reinterpret_cast<const BYTE*>(iconValue),
 		cbData
 	);
+
 	if (lResult != ERROR_SUCCESS)
 	{
 		DWORD dwLastError = GetLastError();
@@ -375,17 +377,13 @@ End:
 HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 {
 	HRESULT hr = S_OK;
-	LSTATUS lResult;
-
 	HKEY hKey = nullptr;
-	HKEY hClsidKey = nullptr;
-
-	// GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 	WCHAR szDriveGuid[39];
 	WCHAR namespacePath[256];
 	WCHAR componentCategoryPath[] = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
 
-	// Register under CLSID\{guid}\InprocServer32
+	// Register under CLSID\{guid}\InprocServer32 and related registry entries
+	// This sets up the COM registration and ShellFolder attributes
 	hr = RegisterInprocServer32(guidDrive, bstrName);
 	if (FAILED(hr))
 	{
@@ -393,7 +391,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 		goto End;
 	}
 
-	// Convert the GUID to a string
+	// Convert the GUID to a string for use in registry paths
 	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
 	if (FAILED(hr))
 	{
@@ -401,8 +399,8 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 		return hr;
 	}
 
-	// Register as a Drive (directly as a ShellFolder)
-	// Regedit32.exe Path: Computer\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace
+	// Register as a Drive (directly as a ShellFolder) in the user's namespace
+	// Path: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{guid}
 	::swprintf_s(namespacePath, ARRAYSIZE(namespacePath), L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\%s", szDriveGuid);
 	if (::RegCreateKeyExW(HKEY_CURRENT_USER, namespacePath, 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
 	{
@@ -416,6 +414,54 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 	{
 		RegCloseKey(hKey);
 		hKey = nullptr;
+	}
+
+	// Take ownership and grant full control of the Component Category registry key,
+	// then create the {guid} subkey under Implementations
+	hr = TakeOwnershipAndGrantFullControl(&CreateComponentCategoryRegistryKey, guidDrive);
+	if (FAILED(hr))
+	{
+		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to take ownership and grant full control for registry key: %s", componentCategoryPath);
+		goto End;
+	}
+
+	// Register the DefaultIcon for the ShellFolder
+	hr = RegisterDefaultIcon(guidDrive);
+	if (FAILED(hr))
+	{
+		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to register default icon for GUID: %s", szDriveGuid);
+		goto End;
+	}
+
+End:
+
+	if (hKey)
+	{
+		::RegCloseKey(hKey);
+		hKey = nullptr;
+	}
+
+	return hr;
+}
+
+/// <inheritdoc />
+HRESULT RegistrationManager::CreateComponentCategoryRegistryKey(GUID guidDrive)
+{
+	HRESULT hr = S_OK;
+	LRESULT lResult = 0;
+	WCHAR szDriveGuid[39];
+	HKEY hKey = nullptr;
+	HKEY hClsidKey = nullptr;
+	WCHAR componentCategoryPath[] = L"Component Categories\\{00021493-0000-0000-C000-000000000046}\\Implementations";
+
+	// Convert the GUID to a string
+	// GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+
+	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+	if (FAILED(hr))
+	{
+		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", szDriveGuid);
+		return hr;
 	}
 
 	// Register in Component Categories
@@ -440,13 +486,6 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 		DWORD dwLastError = GetLastError();
 		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to create registry key: %s, Error: %u", szDriveGuid, dwLastError);
 		hr = HRESULT_FROM_WIN32(dwLastError);
-		goto End;
-	}
-
-	hr = RegisterDefaultIcon(guidDrive);
-	if (FAILED(hr))
-	{
-		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to register default icon for GUID: %s", szDriveGuid);
 		goto End;
 	}
 
@@ -864,102 +903,138 @@ HRESULT RegistrationManager::TakeOwnershipAndGrantFullControl(HRESULT(*callback)
 	BOOL ownerDefaulted = FALSE;
 	PSID pOwner = nullptr;
 
-	if (!callback) {
+	if (!callback)
+	{
 		hr = E_POINTER;
+		WriteError(guid, L"TakeOwnershipAndGrantFullControl: callback pointer is null.");
 		goto End;
 	}
 
 	// 1. Open with READ_CONTROL to read OWNER and DACL
-	lRes = RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, READ_CONTROL, &hKey);
-	if (lRes != ERROR_SUCCESS) {
+	lRes = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, READ_CONTROL, &hKey);
+	if (lRes != ERROR_SUCCESS)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to open registry key '%s' for READ_CONTROL. Error: %u", keyPath, lRes);
 		goto End;
 	}
 
 	// Save original OWNER
-	lRes = RegGetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, nullptr, &origOwnerSDSize);
-	if (lRes != ERROR_INSUFFICIENT_BUFFER) {
+	lRes = ::RegGetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, nullptr, &origOwnerSDSize);
+	if (lRes != ERROR_INSUFFICIENT_BUFFER)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get size for OWNER_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
-	pOrigOwnerSD = (PSECURITY_DESCRIPTOR)malloc(origOwnerSDSize);
-	if (!pOrigOwnerSD) {
+
+	pOrigOwnerSD = (PSECURITY_DESCRIPTOR)::malloc(origOwnerSDSize);
+	if (!pOrigOwnerSD)
+	{
 		hr = E_OUTOFMEMORY;
+		WriteError(guid, L"TakeOwnershipAndGrantFullControl: Failed to allocate memory for original owner security descriptor.");
 		goto End;
 	}
-	lRes = RegGetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, pOrigOwnerSD, &origOwnerSDSize);
-	if (lRes != ERROR_SUCCESS) {
+
+	lRes = ::RegGetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, pOrigOwnerSD, &origOwnerSDSize);
+	if (lRes != ERROR_SUCCESS)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get OWNER_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
 	// Save original DACL
-	lRes = RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, nullptr, &origDaclSDSize);
-	if (lRes != ERROR_INSUFFICIENT_BUFFER) {
+	lRes = ::RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, nullptr, &origDaclSDSize);
+	if (lRes != ERROR_INSUFFICIENT_BUFFER)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		goto End;
-	}
-	pOrigDaclSD = (PSECURITY_DESCRIPTOR)malloc(origDaclSDSize);
-	if (!pOrigDaclSD) {
-		hr = E_OUTOFMEMORY;
-		goto End;
-	}
-	lRes = RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pOrigDaclSD, &origDaclSDSize);
-	if (lRes != ERROR_SUCCESS) {
-		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get size for DACL_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
-	RegCloseKey(hKey);
+	pOrigDaclSD = (PSECURITY_DESCRIPTOR)::malloc(origDaclSDSize);
+	if (!pOrigDaclSD)
+	{
+		hr = E_OUTOFMEMORY;
+		WriteError(guid, L"TakeOwnershipAndGrantFullControl: Failed to allocate memory for original DACL security descriptor.");
+		goto End;
+	}
+
+	lRes = ::RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pOrigDaclSD, &origDaclSDSize);
+	if (lRes != ERROR_SUCCESS)
+	{
+		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get DACL_SECURITY_INFORMATION. Error: %u", lRes);
+		goto End;
+	}
+
+	::RegCloseKey(hKey);
 	hKey = nullptr;
 
 	// 2. Take ownership if needed (open with WRITE_OWNER)
 	hr = GetCurrentProcessSID(&psidCurrentUser);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get current process SID. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
 	// Check if current user is already owner
-
-	if (GetSecurityDescriptorOwner(pOrigOwnerSD, &pOwner, &ownerDefaulted) && pOwner && psidCurrentUser && EqualSid(pOwner, psidCurrentUser)) {
+	if (::GetSecurityDescriptorOwner(pOrigOwnerSD, &pOwner, &ownerDefaulted) && pOwner && psidCurrentUser && ::EqualSid(pOwner, psidCurrentUser))
+	{
 		isOwner = TRUE;
 	}
 
-	if (!isOwner) {
+	if (!isOwner)
+	{
 		hr = EnablePrivilege(SE_TAKE_OWNERSHIP_NAME);
-		if (FAILED(hr)) {
+		if (FAILED(hr))
+		{
+			WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to enable SeTakeOwnershipPrivilege. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 
-		lRes = RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, WRITE_OWNER | READ_CONTROL, &hKey);
-		if (lRes != ERROR_SUCCESS) {
+		lRes = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, WRITE_OWNER | READ_CONTROL, &hKey);
+		if (lRes != ERROR_SUCCESS)
+		{
 			hr = HRESULT_FROM_WIN32(lRes);
+			WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to open registry key '%s' for WRITE_OWNER. Error: %u", keyPath, lRes);
 			goto End;
 		}
 
-		if (!InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION)) {
-			hr = HRESULT_FROM_WIN32(GetLastError());
-			goto End;
-		}
-		if (!SetSecurityDescriptorOwner(&sd, psidCurrentUser, FALSE)) {
-			hr = HRESULT_FROM_WIN32(GetLastError());
+		if (!::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION))
+		{
+			hr = HRESULT_FROM_WIN32(::GetLastError());
+			WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to initialize security descriptor. Error: %u", ::GetLastError());
 			goto End;
 		}
 
-		lRes = RegSetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, &sd);
-		if (lRes != ERROR_SUCCESS) {
+		if (!::SetSecurityDescriptorOwner(&sd, psidCurrentUser, FALSE))
+		{
+			hr = HRESULT_FROM_WIN32(::GetLastError());
+			WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to set security descriptor owner. Error: %u", ::GetLastError());
+			goto End;
+		}
+
+		lRes = ::RegSetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, &sd);
+		if (lRes != ERROR_SUCCESS)
+		{
 			hr = HRESULT_FROM_WIN32(lRes);
+			WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to set key owner. Error: %u", lRes);
 			goto End;
 		}
 
-		RegCloseKey(hKey);
+		::RegCloseKey(hKey);
 		hKey = nullptr;
 	}
 
 	// 3. Grant full control (open with WRITE_DAC)
-	lRes = RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, WRITE_DAC | READ_CONTROL, &hKey);
-	if (lRes != ERROR_SUCCESS) {
+	lRes = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, keyPath, 0, WRITE_DAC | READ_CONTROL, &hKey);
+	if (lRes != ERROR_SUCCESS)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to open registry key '%s' for WRITE_DAC. Error: %u", keyPath, lRes);
 		goto End;
 	}
 
@@ -971,43 +1046,64 @@ HRESULT RegistrationManager::TakeOwnershipAndGrantFullControl(HRESULT(*callback)
 	ea.Trustee.ptstrName = (LPWSTR)psidCurrentUser;
 
 	// Get current DACL
-	lRes = RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, nullptr, &sdSize);
-	if (lRes != ERROR_INSUFFICIENT_BUFFER) {
+	lRes = ::RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, nullptr, &sdSize);
+	if (lRes != ERROR_INSUFFICIENT_BUFFER)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get size for DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
 		goto End;
 	}
-	pSD = (PSECURITY_DESCRIPTOR)malloc(sdSize);
-	if (!pSD) {
+
+	pSD = (PSECURITY_DESCRIPTOR)::malloc(sdSize);
+	if (!pSD)
+	{
 		hr = E_OUTOFMEMORY;
-		goto End;
-	}
-	lRes = RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pSD, &sdSize);
-	if (lRes != ERROR_SUCCESS) {
-		hr = HRESULT_FROM_WIN32(lRes);
-		goto End;
-	}
-	if (!GetSecurityDescriptorDacl(pSD, &bOwnerDefaulted, &pOldDACL, &bOwnerDefaulted)) {
-		hr = HRESULT_FROM_WIN32(GetLastError());
+		WriteError(guid, L"TakeOwnershipAndGrantFullControl: Failed to allocate memory for DACL security descriptor.");
 		goto End;
 	}
 
-	dwRes = SetEntriesInAclW(1, &ea, pOldDACL, &pNewDACL);
-	if (dwRes != ERROR_SUCCESS) {
+	lRes = ::RegGetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pSD, &sdSize);
+	if (lRes != ERROR_SUCCESS)
+	{
+		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
+		goto End;
+	}
+
+	if (!::GetSecurityDescriptorDacl(pSD, &bOwnerDefaulted, &pOldDACL, &bOwnerDefaulted))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to get security descriptor DACL. Error: %u", ::GetLastError());
+		goto End;
+	}
+
+	dwRes = ::SetEntriesInAclW(1, &ea, pOldDACL, &pNewDACL);
+	if (dwRes != ERROR_SUCCESS)
+	{
 		hr = HRESULT_FROM_WIN32(dwRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to set entries in ACL. Error: %u", dwRes);
 		goto End;
 	}
 
-	if (!InitializeSecurityDescriptor(&sdNew, SECURITY_DESCRIPTOR_REVISION)) {
-		hr = HRESULT_FROM_WIN32(GetLastError());
+	if (!::InitializeSecurityDescriptor(&sdNew, SECURITY_DESCRIPTOR_REVISION))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to initialize new security descriptor. Error: %u", ::GetLastError());
 		goto End;
 	}
-	if (!SetSecurityDescriptorDacl(&sdNew, TRUE, pNewDACL, FALSE)) {
-		hr = HRESULT_FROM_WIN32(GetLastError());
+
+	if (!::SetSecurityDescriptorDacl(&sdNew, TRUE, pNewDACL, FALSE))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to set new security descriptor DACL. Error: %u", ::GetLastError());
 		goto End;
 	}
-	lRes = RegSetKeySecurity(hKey, DACL_SECURITY_INFORMATION, &sdNew);
-	if (lRes != ERROR_SUCCESS) {
+
+	lRes = ::RegSetKeySecurity(hKey, DACL_SECURITY_INFORMATION, &sdNew);
+	if (lRes != ERROR_SUCCESS)
+	{
 		hr = HRESULT_FROM_WIN32(lRes);
+		WriteErrorFormmated(guid, L"TakeOwnershipAndGrantFullControl: Failed to set key DACL. Error: %u", lRes);
 		goto End;
 	}
 
@@ -1015,98 +1111,175 @@ HRESULT RegistrationManager::TakeOwnershipAndGrantFullControl(HRESULT(*callback)
 	hr = callback(guid);
 
 	// 5. Restore original OWNER and DACL
-	RegSetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, pOrigOwnerSD);
-	RegSetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pOrigDaclSD);
+	::RegSetKeySecurity(hKey, OWNER_SECURITY_INFORMATION, pOrigOwnerSD);
+	::RegSetKeySecurity(hKey, DACL_SECURITY_INFORMATION, pOrigDaclSD);
 
 End:
-	if (pNewDACL) LocalFree(pNewDACL);
-	if (pSD) free(pSD);
-	if (psidCurrentUser) free(psidCurrentUser);
-	if (pOrigOwnerSD) free(pOrigOwnerSD);
-	if (pOrigDaclSD) free(pOrigDaclSD);
-	if (hKey) RegCloseKey(hKey);
+	if (pNewDACL)
+	{
+		::LocalFree(pNewDACL);
+		pNewDACL = nullptr;
+	}
+
+	if (pSD)
+	{
+		::free(pSD);
+		pSD = nullptr;
+	}
+
+	if (psidCurrentUser)
+	{
+		::free(psidCurrentUser);
+		psidCurrentUser = nullptr;
+	}
+
+	if (pOrigOwnerSD)
+	{
+		::free(pOrigOwnerSD);
+		pOrigOwnerSD = nullptr;
+	}
+
+	if (pOrigDaclSD)
+	{
+		::free(pOrigDaclSD);
+		pOrigDaclSD = nullptr;
+	}
+
+	if (hKey)
+	{
+		::RegCloseKey(hKey);
+		hKey = nullptr;
+	}
 
 	return hr;
 }
 
+/// </ inheritdoc>
 HRESULT RegistrationManager::GetCurrentProcessSID(PSID* pOwner)
 {
-	if (!pOwner) return E_POINTER;
-	*pOwner = nullptr;
-
+	HRESULT hr = S_OK;
 	HANDLE hToken = nullptr;
 	DWORD dwLen = 0;
 	PTOKEN_USER pTokenUser = nullptr;
-	HRESULT hr = S_OK;
+	DWORD sidLen = 0;
 
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (!pOwner)
+	{
+		hr = E_POINTER;
+		WriteErrorFormmated(GUID_NULL, L"GetCurrentProcessSID: pOwner pointer is null.");
+		goto End;
+	}
+
+	*pOwner = nullptr;
+
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &hToken))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"GetCurrentProcessSID: OpenProcessToken failed. Error: %u", ::GetLastError());
+		goto End;
 	}
 
 	// First call to get required buffer size
-	GetTokenInformation(hToken, TokenUser, nullptr, 0, &dwLen);
-	pTokenUser = (PTOKEN_USER)malloc(dwLen);
-	if (!pTokenUser) {
-		CloseHandle(hToken);
-		return E_OUTOFMEMORY;
+	::GetTokenInformation(hToken, TokenUser, nullptr, 0, &dwLen);
+	pTokenUser = (PTOKEN_USER)::malloc(dwLen);
+	if (!pTokenUser)
+	{
+		hr = E_OUTOFMEMORY;
+		WriteError(GUID_NULL, L"GetCurrentProcessSID: Failed to allocate memory for TOKEN_USER.");
+		goto End;
 	}
 
-	if (!GetTokenInformation(hToken, TokenUser, pTokenUser, dwLen, &dwLen)) {
-		free(pTokenUser);
-		CloseHandle(hToken);
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (!::GetTokenInformation(hToken, TokenUser, pTokenUser, dwLen, &dwLen))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"GetCurrentProcessSID: GetTokenInformation failed. Error: %u", ::GetLastError());
+		goto End;
 	}
 
 	// Duplicate the SID for the caller
-	DWORD sidLen = GetLengthSid(pTokenUser->User.Sid);
-	*pOwner = (PSID)malloc(sidLen);
-	if (!*pOwner) {
-		free(pTokenUser);
-		CloseHandle(hToken);
-		return E_OUTOFMEMORY;
-	}
-	if (!CopySid(sidLen, *pOwner, pTokenUser->User.Sid)) {
-		free(*pOwner);
-		*pOwner = nullptr;
-		free(pTokenUser);
-		CloseHandle(hToken);
-		return HRESULT_FROM_WIN32(GetLastError());
+	sidLen = ::GetLengthSid(pTokenUser->User.Sid);
+	*pOwner = (PSID)::malloc(sidLen);
+	if (!*pOwner)
+	{
+		hr = E_OUTOFMEMORY;
+		WriteError(GUID_NULL, L"GetCurrentProcessSID: Failed to allocate memory for SID.");
+		goto End;
 	}
 
-	free(pTokenUser);
-	CloseHandle(hToken);
-	return S_OK;
+	if (!::CopySid(sidLen, *pOwner, pTokenUser->User.Sid))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"GetCurrentProcessSID: CopySid failed. Error: %u", ::GetLastError());
+		::free(*pOwner);
+		*pOwner = nullptr;
+		goto End;
+	}
+
+End:
+
+	if (pTokenUser)
+	{
+		::free(pTokenUser);
+		pTokenUser = nullptr;
+	}
+
+	if (hToken)
+	{
+		::CloseHandle(hToken);
+		hToken = nullptr;
+	}
+
+	return hr;
 }
 
+/// </ inheritdoc>
 HRESULT RegistrationManager::EnablePrivilege(LPCWSTR privilege)
 {
+	HRESULT hr = S_OK;
 	HANDLE hToken = nullptr;
 	TOKEN_PRIVILEGES tp = {};
-	LUID luid;
+	LUID luid = {};
 
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"EnablePrivilege: OpenProcessToken failed. Error: %u", ::GetLastError());
+		goto End;
+	}
 
-	if (!LookupPrivilegeValueW(nullptr, privilege, &luid)) {
-		CloseHandle(hToken);
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (!::LookupPrivilegeValueW(nullptr, privilege, &luid))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"EnablePrivilege: LookupPrivilegeValueW failed. Error: %u", ::GetLastError());
+		goto End;
 	}
 
 	tp.PrivilegeCount = 1;
 	tp.Privileges[0].Luid = luid;
 	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr)) {
-		CloseHandle(hToken);
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr))
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"EnablePrivilege: AdjustTokenPrivileges failed. Error: %u", ::GetLastError());
+		goto End;
 	}
 
 	// AdjustTokenPrivileges may succeed but not enable the privilege
-	if (GetLastError() != ERROR_SUCCESS) {
-		CloseHandle(hToken);
-		return HRESULT_FROM_WIN32(GetLastError());
+	if (::GetLastError() != ERROR_SUCCESS)
+	{
+		hr = HRESULT_FROM_WIN32(::GetLastError());
+		WriteErrorFormmated(GUID_NULL, L"EnablePrivilege: AdjustTokenPrivileges did not enable privilege. Error: %u", ::GetLastError());
+		goto End;
 	}
 
-	CloseHandle(hToken);
-	return S_OK;
+End:
+
+	if (hToken)
+	{
+		::CloseHandle(hToken);
+		hToken = nullptr;
+	}
+
+	return hr;
 }

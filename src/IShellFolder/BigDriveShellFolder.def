@@ -8,6 +8,5 @@ EXPORTS
     RegisterShellFoldersFromRegistry
     GetRegisteredCLSIDs
     RegisterShellFolder
-    GetModuleFileNameW_Export
     CheckDllAndOSBitnessMatch
     CleanUpShellFolders
