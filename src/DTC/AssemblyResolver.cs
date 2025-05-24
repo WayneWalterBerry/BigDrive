@@ -45,7 +45,10 @@ namespace BigDrive.Service
         {
             if (TryResolveAssembly(args, "System.Text.Json", "System.Text.Json.dll", out var assembly) ||
                 TryResolveAssembly(args, "System.Runtime.CompilerServices.Unsafe", "System.Runtime.CompilerServices.Unsafe.dll", out assembly) ||
-                TryResolveAssembly(args, "System.Diagnostics.DiagnosticSource", "System.Diagnostics.DiagnosticSource.dll", out assembly))
+                TryResolveAssembly(args, "System.Diagnostics.DiagnosticSource", "System.Diagnostics.DiagnosticSource.dll", out assembly) ||
+                TryResolveAssembly(args, "System.Memory", "System.Memory.dll", out assembly) ||
+                TryResolveAssembly(args, "System.Buffers", "System.Buffers.dll", out assembly) ||
+                TryResolveAssembly(args, "System.Threading.Tasks.Extensions", "System.Threading.Tasks.Extensions.dll", out assembly))
             {
                 return assembly;
             }

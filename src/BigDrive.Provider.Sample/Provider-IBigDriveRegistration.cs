@@ -23,7 +23,7 @@ namespace BigDrive.Provider.Sample
 
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
 
-            // Most Providers Will Not Create Their Own Drive, However This One Doe For Testing Purposes.
+            // Most Providers Will Not Create Their Own Drive, However This One Does For Testing Purposes.
             {
                 DriveConfiguration driveConfiguration = new DriveConfiguration
                 {
