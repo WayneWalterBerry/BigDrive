@@ -7,29 +7,31 @@
 
 #include <TraceLoggingProvider.h>
 
-// Provider Id: {A356D4CC-CDAC-4894-A93D-35C4C3F84944}
-TRACELOGGING_DEFINE_PROVIDER(
-	g_hMyProvider,
-	"BigDrive.ShellFolder",
-	(0xa356d4cc, 0xcdac, 0x4894, 0xa9, 0x3d, 0x35, 0xc4, 0xc3, 0xf8, 0x49, 0x44)
-);
-
-class TraceLogger
+/// <summary>
+/// Provides static methods for trace logging events related to the BigDrive Shell Folder.
+/// </summary>
+class BigDriveShellFolderTraceLogger
 {
 public:
+    /// <summary>
+    /// Registers the trace logging provider.
+    /// </summary>
+    static void Initialize();
 
-	static void Initialize()
-	{
-		TraceLoggingRegister(g_hMyProvider);
-	}
+    /// <summary>
+    /// Unregisters the trace logging provider.
+    /// </summary>
+    static void Uninitialize();
 
-	static void Uninitialize()
-	{
-		TraceLoggingUnregister(g_hMyProvider);
-	}
+    /// <summary>
+    /// Logs a custom event message.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    static void LogEvent(const char* message);
 
-	static void LogEvent(const char* message)
-	{
-		TraceLoggingWrite(g_hMyProvider, "BigDriveShellFolderEvent", TraceLoggingValue(message, "Message"));
-	}
+    /// <summary>
+    /// Logs entry into a function.
+    /// </summary>
+    /// <param name="functionName">The name of the function being entered.</param>
+    static void LogEnter(LPCSTR functionName);
 };

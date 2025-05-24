@@ -16,6 +16,7 @@
 #include "RegistrationManager.h"
 #include "BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -29,7 +30,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 
-		TraceLogger::Initialize();
+        BigDriveShellFolderTraceLogger::Initialize();
 
         // Initialize COM
         hr = ::CoInitialize(NULL);
@@ -43,7 +44,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_PROCESS_DETACH:
         
-        TraceLogger::Uninitialize();
+        BigDriveShellFolderTraceLogger::Uninitialize();
 
         // Uninitialize COM
         ::CoUninitialize();
@@ -145,6 +146,8 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     CLSID* pclsid = nullptr;
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
+
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (ppv == nullptr)
     {
