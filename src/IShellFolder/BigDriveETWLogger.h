@@ -46,32 +46,6 @@ public:
     }
 
     /// <summary>
-    /// Logs an informational event with the specified message.
-    /// Only writes the event if the BIGDRIVE_EVENT_INFO event is enabled in the ETW session.
-    /// </summary>
-    /// <param name="message">The message to log. Must be a null-terminated wide string.</param>
-    static void LogInfo(LPCWSTR message)
-    {
-        if (EventEnabledBIGDRIVE_EVENT_INFO())
-        {
-            EventWriteBIGDRIVE_EVENT_INFO(message);
-        }
-    }
-
-    /// <summary>
-    /// Logs an error event with the specified message.
-    /// Only writes the event if the BIGDRIVE_EVENT_ERROR event is enabled in the ETW session.
-    /// </summary>
-    /// <param name="message">The message to log. Must be a null-terminated wide string.</param>
-    static void LogError(LPCWSTR message)
-    {
-        if (EventEnabledBIGDRIVE_EVENT_ERROR())
-        {
-            EventWriteBIGDRIVE_EVENT_ERROR(message);
-        }
-    }
-
-    /// <summary>
     /// Logs a function entry event with the specified function name and line number.
     /// Only writes the event if the BIGDRIVE_EVENT_ENTER event is enabled in the ETW session.
     /// This is useful for tracing execution flow through the application.

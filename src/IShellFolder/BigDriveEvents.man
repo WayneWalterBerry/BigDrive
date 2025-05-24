@@ -20,26 +20,6 @@
                     <event
                       value="1"
                       version="0"
-                      level="win:Informational"
-                      symbol="BIGDRIVE_EVENT_INFO"
-                      task="General"
-                      opcode="win:Info"
-                      channel="ADMIN"
-                      message="$(string.BIGDRIVE_EVENT_INFO_MSG)"
-                      template="T1" />
-                    <event
-                      value="2"
-                      version="0"
-                      level="win:Error"
-                      symbol="BIGDRIVE_EVENT_ERROR"
-                      task="General"
-                      opcode="win:Info"
-                      channel="ADMIN"
-                      message="$(string.BIGDRIVE_EVENT_ERROR_MSG)"
-                      template="T1" />
-                    <event
-                      value="3"
-                      version="0"
                       level="win:Verbose"
                       symbol="BIGDRIVE_EVENT_ENTER"
                       task="General"
@@ -48,7 +28,7 @@
                       message="$(string.BIGDRIVE_EVENT_ENTER_MSG)"
                       template="T2" />
                     <event
-                      value="4"
+                      value="2"
                       version="0"
                       level="win:Verbose"
                       symbol="BIGDRIVE_EVENT_LEAVE"

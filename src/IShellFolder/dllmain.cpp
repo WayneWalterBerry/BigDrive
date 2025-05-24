@@ -134,7 +134,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 
 End:
   
-    return S_OK;
+    return hr;
 }
 
 extern "C" HRESULT __stdcall DllUnregisterServer()
