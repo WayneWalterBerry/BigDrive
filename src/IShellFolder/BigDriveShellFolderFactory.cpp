@@ -5,7 +5,7 @@
 #include "pch.h"
 
 #include "BigDriveShellFolderFactory.h"
-#include "BigDriveETWLogger.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 #include <windows.h>
 
@@ -22,7 +22,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
 
     BigDriveShellFolder* pFolder = nullptr;
 
-    BigDriveETWLogger::LogEnter(__FUNCTION__, __LINE__);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (pUnkOuter != nullptr)
     {
@@ -47,8 +47,6 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
     }
 
 End:
-
-    BigDriveETWLogger::LogLeave(__FUNCTION__, __LINE__, hr);
 
     if (pFolder != nullptr)
     {

@@ -12,12 +12,11 @@
 
 /// Local
 #include "BigDriveShellFolderFactory.h"
-#include "CLSIDs.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
+#include "BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
-#include "BigDriveETWLogger.h"
-#include "ETWManifestManager.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -31,8 +30,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 
-        // Initialize the module
-        BigDriveETWLogger::Initialize();
+        BigDriveShellFolderTraceLogger::Initialize();
 
         // Initialize COM
         hr = ::CoInitialize(NULL);
@@ -46,9 +44,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_PROCESS_DETACH:
         
-        // Uninitialize the module
-        BigDriveETWLogger::Cleanup();
-        
+        BigDriveShellFolderTraceLogger::Uninitialize();
+
         // Uninitialize COM
         ::CoUninitialize();
         break;
@@ -68,19 +65,6 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
-    
-    hr = ETWManifestManager::UnregisterManifest();
-    if (FAILED(hr))
-    {
-        goto End;
-    }
-  
-
-    hr = ETWManifestManager::RegisterManifest();
-    if (FAILED(hr))
-    {
-        goto End;
-    }
 
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
@@ -135,22 +119,12 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 
 End:
   
-    return S_OK;
+    return hr;
 }
 
 extern "C" HRESULT __stdcall DllUnregisterServer()
 {
-    HRESULT hr = S_OK;
-
-    hr = ETWManifestManager::UnregisterManifest(L"BigDriveEvents.man");
-    if (FAILED(hr))
-    {
-        goto End;
-    }
-
-End:
-
-    return hr;
+    return S_OK;
 }
 
 /// <summary>
@@ -172,6 +146,8 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     CLSID* pclsid = nullptr;
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
+
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (ppv == nullptr)
     {

@@ -76,7 +76,6 @@ namespace BigDriveClientTest
             delete pCOMAdminCatalog;
         }
 
-
         TEST_METHOD(GetApplicationsCollection_Populate)
         {
             HRESULT hr = S_OK;

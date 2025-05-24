@@ -9,7 +9,6 @@
 
 // Local
 #include "LaunchDebugger.h"
-#include "BigDriveETWLogger.h"
 
 /// <summary>
 /// Queries the object for a pointer to one of its supported interfaces.

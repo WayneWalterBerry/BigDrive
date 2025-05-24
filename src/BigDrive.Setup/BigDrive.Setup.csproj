@@ -52,6 +52,12 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
+      <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
+      <Name>BigDrive.ConfigProvider</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>$(TargetPath)</PostBuildEvent>
