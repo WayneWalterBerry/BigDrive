@@ -89,9 +89,6 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
-    <PostBuildEvent>
-      <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -112,9 +109,6 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
-    <PostBuildEvent>
-      <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -135,9 +129,8 @@
     </Link>
     <PostBuildEvent>
       <Command>
-                copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"
-                C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
-            </Command>
+        C:\Windows\SysWOW64\regsvr32.exe /s "$(TargetPath)"
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -159,23 +152,15 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>BigDriveShellFolder.def</ModuleDefinitionFile>
     </Link>
-    <PostBuildEvent>
-      <Command>copy "$(ProjectDir)BigDriveEvents.man" "$(OutDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BigDriveETWLogger.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
-    <ClInclude Include="ETWManifestManager.h" />
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />
-    <ClInclude Include="Exports\ETWManifestManagerExports.h" />
-    <ClInclude Include="Exports\ETWManifestManagerImports.h" />
     <ClInclude Include="Exports\RegistrationManagerExports.h" />
     <ClInclude Include="Exports\RegistrationManagerImports.h" />
-    <ClInclude Include="Generated\BigDriveEvents.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ILExtensions.h" />
     <ClInclude Include="LaunchDebugger.h" />
@@ -188,9 +173,7 @@
     <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="ETWManifestManager.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
-    <ClCompile Include="Exports\ETWManifestManagerExports.cpp" />
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
     <ClCompile Include="ILExtensions.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
@@ -204,18 +187,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="BigDriveShellFolder.def" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="BigDriveEvents.man">
-      <Message>Compiling ETW manifest BigDriveEvents.man</Message>
-      <Command>cd "$(ProjectDir)" &amp;&amp; mc.exe -um -h Generated -r Generated -z BigDriveEvents BigDriveEvents.man</Command>
-      <Outputs>$(ProjectDir)Generated\BigDriveEvents.h;$(ProjectDir)Generated\BigDriveEvents.rc;$(ProjectDir)Generated\BigDriveEvents_MSG00001.BIN</Outputs>
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <FileType>Document</FileType>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Generated\BigDriveEvents.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj">

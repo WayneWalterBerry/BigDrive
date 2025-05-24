@@ -15,8 +15,6 @@
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
-#include "BigDriveETWLogger.h"
-#include "ETWManifestManager.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -30,9 +28,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 
-        // Initialize the module
-        BigDriveETWLogger::Initialize();
-
         // Initialize COM
         hr = ::CoInitialize(NULL);
         if (FAILED(hr)) 
@@ -44,9 +39,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
         break;
     case DLL_PROCESS_DETACH:
-        
-        // Uninitialize the module
-        BigDriveETWLogger::Cleanup();
         
         // Uninitialize COM
         ::CoUninitialize();
@@ -67,20 +59,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
-    
-    hr = ETWManifestManager::UnregisterManifest();
-    if (FAILED(hr))
-    {
-        goto End;
-    }
   
-
-    hr = ETWManifestManager::RegisterManifest();
-    if (FAILED(hr))
-    {
-        goto End;
-    }
-
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
     // IBigDriveRegistration interface, and invokes the Register method on each supported component.
@@ -140,12 +119,6 @@ End:
 extern "C" HRESULT __stdcall DllUnregisterServer()
 {
     HRESULT hr = S_OK;
-
-    hr = ETWManifestManager::UnregisterManifest();
-    if (FAILED(hr))
-    {
-        goto End;
-    }
 
 End:
 
