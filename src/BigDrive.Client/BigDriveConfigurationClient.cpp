@@ -33,7 +33,7 @@ HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* ps
     BSTR configuration = nullptr;
 
     // Initialize COM
-    hr = CoInitialize(NULL);
+    hr = ::CoInitialize(NULL);
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to initialize COM. HRESULT: 0x%08X", hr);
@@ -41,13 +41,15 @@ HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* ps
     }
 
     // Create an instance of the BigDriveConfiguration COM object
-    hr = CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_LOCAL_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
+    hr = ::CoCreateInstance(CLSID_BigDriveConfiguration, NULL, CLSCTX_LOCAL_SERVER, IID_IBigDriveConfiguration, (void**)&pBigDriveConfiguration);
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to create BigDriveConfiguration COM instance. HRESULT: 0x%08X", hr);
         goto End;
     }
 
+    // Call the Big Drive Service (Not A Provider) To Have It Read The Drive's Configuration 
+    // From the Registry, The Big Drive Service Is Hosted On COM++
     hr = pBigDriveConfiguration->GetConfiguration(guid, &configuration);
     switch (hr)
     {

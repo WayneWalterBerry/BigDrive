@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
+    <ClInclude Include="BigDriveShellFolderTraceLogger.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />

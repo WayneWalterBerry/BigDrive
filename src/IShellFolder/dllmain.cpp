@@ -14,6 +14,7 @@
 #include "BigDriveShellFolderFactory.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
+#include "BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -28,6 +29,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 
+		TraceLogger::Initialize();
+
         // Initialize COM
         hr = ::CoInitialize(NULL);
         if (FAILED(hr)) 
@@ -40,6 +43,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_PROCESS_DETACH:
         
+        TraceLogger::Uninitialize();
+
         // Uninitialize COM
         ::CoUninitialize();
         break;
@@ -59,7 +64,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 {
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
-  
+
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
     // IBigDriveRegistration interface, and invokes the Register method on each supported component.
@@ -118,11 +123,7 @@ End:
 
 extern "C" HRESULT __stdcall DllUnregisterServer()
 {
-    HRESULT hr = S_OK;
-
-End:
-
-    return hr;
+    return S_OK;
 }
 
 /// <summary>
