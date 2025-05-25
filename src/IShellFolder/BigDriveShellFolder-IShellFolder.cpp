@@ -391,13 +391,21 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
-	HRESULT hr = E_NOINTERFACE;
+	HRESULT hr = E_NOTIMPL;
+
+	if (!ppv)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
-	// Placeholder implementation
+	*ppv = nullptr;
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+End:
 
 	return hr;
 }

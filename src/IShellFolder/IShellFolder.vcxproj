@@ -170,13 +170,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BigDriveShellFolder-IObjectWithBackReferences.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IPersist.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IProvideClassInfo.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
-    <ClCompile Include="BigDriveShellFolderFactory.cpp" />
+    <ClCompile Include="BigDriveShellFolderFactory-IClassFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderTraceLogger.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />

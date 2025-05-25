@@ -245,7 +245,7 @@ public:
         SHGDNF uFlags, PITEMID_CHILD* ppidlOut) override;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // IPersistFolder methods
+    // IPersist
 
     /// <summary>
     /// Retrieves the class identifier (CLSID) for this Shell Folder extension.
@@ -255,6 +255,9 @@ public:
     /// <param name="pClassID">Pointer to a CLSID that receives the class identifier.</param>
     /// <returns>S_OK if successful; E_POINTER if pClassID is null.</returns>
     HRESULT __stdcall GetClassID(CLSID* pClassID) override;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IPersistFolder methods
 
     /// <summary>
     /// Initializes the Shell Folder extension with its absolute location in the Shell namespace.

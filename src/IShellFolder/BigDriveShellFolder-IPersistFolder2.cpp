@@ -2,14 +2,6 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 // <author>Wayne Walter Berry</author>
-// <summary>
-//   Implements the IPersistFolder2 interface for the BigDriveShellFolder class.
-//   These methods are essential for IShellFolder extensions, enabling the shell to
-//   identify, initialize, and retrieve the PIDL for custom namespace extensions.
-//   GetClassID provides the unique CLSID for the folder, Initialize sets up the
-//   folder's location within the shell namespace using a PIDL, and GetCurFolder
-//   retrieves the current absolute PIDL.
-// </summary>
 
 #include "pch.h"
 
