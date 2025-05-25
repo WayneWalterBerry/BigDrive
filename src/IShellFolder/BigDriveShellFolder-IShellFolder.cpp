@@ -136,11 +136,12 @@ End:
 
 	if (FAILED(hr))
 	{
-		if (*ppidl)
+		if (ppidl && (*ppidl))
 		{
 			::CoTaskMemFree(*ppidl);
 			*ppidl = nullptr;
 		}
+
 		if (pchEaten) *pchEaten = 0;
 	}
 
@@ -425,7 +426,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 		goto End;
 	}
 
-	*rgfInOut = SFGAO_FILESYSTEM;
+	*rgfInOut = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
 
 End:
 
@@ -437,8 +438,7 @@ End:
 /// <summary>
 /// Retrieves an object that can be used to carry out actions on the specified items.
 /// </summary>
-HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl,
-	REFIID riid, UINT* rgfReserved, void** ppv)
+HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
 {
 	HRESULT hr = E_NOTIMPL;
 

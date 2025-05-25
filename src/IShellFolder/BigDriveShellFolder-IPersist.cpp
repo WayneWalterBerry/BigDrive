@@ -23,7 +23,7 @@ HRESULT __stdcall BigDriveShellFolder::GetClassID(CLSID* pClassID)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pClassID);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, m_driveGuid);
 
     if (!pClassID)
     {
