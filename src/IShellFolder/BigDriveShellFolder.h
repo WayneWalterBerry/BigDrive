@@ -9,7 +9,7 @@
 #include <string>
 
 // Local
-#include "ILExtensions.h"
+#include "ItemIdDictionary.h" 
 
 /// <summary>
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
@@ -43,6 +43,11 @@ private:
     /// </summary>
     LONG m_refCount;
 
+	/// <summary>
+	/// A dictionary that stores item IDs.
+	/// </summary>
+	ItemIdDictionary *m_pItemIdDictionary; 
+
 public:
 
     /// <summary>
@@ -68,6 +73,49 @@ public:
             ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
             m_pidl = nullptr;
         }
+
+        if (m_pItemIdDictionary != nullptr)
+        {
+            delete m_pItemIdDictionary;
+            m_pItemIdDictionary = nullptr;
+        }
+    }
+
+    /// <summary>
+    /// Factory method that creates and initializes a new BigDriveShellFolder instance.
+    /// Allocates the object, clones the provided PIDL, and creates an associated ItemIdDictionary.
+    /// On success, returns a pointer to the new folder object via <paramref name="ppBigDriveShellFolder"/>.
+    /// On failure, cleans up all resources and returns an error HRESULT.
+    /// </summary>
+    /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
+    /// <param name="pParentShellFolder">Pointer to the parent shell folder, or nullptr for root folders.</param>
+    /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
+    /// <param name="ppBigDriveShellFolder">Receives the pointer to the created BigDriveShellFolder instance on success; set to nullptr on failure.</param>
+    /// <returns>S_OK if the folder was created successfully; error HRESULT (such as E_OUTOFMEMORY) on failure.</returns>
+    static HRESULT Create(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl, BigDriveShellFolder **ppBigDriveShellFolder)
+    {
+        HRESULT hr = S_OK;
+
+        BigDriveShellFolder* pNewFolder = new BigDriveShellFolder(driveGuid, pParentShellFolder, pidl);
+        if (!pNewFolder)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        // Return the created folder
+        *ppBigDriveShellFolder = pNewFolder;
+
+    End:
+
+        if (FAILED(hr) && pNewFolder)
+        {
+            // Clean up on failure
+            delete pNewFolder; 
+            *ppBigDriveShellFolder = nullptr;
+        }
+
+		return hr;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

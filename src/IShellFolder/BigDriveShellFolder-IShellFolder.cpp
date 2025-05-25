@@ -284,10 +284,9 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
 	pidlSubFolder = ILCombine(m_pidl, pidl);
 
-	pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
-	if (!pSubFolder)
+	hr = BigDriveShellFolder::Create(m_driveGuid, this, pidlSubFolder, &pSubFolder);
+	if (FAILED(hr))
 	{
-		hr = E_OUTOFMEMORY;
 		goto End;
 	}
 

@@ -32,10 +32,9 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
     }
 
     // Create an instance of BigDriveFolder
-    pFolder = new BigDriveShellFolder(m_driveGuid, nullptr, s_pidlRoot);
-    if (!pFolder)
+    hr = BigDriveShellFolder::Create(m_driveGuid, nullptr, s_pidlRoot, &pFolder);
+    if (FAILED(hr))
     {
-        hr = E_OUTOFMEMORY;
         goto End;
     }
 
