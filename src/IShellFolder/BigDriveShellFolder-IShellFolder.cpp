@@ -10,6 +10,7 @@
 // Local
 #include "LaunchDebugger.h"
 #include "EmptyEnumIDList.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -65,59 +66,87 @@
 /// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
-    HWND hwnd, 
-    LPBC pbc,
-    LPOLESTR pszDisplayName,
-    ULONG* pchEaten,
-    PIDLIST_RELATIVE* ppidl,
-    ULONG* pdwAttributes)
+	HWND hwnd,
+	LPBC pbc,
+	LPOLESTR pszDisplayName,
+	ULONG* pchEaten,
+	PIDLIST_RELATIVE* ppidl,
+	ULONG* pdwAttributes)
 {
-    // Validate output pointer
-    if (!ppidl) 
-    {
-        if (pchEaten) *pchEaten = 0;
-        return E_INVALIDARG;
-    }
+	// All local variables declared at the beginning
+	HRESULT hr = S_OK;
+	size_t len = 0;
+	size_t nameLen = 0;
+	size_t pidlSize = 0;
+	BYTE* pidlMem = nullptr;
+	USHORT* pcb = nullptr;
+	USHORT* pcbEnd = nullptr;
 
-    *ppidl = nullptr;
+	BigDriveShellFolderTraceLogger::LogParseDisplayName(__FUNCTION__, pszDisplayName);
 
-    // Validate input
-    if (!pszDisplayName || !*pszDisplayName) 
-    {
-        if (pchEaten) *pchEaten = 0;
-        return E_INVALIDARG;
-    }
+	// Validate output pointer
+	if (!ppidl)
+	{
+		if (pchEaten) *pchEaten = 0;
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
-    // For a minimal implementation, just create a simple one-level PIDL for the display name
-    size_t len = wcslen(pszDisplayName);
-    if (pchEaten) *pchEaten = static_cast<ULONG>(len);
+	*ppidl = nullptr;
 
-    // Allocate a minimal PIDL: [cb][data...][cb=0]
-    // We'll use the display name as the "data" for the PIDL
-    size_t nameLen = (len + 1) * sizeof(wchar_t);
-    size_t pidlSize = sizeof(USHORT) + nameLen + sizeof(USHORT); // [cb][name][cb=0]
-    BYTE* pidlMem = (BYTE*)::CoTaskMemAlloc(pidlSize);
-    if (!pidlMem) 
-    {
-        return E_OUTOFMEMORY;
-    }
+	// Validate input
+	if (!pszDisplayName || !*pszDisplayName)
+	{
+		if (pchEaten) *pchEaten = 0;
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
-    // Fill in the PIDL
-    USHORT* pcb = (USHORT*)pidlMem;
-    *pcb = static_cast<USHORT>(nameLen); // size of this item
-    memcpy(pidlMem + sizeof(USHORT), pszDisplayName, nameLen);
-    USHORT* pcbEnd = (USHORT*)(pidlMem + sizeof(USHORT) + nameLen);
-    *pcbEnd = 0; // null terminator for the PIDL
+	// For a minimal implementation, just create a simple one-level PIDL for the display name
+	len = wcslen(pszDisplayName);
+	if (pchEaten) *pchEaten = static_cast<ULONG>(len);
 
-    *ppidl = (PIDLIST_RELATIVE)pidlMem;
+	// Allocate a minimal PIDL: [cb][data...][cb=0]
+	// We'll use the display name as the "data" for the PIDL
+	nameLen = (len + 1) * sizeof(wchar_t);
+	pidlSize = sizeof(USHORT) + nameLen + sizeof(USHORT); // [cb][name][cb=0]
+	pidlMem = (BYTE*)::CoTaskMemAlloc(pidlSize);
+	if (!pidlMem)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
 
-    // Optionally set attributes
-    if (pdwAttributes) 
-    {
-        *pdwAttributes = SFGAO_FILESYSTEM | SFGAO_FOLDER;
-    }
+	// Fill in the PIDL
+	pcb = (USHORT*)pidlMem;
+	*pcb = static_cast<USHORT>(nameLen); // size of this item
+	memcpy(pidlMem + sizeof(USHORT), pszDisplayName, nameLen);
+	pcbEnd = (USHORT*)(pidlMem + sizeof(USHORT) + nameLen);
+	*pcbEnd = 0; // null terminator for the PIDL
 
-    return S_OK;
+	*ppidl = (PIDLIST_RELATIVE)pidlMem;
+
+	// Optionally set attributes
+	if (pdwAttributes)
+	{
+		*pdwAttributes = SFGAO_FILESYSTEM | SFGAO_FOLDER;
+	}
+
+End:
+
+	if (FAILED(hr))
+	{
+		if (*ppidl)
+		{
+			::CoTaskMemFree(*ppidl);
+			*ppidl = nullptr;
+		}
+		if (pchEaten) *pchEaten = 0;
+	}
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return S_OK;
 }
 
 /// <summary>
@@ -166,19 +195,29 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
-    // Validate output pointer
-    if (!ppenumIDList)
-    {
-        return E_INVALIDARG;
-    }
+	HRESULT hr = S_OK;
 
-    *ppenumIDList = nullptr;
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-    // For a minimal implementation, return an empty enumerator (no files/folders)
-    // This is sufficient for a shell folder that is empty or as a stub for a drive root.
+	// Validate output pointer
+	if (!ppenumIDList)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
-    *ppenumIDList = new EmptyEnumIDList();
-    return S_OK;
+	*ppenumIDList = nullptr;
+
+	// For a minimal implementation, return an empty enumerator (no files/folders)
+	// This is sufficient for a shell folder that is empty or as a stub for a drive root.
+
+	*ppenumIDList = new EmptyEnumIDList();
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+End:
+
+	return hr;
 }
 
 /// <summary>
@@ -228,36 +267,46 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
-    if (!pidl || !ppv)
-    {
-        return E_INVALIDARG;
-    }
+	HRESULT hr = S_OK;
+	PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
+	BigDriveShellFolder* pSubFolder = nullptr;
 
-    *ppv = nullptr; 
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
 
-    PIDLIST_ABSOLUTE pidlSubFolder = ILCombine(m_pidl, pidl);
+	if (!pidl || !ppv)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
-    BigDriveShellFolder* pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
-    if (!pSubFolder)
-    {
-        return E_OUTOFMEMORY;
-    }
+	*ppv = nullptr;
 
-    HRESULT hr = pSubFolder->QueryInterface(riid, ppv);
-    if (FAILED(hr))
-    {
-        goto End;
-    }
+	pidlSubFolder = ILCombine(m_pidl, pidl);
+
+	pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
+	if (!pSubFolder)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	hr = pSubFolder->QueryInterface(riid, ppv);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
 
 End:
 
-    if (pSubFolder!= nullptr)
-    {
-        pSubFolder->Release(); 
-        pSubFolder = nullptr;
-    }
+	if (pSubFolder != nullptr)
+	{
+		pSubFolder->Release();
+		pSubFolder = nullptr;
+	}
 
-    return hr;
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
@@ -265,8 +314,15 @@ End:
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
@@ -274,17 +330,76 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl1);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
-/// Creates a view object for the folder.
+/// Creates a view object for the BigDrive shell folder, enabling the Windows Shell to display the contents
+/// of the folder in a user interface such as Windows Explorer. This method is called by the shell when it
+/// needs to create a view (e.g., a folder window, details pane, or other UI component) for the folder.
+/// 
+/// <para><b>Parameters:</b></para>
+/// <param name="hwndOwner">
+///   [in] Handle to the owner window for any UI that may be displayed. Typically used as the parent window
+///   for any dialogs or UI elements created by the view object. May be NULL if not applicable.
+/// </param>
+/// <param name="riid">
+///   [in] The interface identifier (IID) of the view object the shell is requesting. Commonly requested
+///   interfaces include IID_IShellView (for folder views), IID_IDropTarget (for drag-and-drop support),
+///   and others depending on the shell's needs.
+/// </param>
+/// <param name="ppv">
+///   [out] Address of a pointer that receives the requested interface pointer for the view object. On
+///   success, this will point to the requested interface. The caller is responsible for releasing this
+///   interface. Set to nullptr on failure.
+/// </param>
+/// 
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the requested view object was successfully created and returned in *ppv.
+///   E_NOINTERFACE if the requested interface is not supported by this folder.
+///   E_INVALIDARG if any required parameter is invalid.
+///   E_NOTIMPL if the method is not implemented (typical for minimal or stub shell extensions).
+///   Other COM error codes as appropriate.
+/// </returns>
+/// 
+/// <para><b>Behavior and Notes:</b></para>
+/// <list type="bullet">
+///   <item>The shell calls this method to obtain a UI object for displaying or interacting with the folder's contents.</item>
+///   <item>If the requested interface is IID_IShellView, the implementation should return an object that implements the IShellView interface, which is responsible for rendering the folder's items in Explorer.</item>
+///   <item>Other interfaces, such as IDropTarget or IContextMenu, may also be requested depending on shell operations.</item>
+///   <item>If the requested interface is not supported, return E_NOINTERFACE and set *ppv to nullptr.</item>
+///   <item>For minimal or stub implementations, it is common to return E_NOTIMPL to indicate that no view object is provided.</item>
+///   <item>The returned interface pointer must be properly reference-counted and released by the caller.</item>
+///   <item>Do not display UI unless absolutely necessary; this method is typically called by the shell for programmatic view creation.</item>
+/// </list>
+/// 
+/// <para><b>Typical Usage:</b></para>
+/// <list type="bullet">
+///   <item>Used by the shell to create the folder view window when the user navigates into the folder in Explorer.</item>
+///   <item>Enables support for drag-and-drop, context menus, and other UI features by returning the appropriate interfaces.</item>
+///   <item>Required for shell extensions that want to provide a custom view or UI for their namespace.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOINTERFACE;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
@@ -292,25 +407,40 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, SFGAOF* rgfInOut)
 {
-    if (cidl == 0 || !apidl || !rgfInOut)
-    {
-        return E_INVALIDARG;
-    }
+	HRESULT hr = S_OK;
 
-    *rgfInOut = SFGAO_FILESYSTEM;
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-    // Placeholder implementation
-    return E_NOTIMPL;
+	if (cidl == 0 || !apidl || !rgfInOut)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	*rgfInOut = SFGAO_FILESYSTEM;
+
+End:
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
 /// Retrieves an object that can be used to carry out actions on the specified items.
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl,
-    REFIID riid, UINT* rgfReserved, void** ppv)
+	REFIID riid, UINT* rgfReserved, void** ppv)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
@@ -318,16 +448,29 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }
 
 /// <summary>
 /// Sets the display name of an item in the folder.
 /// </summary>
-HRESULT __stdcall BigDriveShellFolder::SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName,
-    SHGDNF uFlags, PITEMID_CHILD* ppidlOut)
+HRESULT __stdcall BigDriveShellFolder::SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName, SHGDNF uFlags, PITEMID_CHILD* ppidlOut)
 {
-    // Placeholder implementation
-    return E_NOTIMPL;
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+
+	// Placeholder implementation
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	return hr;
 }

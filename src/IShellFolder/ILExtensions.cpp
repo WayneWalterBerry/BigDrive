@@ -10,9 +10,11 @@
 /// <inheritdoc />
 HRESULT ILSerialize(_In_ LPCITEMIDLIST pidl, _Out_ BSTR& bstPath)
 {
-    if (&bstPath == nullptr)
+    // Return empty string if pidl is null
+    if (pidl == nullptr)
     {
-        return E_INVALIDARG;
+        bstPath = ::SysAllocString(L"");
+        return S_OK;
     }
 
     // First, calculate the total length needed for the BSTR (in wchar_t)

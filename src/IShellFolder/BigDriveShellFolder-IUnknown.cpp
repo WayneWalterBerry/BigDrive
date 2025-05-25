@@ -9,21 +9,54 @@
 
 // Local
 #include "LaunchDebugger.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 /// <summary>
 /// Queries the object for a pointer to one of its supported interfaces.
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObject)
 {
+    HRESULT hr = S_OK;
+
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+
     if (riid == IID_IUnknown || riid == IID_IShellFolder)
     {
         *ppvObject = static_cast<IShellFolder*>(this);
         AddRef();
-        return S_OK;
+        hr = S_OK;
+        goto End;
     }
+    else if (IsEqualIID(riid, IID_IPersistFolder) || IsEqualIID(riid, IID_IPersistFolder2)) 
+    {
+        *ppvObject = static_cast<IPersistFolder2*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+    }
+    else if (IsEqualIID(riid, IID_IObjectWithBackReferences))
+    {
+        *ppvObject = static_cast<IObjectWithBackReferences*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+    }
+    else if (IsEqualIID(riid, IID_IProvideClassInfo))
+    {
+        *ppvObject = static_cast<IProvideClassInfo*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+	}
 
     *ppvObject = nullptr;
-    return E_NOINTERFACE;
+    hr = E_NOINTERFACE;
+
+End:
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+    return hr;
 }
 
 /// <summary>

@@ -147,11 +147,12 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    BigDriveShellFolderTraceLogger::LogDllGetClassObject(__FUNCTION__, rclsid, riid);
 
     if (ppv == nullptr)
     {
-        return E_POINTER;
+        hr = E_POINTER;
+        goto End;
     }
 
     // Ensure the output pointer is initialized to nullptr.
@@ -160,7 +161,7 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     hr = RegistrationManager::GetRegisteredCLSIDs(&pclsid, dwSize);
     if (FAILED(hr))
     {
-        return hr;
+        goto End;
     }
 
     for (int i = 0; pclsid[i] != GUID_NULL; i++)
@@ -172,7 +173,8 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
             pFactory = new BigDriveShellFolderFactory(rclsid);
             if (!pFactory)
             {
-                return E_OUTOFMEMORY;
+                hr = E_OUTOFMEMORY;
+                goto End;
             }
 
             hr = pFactory->QueryInterface(riid, ppv);
@@ -202,6 +204,8 @@ End:
         CoTaskMemFree(pclsid);
         pclsid = nullptr;
     }
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
     return hr;
 }

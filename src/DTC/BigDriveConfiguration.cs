@@ -30,8 +30,6 @@ namespace BigDrive.Service.ComObjects
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)
         {
-            System.Diagnostics.Debugger.Launch();
-
             DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", guid);
 
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
