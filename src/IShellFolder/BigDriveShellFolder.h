@@ -15,7 +15,9 @@
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
 /// Provides functionality for interacting with the shell folder hierarchy.
 /// </summary>
-class BigDriveShellFolder : public IShellFolder, IPersistFolder
+class BigDriveShellFolder : public 
+    IShellFolder,
+	IPersistFolder2 // IPersistFolder is deprecated, use IPersistFolder2 instead
 {
 private:
 
@@ -219,6 +221,17 @@ public:
     /// <param name="pidl">The absolute PIDL that identifies the folder's location.</param>
     /// <returns>S_OK if successful; E_INVALIDARG if pidl is null; E_OUTOFMEMORY if cloning fails.</returns>
     HRESULT __stdcall Initialize(PCIDLIST_ABSOLUTE pidl) override;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IPersistFolder2 methods
+
+    /// <summary>
+    /// Retrieves the current absolute PIDL for this Shell Folder.
+    /// This is required for IShellFolder extensions to allow the shell to query the folder's location.
+    /// </summary>
+    /// <param name="ppidl">Address of a pointer that receives the PIDL. The caller is responsible for freeing it with ILFree.</param>
+    /// <returns>S_OK if successful; E_POINTER if ppidl is null; E_OUTOFMEMORY if cloning fails.</returns>
+    HRESULT __stdcall GetCurFolder(PIDLIST_ABSOLUTE* ppidl) override;
 
 private:
 

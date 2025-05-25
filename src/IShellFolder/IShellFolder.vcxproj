@@ -170,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IPersistFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
