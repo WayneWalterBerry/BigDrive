@@ -10,6 +10,7 @@
 // Local
 #include "LaunchDebugger.h"
 #include "EmptyEnumIDList.h"
+#include "BigDriveShellFolderTraceLogger.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -65,57 +66,85 @@
 /// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
-    HWND hwnd, 
+    HWND hwnd,
     LPBC pbc,
     LPOLESTR pszDisplayName,
     ULONG* pchEaten,
     PIDLIST_RELATIVE* ppidl,
     ULONG* pdwAttributes)
 {
+    // All local variables declared at the beginning
+    HRESULT hr = S_OK;
+    size_t len = 0;
+    size_t nameLen = 0;
+    size_t pidlSize = 0;
+    BYTE* pidlMem = nullptr;
+    USHORT* pcb = nullptr;
+    USHORT* pcbEnd = nullptr;
+
+    BigDriveShellFolderTraceLogger::LogParseDisplayName(__FUNCTION__, pszDisplayName);
+
     // Validate output pointer
-    if (!ppidl) 
+    if (!ppidl)
     {
         if (pchEaten) *pchEaten = 0;
-        return E_INVALIDARG;
+        hr = E_INVALIDARG;
+        goto End;
     }
 
     *ppidl = nullptr;
 
     // Validate input
-    if (!pszDisplayName || !*pszDisplayName) 
+    if (!pszDisplayName || !*pszDisplayName)
     {
         if (pchEaten) *pchEaten = 0;
-        return E_INVALIDARG;
+        hr = E_INVALIDARG;
+        goto End;
     }
 
     // For a minimal implementation, just create a simple one-level PIDL for the display name
-    size_t len = wcslen(pszDisplayName);
+    len = wcslen(pszDisplayName);
     if (pchEaten) *pchEaten = static_cast<ULONG>(len);
 
     // Allocate a minimal PIDL: [cb][data...][cb=0]
     // We'll use the display name as the "data" for the PIDL
-    size_t nameLen = (len + 1) * sizeof(wchar_t);
-    size_t pidlSize = sizeof(USHORT) + nameLen + sizeof(USHORT); // [cb][name][cb=0]
-    BYTE* pidlMem = (BYTE*)::CoTaskMemAlloc(pidlSize);
-    if (!pidlMem) 
+    nameLen = (len + 1) * sizeof(wchar_t);
+    pidlSize = sizeof(USHORT) + nameLen + sizeof(USHORT); // [cb][name][cb=0]
+    pidlMem = (BYTE*)::CoTaskMemAlloc(pidlSize);
+    if (!pidlMem)
     {
-        return E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
+        goto End;
     }
 
     // Fill in the PIDL
-    USHORT* pcb = (USHORT*)pidlMem;
+    pcb = (USHORT*)pidlMem;
     *pcb = static_cast<USHORT>(nameLen); // size of this item
     memcpy(pidlMem + sizeof(USHORT), pszDisplayName, nameLen);
-    USHORT* pcbEnd = (USHORT*)(pidlMem + sizeof(USHORT) + nameLen);
+    pcbEnd = (USHORT*)(pidlMem + sizeof(USHORT) + nameLen);
     *pcbEnd = 0; // null terminator for the PIDL
 
     *ppidl = (PIDLIST_RELATIVE)pidlMem;
 
     // Optionally set attributes
-    if (pdwAttributes) 
+    if (pdwAttributes)
     {
         *pdwAttributes = SFGAO_FILESYSTEM | SFGAO_FOLDER;
     }
+
+End:
+
+    if (FAILED(hr))
+    {
+        if (*ppidl)
+        {
+            ::CoTaskMemFree(*ppidl);
+            *ppidl = nullptr;
+        }
+        if (pchEaten) *pchEaten = 0;
+    }
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
     return S_OK;
 }
@@ -228,22 +257,30 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPBC pbc, REFIID riid, void** ppv)
 {
+    HRESULT hr = S_OK;
+    PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
+    BigDriveShellFolder* pSubFolder = nullptr;
+
+    BigDriveShellFolderTraceLogger::LogBindToObject(__FUNCTION__, pidl);
+
     if (!pidl || !ppv)
     {
-        return E_INVALIDARG;
+        hr = E_INVALIDARG;
+        goto End;
     }
 
-    *ppv = nullptr; 
+    *ppv = nullptr;
 
-    PIDLIST_ABSOLUTE pidlSubFolder = ILCombine(m_pidl, pidl);
+    pidlSubFolder = ILCombine(m_pidl, pidl);
 
-    BigDriveShellFolder* pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
+    pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
     if (!pSubFolder)
     {
-        return E_OUTOFMEMORY;
+        hr = E_OUTOFMEMORY;
+        goto End;
     }
 
-    HRESULT hr = pSubFolder->QueryInterface(riid, ppv);
+    hr = pSubFolder->QueryInterface(riid, ppv);
     if (FAILED(hr))
     {
         goto End;
@@ -251,11 +288,13 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
 End:
 
-    if (pSubFolder!= nullptr)
+    if (pSubFolder != nullptr)
     {
-        pSubFolder->Release(); 
+        pSubFolder->Release();
         pSubFolder = nullptr;
     }
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
     return hr;
 }
