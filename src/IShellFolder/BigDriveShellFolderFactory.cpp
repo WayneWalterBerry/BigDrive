@@ -22,7 +22,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
 
     BigDriveShellFolder* pFolder = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogCreateInstance(__FUNCTION__, riid);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
     if (pUnkOuter != nullptr)
     {

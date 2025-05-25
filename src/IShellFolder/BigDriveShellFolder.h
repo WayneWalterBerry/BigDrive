@@ -152,12 +152,53 @@ public:
     HRESULT __stdcall CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2) override;
 
     /// <summary>
-    /// Creates a view object for the folder.
+    /// Creates a view object for the BigDrive shell folder, enabling the Windows Shell to display the contents
+    /// of the folder in a user interface such as Windows Explorer. This method is called by the shell when it
+    /// needs to create a view (e.g., a folder window, details pane, or other UI component) for the folder.
+    /// 
+    /// <para><b>Parameters:</b></para>
+    /// <param name="hwndOwner">
+    ///   [in] Handle to the owner window for any UI that may be displayed. Typically used as the parent window
+    ///   for any dialogs or UI elements created by the view object. May be NULL if not applicable.
+    /// </param>
+    /// <param name="riid">
+    ///   [in] The interface identifier (IID) of the view object the shell is requesting. Commonly requested
+    ///   interfaces include IID_IShellView (for folder views), IID_IDropTarget (for drag-and-drop support),
+    ///   and others depending on the shell's needs.
+    /// </param>
+    /// <param name="ppv">
+    ///   [out] Address of a pointer that receives the requested interface pointer for the view object. On
+    ///   success, this will point to the requested interface. The caller is responsible for releasing this
+    ///   interface. Set to nullptr on failure.
+    /// </param>
+    /// 
+    /// <para><b>Return Value:</b></para>
+    /// <returns>
+    ///   S_OK if the requested view object was successfully created and returned in *ppv.
+    ///   E_NOINTERFACE if the requested interface is not supported by this folder.
+    ///   E_INVALIDARG if any required parameter is invalid.
+    ///   E_NOTIMPL if the method is not implemented (typical for minimal or stub shell extensions).
+    ///   Other COM error codes as appropriate.
+    /// </returns>
+    /// 
+    /// <para><b>Behavior and Notes:</b></para>
+    /// <list type="bullet">
+    ///   <item>The shell calls this method to obtain a UI object for displaying or interacting with the folder's contents.</item>
+    ///   <item>If the requested interface is IID_IShellView, the implementation should return an object that implements the IShellView interface, which is responsible for rendering the folder's items in Explorer.</item>
+    ///   <item>Other interfaces, such as IDropTarget or IContextMenu, may also be requested depending on shell operations.</item>
+    ///   <item>If the requested interface is not supported, return E_NOINTERFACE and set *ppv to nullptr.</item>
+    ///   <item>For minimal or stub implementations, it is common to return E_NOTIMPL to indicate that no view object is provided.</item>
+    ///   <item>The returned interface pointer must be properly reference-counted and released by the caller.</item>
+    ///   <item>Do not display UI unless absolutely necessary; this method is typically called by the shell for programmatic view creation.</item>
+    /// </list>
+    /// 
+    /// <para><b>Typical Usage:</b></para>
+    /// <list type="bullet">
+    ///   <item>Used by the shell to create the folder view window when the user navigates into the folder in Explorer.</item>
+    ///   <item>Enables support for drag-and-drop, context menus, and other UI features by returning the appropriate interfaces.</item>
+    ///   <item>Required for shell extensions that want to provide a custom view or UI for their namespace.</item>
+    /// </list>
     /// </summary>
-    /// <param name="hwndOwner">A handle to the owner window for any UI that may be displayed.</param>
-    /// <param name="riid">The identifier of the interface to create.</param>
-    /// <param name="ppv">A pointer to the interface pointer to be populated.</param>
-    /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT __stdcall CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv) override;
 
     /// <summary>

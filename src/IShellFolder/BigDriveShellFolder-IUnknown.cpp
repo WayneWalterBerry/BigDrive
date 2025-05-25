@@ -18,7 +18,7 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogCreateInstance(__FUNCTION__, riid);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
     if (riid == IID_IUnknown || riid == IID_IShellFolder)
     {

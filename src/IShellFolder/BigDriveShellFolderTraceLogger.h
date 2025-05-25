@@ -69,7 +69,7 @@ public:
     /// </summary>
     /// <param name="functionName">The function name (typically __FUNCTION__).</param>
     /// <param name="refiid">The IID requested for the new instance.</param>
-    static void LogCreateInstance(LPCSTR functionName, REFIID refiid);
+    static void LogEnter(LPCSTR functionName, REFIID refiid);
 
     /// <summary>
     /// Logs entry into ParseDisplayName, including the display name parameter.

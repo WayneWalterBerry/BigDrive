@@ -72,7 +72,7 @@ void BigDriveShellFolderTraceLogger::LogDllGetClassObject(LPCSTR functionName, R
 }
 
 /// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogCreateInstance(LPCSTR functionName, REFIID refiid)
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFIID refiid)
 {
     HRESULT hr = S_OK;
     BSTR bstrIIDName = nullptr;
