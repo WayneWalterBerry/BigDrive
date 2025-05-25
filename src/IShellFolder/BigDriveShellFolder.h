@@ -15,7 +15,7 @@
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
 /// Provides functionality for interacting with the shell folder hierarchy.
 /// </summary>
-class BigDriveShellFolder : public IShellFolder
+class BigDriveShellFolder : public IShellFolder, IPersistFolder
 {
 private:
 
@@ -197,6 +197,28 @@ public:
     /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT __stdcall SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName,
         SHGDNF uFlags, PITEMID_CHILD* ppidlOut) override;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IPersistFolder methods
+
+    /// <summary>
+    /// Retrieves the class identifier (CLSID) for this Shell Folder extension.
+    /// This allows the Windows Shell to uniquely identify the custom IShellFolder implementation.
+    /// For namespace extensions, this CLSID is used during registration and binding.
+    /// </summary>
+    /// <param name="pClassID">Pointer to a CLSID that receives the class identifier.</param>
+    /// <returns>S_OK if successful; E_POINTER if pClassID is null.</returns>
+    HRESULT __stdcall GetClassID(CLSID* pClassID) override;
+
+    /// <summary>
+    /// Initializes the Shell Folder extension with its absolute location in the Shell namespace.
+    /// The Shell calls this method after creating the folder object, passing the absolute PIDL.
+    /// This enables the extension to know its position in the namespace hierarchy and is required
+    /// for correct operation of IShellFolder extensions.
+    /// </summary>
+    /// <param name="pidl">The absolute PIDL that identifies the folder's location.</param>
+    /// <returns>S_OK if successful; E_INVALIDARG if pidl is null; E_OUTOFMEMORY if cloning fails.</returns>
+    HRESULT __stdcall Initialize(PCIDLIST_ABSOLUTE pidl) override;
 
 private:
 

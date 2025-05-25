@@ -42,6 +42,13 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName)
 }
 
 /// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, CLSID* pClassID)
+{
+    StoreCurrentTimeForDurationTracking();
+    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingGuid(*pClassID, "CLSID"));
+}
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogDllGetClassObject(LPCSTR functionName, REFCLSID clsid, REFIID riid)
 {
     HRESULT hr = S_OK;
@@ -99,21 +106,7 @@ void BigDriveShellFolderTraceLogger::LogParseDisplayName(LPCSTR functionName, LP
 }
 
 /// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogBindToObject(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
-{
-    HRESULT hr = S_OK;
-    BSTR bstrPidl = nullptr;
-
-    StoreCurrentTimeForDurationTracking();
-    ::ILSerialize(pidl, bstrPidl);
-
-    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPidl, "PIDL"));
-
-    ::SysFreeString(bstrPidl);
-}
-
-/// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogGetDisplayNameOf(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
 {
     HRESULT hr = S_OK;
     BSTR bstrPidl = nullptr;
@@ -133,7 +126,7 @@ void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, HRESULT hr)
 
     TraceLoggingWrite(
         g_hMyProvider,
-        "Exit ",
+        "Exit",
         TraceLoggingString(functionName, "FunctionName"),
         TraceLoggingValue(elapsedSeconds, "ElapsedSeconds"),
         TraceLoggingHexUInt32(hr, "HRESULT")
@@ -202,6 +195,8 @@ HRESULT BigDriveShellFolderTraceLogger::GetShellIIDName(REFIID riid, BSTR& bstrI
         bstrIIDName = ::SysAllocString(L"IID_IShellItem2");
     else if (IsEqualIID(riid, IID_IClassFactory))
         bstrIIDName = ::SysAllocString(L"IID_IClassFactory");
+    else if (IsEqualIID(riid, IID_IObjectWithBackReferences))
+        bstrIIDName = ::SysAllocString(L"IID_IObjectWithBackReferences");
 
     if (bstrIIDName != nullptr)
         return S_OK;

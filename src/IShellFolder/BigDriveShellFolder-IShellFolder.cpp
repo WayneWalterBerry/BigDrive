@@ -271,7 +271,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
     PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
     BigDriveShellFolder* pSubFolder = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogBindToObject(__FUNCTION__, pidl);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
 
     if (!pidl || !ppv)
     {
@@ -369,7 +369,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 {
     HRESULT hr = E_NOTIMPL;
 
-    BigDriveShellFolderTraceLogger::LogBindToObject(__FUNCTION__, pidl);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
 
     // Placeholder implementation
 

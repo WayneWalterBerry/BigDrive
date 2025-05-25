@@ -54,6 +54,8 @@ public:
     /// <param name="hr">The HRESULT returned by the function.</param>
     static void LogExit(LPCSTR functionName, HRESULT hr);
 
+    static void LogEnter(LPCSTR functionName, CLSID* pClassID);
+
     /// <summary>
     /// Logs entry into DllGetClassObject, including the CLSID and IID parameters.
     /// </summary>
@@ -81,14 +83,7 @@ public:
     /// </summary>
     /// <param name="functionName">The function name (typically __FUNCTION__).</param>
     /// <param name="pidl">The PIDL being bound to.</param>
-    static void LogBindToObject(LPCSTR functionName, PCUIDLIST_RELATIVE pidl);
-
-    /// <summary>
-    /// Logs entry into GetDisplayNameOf, including a serialized representation of the PIDL.
-    /// </summary>
-    /// <param name="functionName">The function name (typically __FUNCTION__).</param>
-    /// <param name="pidl">The PIDL whose display name is being retrieved.</param>
-    static void LogGetDisplayNameOf(LPCSTR functionName, PCUIDLIST_RELATIVE pidl);
+    static void LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl);
 
 private:
 
