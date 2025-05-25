@@ -169,6 +169,7 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BigDriveShellFolder-IObjectWithBackReferences.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />

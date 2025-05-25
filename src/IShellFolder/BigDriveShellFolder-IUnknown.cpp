@@ -34,6 +34,13 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
         hr = S_OK;
         goto End;
     }
+    else if (IsEqualIID(riid, IID_IObjectWithBackReferences))
+    {
+        *ppvObject = static_cast<IObjectWithBackReferences*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+    }
 
     *ppvObject = nullptr;
     hr = E_NOINTERFACE;
