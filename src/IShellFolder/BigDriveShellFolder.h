@@ -18,7 +18,9 @@
 class BigDriveShellFolder : public 
     IShellFolder,
 	IPersistFolder2, // IPersistFolder is deprecated, use IPersistFolder2 instead
-    IObjectWithBackReferences // Added new interface IObjectWithBackReferences
+    IObjectWithBackReferences,
+    IProvideClassInfo
+
 {
 private:
 
@@ -282,6 +284,24 @@ public:
     /// update this method to perform the necessary cleanup.
     /// </remarks>
     HRESULT __stdcall RemoveBackReferences();
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IProvideClassInfo methods
+
+    /// <summary>
+    /// Retrieves the ITypeInfo interface for the class.
+    /// The Windows Shell or other clients may call this method to obtain type information
+    /// for automation or introspection purposes. In the context of a shell folder extension,
+    /// this is rarely needed, so a minimal implementation simply returns E_NOTIMPL.
+    /// </summary>
+    /// <param name="ppTI">Address of a pointer that receives the ITypeInfo interface pointer.</param>
+    /// <returns>E_NOTIMPL to indicate that type information is not provided.</returns>
+    /// <remarks>
+    /// Returning E_NOTIMPL is standard for shell extensions that do not expose automation
+    /// or type information. If you need to provide type info for scripting or automation,
+    /// implement this method to return a valid ITypeInfo pointer.
+    /// </remarks>
+    HRESULT __stdcall GetClassInfo(ITypeInfo** ppTI);
 
 private:
 
