@@ -16,41 +16,55 @@ TRACELOGGING_DEFINE_PROVIDER(
 
 __declspec(thread) LARGE_INTEGER BigDriveShellFolderTraceLogger::s_startTime = { 0 };
 
-/// <summary>
-/// Registers the trace logging provider.
-/// </summary>
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::Initialize()
 {
     TraceLoggingRegister(g_hMyProvider);
 }
 
-/// <summary>
-/// Unregisters the trace logging provider.
-/// </summary>
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::Uninitialize()
 {
     TraceLoggingUnregister(g_hMyProvider);
 }
 
-/// <summary>
-/// Logs a custom event message.
-/// </summary>
-/// <param name="message">The message to log.</param>
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogEvent(const char* message)
 {
     TraceLoggingWrite(g_hMyProvider, "BigDriveShellFolderEvent", TraceLoggingValue(message, "Message"));
 }
 
-/// <summary>
-/// Logs entry into a function.
-/// </summary>
-/// <param name="functionName">The name of the function being entered.</param>
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName)
 {
-	StoreCurrentTimeForDurationTracking(); 
+    StoreCurrentTimeForDurationTracking();
     TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"));
 }
 
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogDllGetClassObject(LPCSTR functionName, REFCLSID clsid, REFIID riid)
+{
+    HRESULT hr = S_OK;
+    BSTR bstrIIDName = nullptr;
+
+    StoreCurrentTimeForDurationTracking();
+
+    hr = GetShellIIDName(riid, bstrIIDName);
+    switch (hr)
+    {
+    case S_OK:
+        TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingGuid(clsid, "CLSID"), TraceLoggingWideString(bstrIIDName, "IID"));
+        ::SysFreeString(bstrIIDName);
+        break;
+    case S_FALSE:
+        TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingGuid(clsid, "CLSID"), TraceLoggingGuid(riid, "IID"));
+        break;
+    default:
+        break;
+    }
+}
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogCreateInstance(LPCSTR functionName, REFIID refiid)
 {
     HRESULT hr = S_OK;
@@ -58,7 +72,7 @@ void BigDriveShellFolderTraceLogger::LogCreateInstance(LPCSTR functionName, REFI
 
     StoreCurrentTimeForDurationTracking();
 
-	hr = GetShellIIDName(refiid, bstrIIDName);
+    hr = GetShellIIDName(refiid, bstrIIDName);
     switch (hr)
     {
     case S_OK:
@@ -75,32 +89,44 @@ void BigDriveShellFolderTraceLogger::LogCreateInstance(LPCSTR functionName, REFI
     return;
 }
 
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogParseDisplayName(LPCSTR functionName, LPOLESTR pszDisplayName)
 {
-	HRESULT hr = S_OK;
+    HRESULT hr = S_OK;
     StoreCurrentTimeForDurationTracking();
 
     TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(pszDisplayName, "DisplayName"));
 }
 
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogBindToObject(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
 {
     HRESULT hr = S_OK;
-	BSTR bstrPidl = nullptr;
+    BSTR bstrPidl = nullptr;
 
     StoreCurrentTimeForDurationTracking();
-	::ILSerialize(pidl, bstrPidl);
+    ::ILSerialize(pidl, bstrPidl);
 
     TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPidl, "PIDL"));
 
-	::SysFreeString(bstrPidl);
+    ::SysFreeString(bstrPidl);
 }
 
-/// <summary>
-/// Logs exit from a function.
-/// </summary>
-/// <param name="functionName">The name of the function being entered.</param>
-/// <param name="hr"></param>
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogGetDisplayNameOf(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
+{
+    HRESULT hr = S_OK;
+    BSTR bstrPidl = nullptr;
+
+    StoreCurrentTimeForDurationTracking();
+    ::ILSerialize(pidl, bstrPidl);
+
+    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPidl, "PIDL"));
+
+    ::SysFreeString(bstrPidl);
+}
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, HRESULT hr)
 {
     double elapsedSeconds = GetElapsedSecondsSinceStoredTime();
@@ -114,18 +140,13 @@ void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, HRESULT hr)
     );
 }
 
-/// <summary>
-/// Stores the current time in thread-local storage for duration tracking.
-/// </summary>
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::StoreCurrentTimeForDurationTracking()
 {
     ::QueryPerformanceCounter(&s_startTime);
 }
 
-/// <summary>
-/// Gets the delta in seconds between the stored time and the current time.
-/// </summary>
-/// <returns>Elapsed time in seconds as a double.</returns>
+/// <inheritdoc />
 double BigDriveShellFolderTraceLogger::GetElapsedSecondsSinceStoredTime()
 {
     LARGE_INTEGER now, freq;
@@ -143,15 +164,7 @@ double BigDriveShellFolderTraceLogger::GetElapsedSecondsSinceStoredTime()
     return result;
 }
 
-/// <summary>
-/// Attempts to map a well-known shell IID to its common name as a BSTR.
-/// If the IID is recognized, bstrIIDName is set to a SysAllocString of the name and S_OK is returned.
-/// If the IID is not recognized, bstrIIDName is set to nullptr and S_FALSE is returned.
-/// The caller is responsible for freeing bstrIIDName with ::SysFreeString.
-/// </summary>
-/// <param name="riid">The IID to look up.</param>
-/// <param name="bstrIIDName">[out] Receives the allocated BSTR with the IID name, or nullptr if not found.</param>
-/// <returns>S_OK if found, S_FALSE if not found.</returns>
+/// <inheritdoc />
 HRESULT BigDriveShellFolderTraceLogger::GetShellIIDName(REFIID riid, BSTR& bstrIIDName)
 {
     bstrIIDName = nullptr;

@@ -195,10 +195,15 @@ End:
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
+	HRESULT hr = S_OK;
+
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
     // Validate output pointer
     if (!ppenumIDList)
     {
-        return E_INVALIDARG;
+        hr = E_INVALIDARG;
+        goto End;
     }
 
     *ppenumIDList = nullptr;
@@ -207,7 +212,12 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
     // This is sufficient for a shell folder that is empty or as a stub for a drive root.
 
     *ppenumIDList = new EmptyEnumIDList();
-    return S_OK;
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+End:
+
+    return hr;
 }
 
 /// <summary>
@@ -357,8 +367,15 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
+    HRESULT hr = E_NOTIMPL;
+
+    BigDriveShellFolderTraceLogger::LogBindToObject(__FUNCTION__, pidl);
+
     // Placeholder implementation
-    return E_NOTIMPL;
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+    return hr;
 }
 
 /// <summary>

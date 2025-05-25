@@ -147,7 +147,7 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    BigDriveShellFolderTraceLogger::LogDllGetClassObject(__FUNCTION__, rclsid, riid);
 
     if (ppv == nullptr)
     {
