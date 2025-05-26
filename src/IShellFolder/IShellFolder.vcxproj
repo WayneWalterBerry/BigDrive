@@ -154,6 +154,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BigDriveEnumIDList.h" />
+    <ClInclude Include="BigDriveItemType.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
     <ClInclude Include="BigDriveShellFolderTraceLogger.h" />
@@ -168,6 +170,9 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BigDriveEnumIDList-IEnumIDList.cpp" />
+    <ClCompile Include="BigDriveEnumIDList-IUnknown.cpp" />
+    <ClCompile Include="BigDriveEnumIDList.cpp" />
     <ClCompile Include="BigDriveShellFolder-IObjectWithBackReferences.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersist.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />

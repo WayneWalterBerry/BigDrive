@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "BigDriveItemType.h"
+
 #include <shlobj.h> // For IShellFolder and related interfaces
 #include <objbase.h> // For COM initialization
 #include <string>
@@ -436,4 +438,16 @@ private:
 
     HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
     HRESULT GetPath(BSTR& bstrPath);
+
+    /// <summary>
+    /// Allocates a BIGDRIVE_ITEMID structure as a valid SHITEMID for use in a PIDL (Pointer to an Item ID List).
+    /// This function creates a single-item PIDL containing the specified item type and Unicode name, and appends
+    /// the required SHITEMID terminator. The resulting PIDL can be passed to Shell APIs and must be freed by the
+    /// caller using CoTaskMemFree.
+    /// </summary>
+    /// <param name="nType">The type of the item (custom value for your shell extension, e.g., folder, file, etc.).</param>
+    /// <param name="bstrName">The name of the item as a BSTR (Unicode string). Must not be nullptr.</param>
+    /// <param name="ppidl">[out] Receives the allocated PIDL on success, or nullptr on failure.</param>
+    /// <returns>S_OK if the PIDL was allocated successfully; E_INVALIDARG if bstrName is nullptr; E_OUTOFMEMORY if allocation fails.</returns>
+    HRESULT AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& ppidl);
 };

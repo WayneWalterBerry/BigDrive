@@ -12,6 +12,7 @@
 #include "EmptyEnumIDList.h"
 #include "BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
+#include "BigDriveEnumIDList.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -205,6 +206,8 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	SAFEARRAY* folders = nullptr;
 	BSTR bstrPath = nullptr;
 	BSTR bstrFolderName = nullptr;
+	LPITEMIDLIST pidl = nullptr;
+	BigDriveEnumIDList *pResult = nullptr;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -252,11 +255,41 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	::SafeArrayGetLBound(folders, 1, &lowerBound);
 	::SafeArrayGetUBound(folders, 1, &upperBound);
 
+	pResult = new BigDriveEnumIDList();
+	if (!pResult) 
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
 	for (LONG i = lowerBound; i <= upperBound; ++i)
 	{
 		::SafeArrayGetElement(folders, &i, &bstrFolderName);
 
+		// Allocate the Relative PIDL to pass back to 
+		hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
+		if (FAILED(hr) || (pidl == nullptr))
+		{
+			goto End;
+		}
 
+		if (pidl == nullptr)
+		{
+			hr = E_FAIL;
+			goto End;
+		}
+
+		hr = pResult->Add(pidl);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+
+		if (pidl)
+		{
+			::CoTaskMemFree(pidl);
+			pidl = nullptr;
+		}
 
 		if (bstrFolderName)
 		{
@@ -265,14 +298,29 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		}
 	}
 
-	// For a minimal implementation, return an empty enumerator (no files/folders)
-	// This is sufficient for a shell folder that is empty or as a stub for a drive root.
-
-	*ppenumIDList = new EmptyEnumIDList();
+	*ppenumIDList = pResult;
 
 End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+	if (FAILED(hr) && pResult) 
+	{
+		delete pResult;
+		pResult = nullptr;
+	}
+
+	if (folders) 
+	{
+		::SafeArrayDestroy(folders);
+		folders = nullptr;
+	}
+
+	if (pidl)
+	{
+		::CoTaskMemFree(pidl);
+		pidl = nullptr;
+	}
 
 	if (pBigDriveEnumerate)
 	{
@@ -290,6 +338,12 @@ End:
 	{
 		::SysFreeString(bstrPath);
 		bstrPath = nullptr;
+	}
+
+	if (pInterfaceProvider) 
+	{
+		delete pInterfaceProvider;
+		pInterfaceProvider = nullptr;
 	}
 
 	return hr;
