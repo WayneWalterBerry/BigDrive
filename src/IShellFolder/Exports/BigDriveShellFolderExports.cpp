@@ -18,4 +18,9 @@ extern "C" {
         // This assumes the function is implemented as a free function, not a member.
         return BigDriveShellFolder::AllocateBigDriveItemId(nType, bstrName, *ppidl);
     }
+
+    HRESULT GetBigDriveItemNameFromPidlExport(PCUITEMID_CHILD pidl, STRRET* pName)
+    {
+        return BigDriveShellFolder::GetBigDriveItemNameFromPidl(pidl, pName);
+    }
 }

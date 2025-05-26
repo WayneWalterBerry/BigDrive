@@ -641,7 +641,58 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 }
 
 /// <summary>
-/// Retrieves the display name of an item in the folder.
+/// Retrieves the display name of an item in the BigDrive shell folder namespace.
+/// This method is called by the Windows Shell when it needs to obtain a user-friendly or parsing name for an item,
+/// such as when displaying the item in Explorer, showing tooltips, or generating paths for drag-and-drop, copy, or property dialogs.
+///
+/// <para><b>How the Shell Calls This Method:</b></para>
+/// The shell calls GetDisplayNameOf() whenever it needs to display or use the name of an item represented by a PIDL.
+/// This includes populating folder views, address bars, tooltips, context menus, and when resolving paths for shell operations.
+/// The shell may call this method multiple times for the same item with different flags to obtain different name formats.
+///
+/// <para><b>Parameters:</b></para>
+/// <param name="pidl">
+///   [in] The relative PIDL (Pointer to an Item ID List) that identifies the item within this folder.
+///   This PIDL is typically created by ParseDisplayName or returned by EnumObjects.
+/// </param>
+/// <param name="uFlags">
+///   [in] Flags (of type SHGDNF) that specify the type of display name to retrieve. Common values include:
+///   <list type="bullet">
+///     <item>SHGDN_NORMAL - The default display name for UI (e.g., file/folder name).</item>
+///     <item>SHGDN_FORPARSING - A name suitable for parsing (e.g., a full path or canonical name).</item>
+///     <item>SHGDN_INFOLDER - The name relative to the parent folder.</item>
+///   </list>
+///   These flags may be combined to request specific formats.
+/// </param>
+/// <param name="pName">
+///   [out] Pointer to a STRRET structure that receives the display name. The method must fill this structure
+///   with the requested name in one of the supported formats (OLE string, C string, or offset).
+///   The caller is responsible for freeing any allocated memory as indicated by the STRRET type.
+/// </param>
+///
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the display name was successfully retrieved and returned in pName.
+///   Returns a COM error code (e.g., E_INVALIDARG, E_FAIL) if the operation fails.
+/// </returns>
+///
+/// <para><b>Behavior and Notes:</b></para>
+/// <list type="bullet">
+///   <item>The method should extract the item's name from the PIDL and format it according to the requested flags.</item>
+///   <item>For SHGDN_NORMAL, return the user-visible name (e.g., "File.txt" or "Folder").</item>
+///   <item>For SHGDN_FORPARSING, return a fully qualified name or path suitable for parsing (e.g., "C:\BigDrive\File.txt").</item>
+///   <item>For SHGDN_INFOLDER, return the name relative to the parent folder.</item>
+///   <item>The returned name must be placed in the STRRET structure using the appropriate type (STRRET_WSTR, STRRET_CSTR, or STRRET_OFFSET).</item>
+///   <item>If the PIDL is invalid or the name cannot be determined, return an error code and do not modify pName.</item>
+///   <item>Do not display UI; this method is for programmatic retrieval of names only.</item>
+/// </list>
+///
+/// <para><b>Typical Usage:</b></para>
+/// <list type="bullet">
+///   <item>Used by the shell to display item names in folder views, address bars, and dialogs.</item>
+///   <item>Used to generate parsing names for drag-and-drop, copy, and property operations.</item>
+///   <item>Called frequently during enumeration, navigation, and shell operations.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
@@ -649,7 +700,24 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-	// Placeholder implementation
+	if ((uFlags & SHGDN_FORPARSING) == SHGDN_FORPARSING)
+	{
+		hr = GetBigDriveItemNameFromPidl(pidl, pName);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+	else
+	{
+		hr = GetBigDriveItemNameFromPidl(pidl, pName);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 

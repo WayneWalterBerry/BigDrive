@@ -455,4 +455,15 @@ public:
 	/// <returns>S_OK if the PIDL was allocated successfully; E_INVALIDARG if bstrName is nullptr; E_OUTOFMEMORY if allocation fails.</returns>
 	static HRESULT AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& ppidl);
 
+	/// <summary>
+	/// Extracts the Unicode name from the last BIGDRIVE_ITEMID in the given PIDL chain and returns it in a STRRET structure.
+	/// The method allocates a new string for STRRET_WSTR and returns it via the output parameter.
+	/// The caller is responsible for freeing the string using CoTaskMemFree if STRRET_WSTR is used.
+	/// Returns S_OK on success, E_INVALIDARG if pidl or pName is null, or E_FAIL if the PIDL is malformed.
+	/// </summary>
+	/// <param name="pidl">Pointer to the start of the PIDL chain. The last item is assumed to be a BIGDRIVE_ITEMID.</param>
+	/// <param name="pName">[out] Receives the STRRET containing the name on success.</param>
+	/// <returns>S_OK if the name was extracted successfully; E_INVALIDARG or E_FAIL otherwise.</returns>
+	static HRESULT GetBigDriveItemNameFromPidl(PCUITEMID_CHILD pidl, STRRET* pName);
+
 };
