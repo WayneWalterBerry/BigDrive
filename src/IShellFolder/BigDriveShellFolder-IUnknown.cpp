@@ -27,7 +27,7 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
         hr = S_OK;
         goto End;
     }
-    else if (IsEqualIID(riid, IID_IPersistFolder) || IsEqualIID(riid, IID_IPersistFolder2)) 
+    else if (IsEqualIID(riid, IID_IPersistFolder) || IsEqualIID(riid, IID_IPersistFolder2) || IsEqualIID(riid, IID_IPersist)) 
     {
         *ppvObject = static_cast<IPersistFolder2*>(this);
         AddRef();

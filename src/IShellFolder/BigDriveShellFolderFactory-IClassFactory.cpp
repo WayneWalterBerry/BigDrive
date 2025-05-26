@@ -1,0 +1,59 @@
+// <copyright file="BigDriveShellFolderFactory.cpp" company="Wayne Walter Berry">
+// Copyright (c) Wayne Walter Berry. All rights reserved.
+// </copyright>
+
+#include "pch.h"
+
+#include "BigDriveShellFolderFactory.h"
+#include "BigDriveShellFolderTraceLogger.h"
+
+#include <windows.h>
+
+// Define the static member outside the class
+PIDLIST_ABSOLUTE BigDriveShellFolderFactory::s_pidlRoot = ILCreateFromPathW(L"::");
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IClassFactory methods
+
+/// <inheritdoc />
+HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
+{
+    HRESULT hr = S_OK;
+
+    BigDriveShellFolder* pFolder = nullptr;
+
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+
+    if (pUnkOuter != nullptr)
+    {
+        // Aggregation is not supported
+        hr = CLASS_E_NOAGGREGATION;
+        goto End;
+    }
+
+    // Create an instance of BigDriveFolder
+    hr = BigDriveShellFolder::Create(m_driveGuid, nullptr, s_pidlRoot, &pFolder);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+    // Query the requested interface
+    hr = pFolder->QueryInterface(riid, ppvObject);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+End:
+
+    if (pFolder != nullptr)
+    {
+        pFolder->Release();
+        pFolder = nullptr;
+    }
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+    return hr;
+}

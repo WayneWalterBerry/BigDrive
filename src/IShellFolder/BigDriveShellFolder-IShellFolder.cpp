@@ -136,11 +136,12 @@ End:
 
 	if (FAILED(hr))
 	{
-		if (*ppidl)
+		if (ppidl && (*ppidl))
 		{
 			::CoTaskMemFree(*ppidl);
 			*ppidl = nullptr;
 		}
+
 		if (pchEaten) *pchEaten = 0;
 	}
 
@@ -271,7 +272,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 	PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
 	BigDriveShellFolder* pSubFolder = nullptr;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	if (!pidl || !ppv)
 	{
@@ -281,12 +282,11 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
 	*ppv = nullptr;
 
-	pidlSubFolder = ILCombine(m_pidl, pidl);
+	pidlSubFolder = ILCombine(m_pidlAbsolute, pidl);
 
-	pSubFolder = new BigDriveShellFolder(m_driveGuid, this, pidlSubFolder);
-	if (!pSubFolder)
+	hr = BigDriveShellFolder::Create(m_driveGuid, this, pidlSubFolder, &pSubFolder);
+	if (FAILED(hr))
 	{
-		hr = E_OUTOFMEMORY;
 		goto End;
 	}
 
@@ -304,6 +304,12 @@ End:
 		pSubFolder = nullptr;
 	}
 
+	if (pidlSubFolder != nullptr)
+	{
+		::ILFree(pidlSubFolder);
+		pidlSubFolder = nullptr;
+	}
+
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
 	return hr;
@@ -316,7 +322,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 
@@ -326,13 +332,52 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 }
 
 /// <summary>
-/// Compares two item IDs to determine their relative order.
+/// Compares two item IDs (PIDLs) to determine their relative order within the current shell folder.
+/// This method is called by the Windows Shell to sort items in views (such as Explorer windows),
+/// to group items, and to determine if two PIDLs refer to the same object.
+/// 
+/// <para><b>Parameters:</b></para>
+/// <param name="lParam">
+///   [in] A value that specifies the comparison criteria. For most shell extensions, this is 0,
+///   but it may be a column index or sort flag for custom views.
+/// </param>
+/// <param name="pidl1">
+///   [in] The first relative PIDL to compare. This PIDL is relative to the current folder.
+/// </param>
+/// <param name="pidl2">
+///   [in] The second relative PIDL to compare. This PIDL is also relative to the current folder.
+/// </param>
+/// 
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   Returns an HRESULT with the result in the low-order word:
+///   - Negative value: pidl1 precedes pidl2
+///   - Zero:           pidl1 and pidl2 are equivalent
+///   - Positive value: pidl1 follows pidl2
+///   The high-order word must be zero.
+/// </returns>
+/// 
+/// <para><b>Behavior and Notes:</b></para>
+/// <list type="bullet">
+///   <item>For most extensions, comparison is based on the display name or a unique identifier in the PIDL.</item>
+///   <item>If the PIDLs are equal (refer to the same item), return 0.</item>
+///   <item>If sorting by name, use a case-insensitive comparison of the item names stored in the PIDLs.</item>
+///   <item>For custom columns or sort orders, use lParam to select the comparison criteria.</item>
+///   <item>Do not return E_NOTIMPL; the shell requires this method for sorting and grouping.</item>
+///   <item>Only compare the child (last) SHITEMID in each PIDL, not the full chain.</item>
+/// </list>
+/// 
+/// <para><b>Typical Usage:</b></para>
+/// <list type="bullet">
+///   <item>Used by the shell to sort items in folder views, group items, and check for equality.</item>
+///   <item>Called frequently during enumeration and display of items in Explorer.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl1);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 
@@ -393,9 +438,31 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 {
 	HRESULT hr = E_NOINTERFACE;
 
+	if (!ppv)
+	{
+		return E_INVALIDARG;
+	}
+
+	*ppv = nullptr;
+
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
-	// Placeholder implementation
+	if (IsEqualIID(riid, IID_IShellView))
+	{
+		SFV_CREATE sfv = {};
+		sfv.cbSize = sizeof(sfv);
+		sfv.pshf = static_cast<IShellFolder*>(this);
+		sfv.psvOuter = nullptr;
+		sfv.psfvcb = nullptr;
+
+		hr = ::SHCreateShellFolderView(&sfv, reinterpret_cast<IShellView**>(ppv));
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
@@ -417,7 +484,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 		goto End;
 	}
 
-	*rgfInOut = SFGAO_FILESYSTEM;
+	*rgfInOut = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
 
 End:
 
@@ -429,8 +496,7 @@ End:
 /// <summary>
 /// Retrieves an object that can be used to carry out actions on the specified items.
 /// </summary>
-HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl,
-	REFIID riid, UINT* rgfReserved, void** ppv)
+HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
 {
 	HRESULT hr = E_NOTIMPL;
 
@@ -450,7 +516,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 
@@ -466,7 +532,7 @@ HRESULT __stdcall BigDriveShellFolder::SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 

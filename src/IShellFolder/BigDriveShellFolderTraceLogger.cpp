@@ -5,7 +5,8 @@
 #include "pch.h"
 
 #include "BigDriveShellFolderTraceLogger.h"
-#include "ILExtensions.h"
+
+#include "ItemIdDictionary.h"
 
 // Provider Id: {A356D4CC-CDAC-4894-A93D-35C4C3F84944}
 TRACELOGGING_DEFINE_PROVIDER(
@@ -103,20 +104,6 @@ void BigDriveShellFolderTraceLogger::LogParseDisplayName(LPCSTR functionName, LP
     StoreCurrentTimeForDurationTracking();
 
     TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(pszDisplayName, "DisplayName"));
-}
-
-/// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
-{
-    HRESULT hr = S_OK;
-    BSTR bstrPidl = nullptr;
-
-    StoreCurrentTimeForDurationTracking();
-    ::ILSerialize(pidl, bstrPidl);
-
-    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPidl, "PIDL"));
-
-    ::SysFreeString(bstrPidl);
 }
 
 /// <inheritdoc />

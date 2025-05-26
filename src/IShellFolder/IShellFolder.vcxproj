@@ -160,28 +160,33 @@
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />
+    <ClInclude Include="Exports\ItemIdDictionaryExports.h" />
+    <ClInclude Include="Exports\ItemIdDictionaryImports.h" />
     <ClInclude Include="Exports\RegistrationManagerExports.h" />
     <ClInclude Include="Exports\RegistrationManagerImports.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="ILExtensions.h" />
+    <ClInclude Include="ItemIdDictionary.h" />
+    <ClInclude Include="ItemIdDictionaryStaticInitializer.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BigDriveShellFolder-IObjectWithBackReferences.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IPersist.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IProvideClassInfo.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
-    <ClCompile Include="BigDriveShellFolderFactory.cpp" />
+    <ClCompile Include="BigDriveShellFolderFactory-IClassFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderTraceLogger.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
+    <ClCompile Include="Exports\ItemIdDictionaryExports.cpp" />
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
-    <ClCompile Include="ILExtensions.cpp" />
+    <ClCompile Include="ItemIdDictionary.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -9,7 +9,7 @@
 #include <string>
 
 // Local
-#include "ILExtensions.h"
+#include "ItemIdDictionary.h" 
 
 /// <summary>
 /// Represents a custom implementation of the IShellFolder interface for the BigDrive namespace.
@@ -32,16 +32,22 @@ private:
     BigDriveShellFolder* m_pParentShellFolder;
 
     /// <summary>
-    /// The relative PIDL (Pointer to an Item ID List) that identifies this shell folder's location 
-    /// relative to its parent folder in the shell namespace. This PIDL is cloned and owned by the instance,
-    /// and is released upon destruction.
+    /// The absolute PIDL (Pointer to an Item ID List) that uniquely identifies this shell folder's location
+    /// within the Shell namespace, starting from the desktop root. This PIDL is a chain of SHITEMID structures,
+    /// where the last SHITEMID represents this folder as assigned by the Shell (e.g., explorer.exe).
+    /// The PIDL is cloned and owned by this instance, and is released upon destruction.
     /// </summary>
-    PCUIDLIST_RELATIVE m_pidl;
+    PCIDLIST_ABSOLUTE m_pidlAbsolute;
 
     /// <summary>
     /// Reference count for the COM object.
     /// </summary>
     LONG m_refCount;
+
+	/// <summary>
+	/// A dictionary that stores item IDs.
+	/// </summary>
+	ItemIdDictionary *m_pItemIdDictionary; 
 
 public:
 
@@ -53,21 +59,64 @@ public:
     /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
     /// <param name="pParentShellFolder">Pointer to the parent shell folder, if any. Can be nullptr for root folders.</param>
     /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
-    BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl) :
-        m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidl(nullptr), m_refCount(1)
+    BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCIDLIST_ABSOLUTE pidl) :
+        m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidlAbsolute(nullptr), m_refCount(1)
     {
         // Clone the PIDL to ensure it is owned by this instance
-        m_pidl = ILClone(pidl);
+        m_pidlAbsolute = ILClone(pidl);
     }
 
     ~BigDriveShellFolder()
     {
         // Free the PIDL when the object is destroyed
-        if (m_pidl != nullptr)
+        if (m_pidlAbsolute != nullptr)
         {
-            ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
-            m_pidl = nullptr;
+            ::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
+            m_pidlAbsolute = nullptr;
         }
+
+        if (m_pItemIdDictionary != nullptr)
+        {
+            delete m_pItemIdDictionary;
+            m_pItemIdDictionary = nullptr;
+        }
+    }
+
+    /// <summary>
+    /// Factory method that creates and initializes a new BigDriveShellFolder instance.
+    /// Allocates the object, clones the provided PIDL, and creates an associated ItemIdDictionary.
+    /// On success, returns a pointer to the new folder object via <paramref name="ppBigDriveShellFolder"/>.
+    /// On failure, cleans up all resources and returns an error HRESULT.
+    /// </summary>
+    /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
+    /// <param name="pParentShellFolder">Pointer to the parent shell folder, or nullptr for root folders.</param>
+    /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
+    /// <param name="ppBigDriveShellFolder">Receives the pointer to the created BigDriveShellFolder instance on success; set to nullptr on failure.</param>
+    /// <returns>S_OK if the folder was created successfully; error HRESULT (such as E_OUTOFMEMORY) on failure.</returns>
+    static HRESULT Create(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl, BigDriveShellFolder **ppBigDriveShellFolder)
+    {
+        HRESULT hr = S_OK;
+
+        BigDriveShellFolder* pNewFolder = new BigDriveShellFolder(driveGuid, pParentShellFolder, pidl);
+        if (!pNewFolder)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        // Return the created folder
+        *ppBigDriveShellFolder = pNewFolder;
+
+    End:
+
+        if (FAILED(hr) && pNewFolder)
+        {
+            // Clean up on failure
+            delete pNewFolder; 
+            *ppBigDriveShellFolder = nullptr;
+        }
+
+		return hr;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,7 +294,7 @@ public:
         SHGDNF uFlags, PITEMID_CHILD* ppidlOut) override;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // IPersistFolder methods
+    // IPersist
 
     /// <summary>
     /// Retrieves the class identifier (CLSID) for this Shell Folder extension.
@@ -255,6 +304,9 @@ public:
     /// <param name="pClassID">Pointer to a CLSID that receives the class identifier.</param>
     /// <returns>S_OK if successful; E_POINTER if pClassID is null.</returns>
     HRESULT __stdcall GetClassID(CLSID* pClassID) override;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IPersistFolder methods
 
     /// <summary>
     /// Initializes the Shell Folder extension with its absolute location in the Shell namespace.

@@ -2,13 +2,6 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 // <author>Wayne Walter Berry</author>
-// <summary>
-//   Implements the IPersistFolder interface for the BigDriveShellFolder class.
-//   These methods are essential for IShellFolder extensions, enabling the shell to
-//   identify and initialize custom namespace extensions. GetClassID provides the
-//   unique CLSID for the folder, while Initialize sets up the folder's location
-//   within the shell namespace using a PIDL.
-// </summary>
 
 #include "pch.h"
 
@@ -18,34 +11,6 @@
 
 #include <shlobj.h>
 #include <objbase.h>
-
-/// <summary>
-/// Retrieves the class identifier (CLSID) for this Shell Folder extension.
-/// This allows the Windows Shell to uniquely identify the custom IShellFolder implementation.
-/// For namespace extensions, this CLSID is used during registration and binding.
-/// </summary>
-/// <param name="pClassID">Pointer to a CLSID that receives the class identifier.</param>
-/// <returns>S_OK if successful; E_POINTER if pClassID is null.</returns>
-HRESULT __stdcall BigDriveShellFolder::GetClassID(CLSID* pClassID)
-{
-    HRESULT hr = S_OK;
-
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pClassID);
-
-    if (!pClassID)
-    {
-        hr = E_POINTER;
-        goto End;
-    }
-
-    *pClassID = m_driveGuid;
-
-End:
-
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
-
-    return hr;
-}
 
 /// <summary>
 /// Initializes the Shell Folder extension with its absolute location in the Shell namespace.
@@ -59,7 +24,7 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, m_pidl);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (!pidl)
     {
@@ -68,15 +33,15 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
     }
 
     // Free any existing PIDL
-    if (m_pidl)
+    if (m_pidlAbsolute)
     {
-        ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
-        m_pidl = nullptr;
+        ::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
+        m_pidlAbsolute = nullptr;
     }
 
     // Clone and store the new PIDL
-    m_pidl = ILClone(pidl);
-    if (!m_pidl)
+    m_pidlAbsolute = ILClone(pidl);
+    if (!m_pidlAbsolute)
     {
         hr = E_OUTOFMEMORY;
         goto End;
@@ -85,7 +50,6 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 End:
 
     BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
-
 
     return hr;
 }
