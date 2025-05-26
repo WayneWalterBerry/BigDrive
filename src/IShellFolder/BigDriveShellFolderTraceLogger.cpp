@@ -107,21 +107,6 @@ void BigDriveShellFolderTraceLogger::LogParseDisplayName(LPCSTR functionName, LP
 }
 
 /// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl)
-{
-    HRESULT hr = S_OK;
-    BSTR bstrPidl = nullptr;
-
-    StoreCurrentTimeForDurationTracking();
-
-    ItemIdDictionary::Serialize(pidl, bstrPidl);
-
-    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPidl, "PIDL"));
-
-    ::SysFreeString(bstrPidl);
-}
-
-/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, HRESULT hr)
 {
     double elapsedSeconds = GetElapsedSecondsSinceStoredTime();

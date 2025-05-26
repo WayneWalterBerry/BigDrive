@@ -24,7 +24,7 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (!pidl)
     {
@@ -33,15 +33,15 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
     }
 
     // Free any existing PIDL
-    if (m_pidl)
+    if (m_pidlAbsolute)
     {
-        ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
-        m_pidl = nullptr;
+        ::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
+        m_pidlAbsolute = nullptr;
     }
 
     // Clone and store the new PIDL
-    m_pidl = ILClone(pidl);
-    if (!m_pidl)
+    m_pidlAbsolute = ILClone(pidl);
+    if (!m_pidlAbsolute)
     {
         hr = E_OUTOFMEMORY;
         goto End;

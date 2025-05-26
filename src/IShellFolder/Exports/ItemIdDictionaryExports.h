@@ -25,10 +25,6 @@ extern "C" {
 	__declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Remove(HIDITEMIDDIC dict, LPCITEMIDLIST key);
 	__declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Clear(HIDITEMIDDIC dict);
 
-	// Static serialization utilities
-	__declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Serialize(LPCITEMIDLIST pidl, BSTR* bstrPath);
-	__declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Deserialize(const BSTR bstrPath, LPITEMIDLIST* ppidl);
-
 #ifdef __cplusplus
 }
 #endif

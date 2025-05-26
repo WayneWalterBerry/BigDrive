@@ -138,24 +138,6 @@ public:
 	/// </summary>
 	HRESULT Clear();
 
-	/// <summary>
-	/// Serializes an ITEMIDLIST (LPITEMIDLIST) into a BSTR, converting each SHITEMID's abID to a hex string,
-	/// separated by '/' characters.
-	/// </summary>
-	/// <param name="pidl">Pointer to the ITEMIDLIST to serialize.</param>
-	/// <param name="bstPath">Reference to a BSTR that receives the resulting hex string.</param>
-	/// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-	static HRESULT Serialize(_In_ LPCITEMIDLIST pidl, _Out_ BSTR& brstPath);
-
-	/// <summary>
-	/// Deserializes a BSTR produced by SerializeList into an ITEMIDLIST (LPITEMIDLIST).
-	/// </summary>
-	/// <param name="bstrPath">The BSTR hex string to deserialize.</param>
-	/// <param name="ppidl">[out] Receives the resulting LPITEMIDLIST. Caller must free with CoTaskMemFree.</param>
-	/// <returns>S_OK on success, or an error HRESULT on failure.</returns>
-	static HRESULT Deserialize(_In_ const BSTR bstrPath, _Out_ LPITEMIDLIST* ppidl);
-
-
 private:
 
 	int HashPidl(LPCITEMIDLIST pidl) const;

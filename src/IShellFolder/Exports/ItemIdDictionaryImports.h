@@ -28,10 +28,6 @@ extern "C" {
 	HRESULT __stdcall ItemIdDictionary_Remove(HIDITEMIDDIC dict, LPCITEMIDLIST key);
 	HRESULT __stdcall ItemIdDictionary_Clear(HIDITEMIDDIC dict);
 
-	// Static serialization utilities
-	HRESULT __stdcall ItemIdDictionary_Serialize(LPCITEMIDLIST pidl, BSTR* bstrPath);
-	HRESULT __stdcall ItemIdDictionary_Deserialize(const BSTR bstrPath, LPITEMIDLIST* ppidl);
-
 #ifdef __cplusplus
 }
 #endif

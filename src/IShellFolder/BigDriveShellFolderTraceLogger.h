@@ -78,13 +78,6 @@ public:
     /// <param name="pszDisplayName">The display name being parsed.</param>
     static void LogParseDisplayName(LPCSTR functionName, LPOLESTR pszDisplayName);
 
-    /// <summary>
-    /// Logs entry into BindToObject, including a serialized representation of the PIDL.
-    /// </summary>
-    /// <param name="functionName">The function name (typically __FUNCTION__).</param>
-    /// <param name="pidl">The PIDL being bound to.</param>
-    static void LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl);
-
 private:
 
     /// <summary>

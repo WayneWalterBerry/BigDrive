@@ -43,12 +43,4 @@ extern "C" {
         return reinterpret_cast<ItemIdDictionaryHandle>(dict)->Clear();
     }
 
-    __declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Serialize(LPCITEMIDLIST pidl, BSTR* bstrPath) {
-        return ItemIdDictionary::Serialize(pidl, *bstrPath);
-    }
-
-    __declspec(dllexport) HRESULT __stdcall ItemIdDictionary_Deserialize(const BSTR bstrPath, LPITEMIDLIST* ppidl) {
-        return ItemIdDictionary::Deserialize(bstrPath, ppidl);
-    }
-
 } // extern "C"

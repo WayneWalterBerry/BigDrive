@@ -32,11 +32,12 @@ private:
     BigDriveShellFolder* m_pParentShellFolder;
 
     /// <summary>
-    /// The relative PIDL (Pointer to an Item ID List) that identifies this shell folder's location 
-    /// relative to its parent folder in the shell namespace. This PIDL is cloned and owned by the instance,
-    /// and is released upon destruction.
+    /// The absolute PIDL (Pointer to an Item ID List) that uniquely identifies this shell folder's location
+    /// within the Shell namespace, starting from the desktop root. This PIDL is a chain of SHITEMID structures,
+    /// where the last SHITEMID represents this folder as assigned by the Shell (e.g., explorer.exe).
+    /// The PIDL is cloned and owned by this instance, and is released upon destruction.
     /// </summary>
-    PCUIDLIST_RELATIVE m_pidl;
+    PCIDLIST_ABSOLUTE m_pidlAbsolute;
 
     /// <summary>
     /// Reference count for the COM object.
@@ -58,20 +59,20 @@ public:
     /// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
     /// <param name="pParentShellFolder">Pointer to the parent shell folder, if any. Can be nullptr for root folders.</param>
     /// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
-    BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl) :
-        m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidl(nullptr), m_refCount(1)
+    BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCIDLIST_ABSOLUTE pidl) :
+        m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidlAbsolute(nullptr), m_refCount(1)
     {
         // Clone the PIDL to ensure it is owned by this instance
-        m_pidl = ILClone(pidl);
+        m_pidlAbsolute = ILClone(pidl);
     }
 
     ~BigDriveShellFolder()
     {
         // Free the PIDL when the object is destroyed
-        if (m_pidl != nullptr)
+        if (m_pidlAbsolute != nullptr)
         {
-            ::ILFree(const_cast<LPITEMIDLIST>(m_pidl));
-            m_pidl = nullptr;
+            ::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
+            m_pidlAbsolute = nullptr;
         }
 
         if (m_pItemIdDictionary != nullptr)
