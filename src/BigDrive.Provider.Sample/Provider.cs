@@ -15,7 +15,7 @@ namespace BigDrive.Provider.Sample
     public partial class Provider : ServicedComponent,
         IProcessInitializer,
         IBigDriveRegistration,
-        IBigDriveRoot
+        IBigDriveEnumerate
     {
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 

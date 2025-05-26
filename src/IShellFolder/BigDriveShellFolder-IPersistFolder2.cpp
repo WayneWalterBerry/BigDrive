@@ -22,8 +22,6 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
 {
     HRESULT hr = S_OK;
 
-    ::LaunchDebugger();
-
     BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
     if (!ppidl)

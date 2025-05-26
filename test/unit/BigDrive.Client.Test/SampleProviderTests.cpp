@@ -23,29 +23,30 @@ namespace BigDriveClientTest
     public:
 
         /// <summary>
-        /// Test for GetIBigDriveRoot to ensure it retrieves the IBigDriveRoot interface successfully
+        /// Test for GetIBigDriveEnumerate to ensure it retrieves the IBigDriveEnumerate interface successfully
         /// and calls GetRootFolders to verify the returned folder names.
         /// </summary>
-        TEST_METHOD(TestGetIBigDriveRoot_Success)
+        TEST_METHOD(TestGetIBigDriveEnumerate_Success)
         {
             // Arrange
             BigDriveInterfaceProvider provider(CLSID_BigDriveSampleProvider);
-            IBigDriveRoot* pBigDriveRoot = nullptr;
+            IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
+            BSTR bstrPath = ::SysAllocString(L"\\");
 
             // Act
-            HRESULT hr = provider.GetIBigDriveRoot(&pBigDriveRoot);
+            HRESULT hr = provider.GetIBigDriveEnumerate(&pBigDriveEnumerate);
 
             // Assert
-            Assert::AreEqual(S_OK, hr, L"GetIBigDriveRoot should return S_OK.");
-            Assert::IsNotNull(pBigDriveRoot, L"pBigDriveRoot should not be null.");
+            Assert::AreEqual(S_OK, hr, L"GetIBigDriveEnumerate should return S_OK.");
+            Assert::IsNotNull(pBigDriveEnumerate, L"pBigDriveEnumerate should not be null.");
 
-            if (pBigDriveRoot)
+            if (pBigDriveEnumerate)
             {
                 // Call GetRootFolders
                 GUID driveGuid = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf2 } };
                 SAFEARRAY* folders = nullptr;
 
-                hr = pBigDriveRoot->GetRootFolders(driveGuid, &folders);
+                hr = pBigDriveEnumerate->EnumerateFolders(driveGuid, bstrPath, &folders);
 
                 // Assert the result of GetRootFolders
                 Assert::AreEqual(S_OK, hr, L"GetRootFolders should return S_OK.");
@@ -80,11 +81,17 @@ namespace BigDriveClientTest
                 }
             }
 
-            // Cleanup
-            if (pBigDriveRoot)
+            if (bstrPath)
             {
-                pBigDriveRoot->Release();
-                pBigDriveRoot = nullptr;
+                ::SysFreeString(bstrPath);
+                bstrPath = nullptr;
+            }
+
+            // Cleanup
+            if (pBigDriveEnumerate)
+            {
+                pBigDriveEnumerate->Release();
+                pBigDriveEnumerate = nullptr;
             }
         }
     };

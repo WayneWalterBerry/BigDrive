@@ -10,7 +10,7 @@
 
 // Local
 #include "BigDriveClientEventLogger.h"
-#include "Interfaces/IBigDriveRoot.h"
+#include "Interfaces/IBigDriveEnumerate.h"
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "DriveConfiguration.h"
 
@@ -45,13 +45,52 @@ public:
     /// <param name="driveConfiguration">Drive Configuration</param>
     BigDriveInterfaceProvider(DriveConfiguration& driveConfiguration);
 
+    /// <summary>
+    /// Retrieves the requested interface from the COM+ class associated with this provider.
+    /// </summary>
+    /// <param name="iid">The interface ID (IID) of the interface to retrieve.</param>
+    /// <param name="ppv">Address of a pointer that receives the interface pointer on success. Set to nullptr on failure.</param>
+    /// <returns>
+    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
+    /// </returns>
     HRESULT GetInterface(const IID& iid, IUnknown** ppv);
 
+    /// <summary>
+    /// Retrieves the IBigDriveConfiguration interface from the COM+ class associated with this provider.
+    /// </summary>
+    /// <param name="ppBigDriveConfiguration">Address of a pointer that receives the IBigDriveConfiguration interface pointer on success. Set to nullptr on failure.</param>
+    /// <returns>
+    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
+    /// </returns>
     HRESULT GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration);
-    HRESULT GetIBigDriveRoot(IBigDriveRoot** ppBigDriveRoot);
 
-private: 
+    /// <summary>
+    /// Retrieves the IBigDriveEnumerate interface from the COM+ class associated with this provider.
+    /// </summary>
+    /// <param name="ppBigDriveEnumerate">Address of a pointer that receives the IBigDriveEnumerate interface pointer on success. Set to nullptr on failure.</param>
+    /// <returns>
+    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
+    /// </returns>
+    HRESULT GetIBigDriveEnumerate(IBigDriveEnumerate** ppBigDriveEnumerate);
 
+private:
+
+    /// <summary>
+    /// Writes an error message to the event log.
+    /// </summary>
+    /// <param name="message">The error message to log.</param>
+    /// <returns>
+    /// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
+    /// </returns>
     HRESULT WriteError(LPCWSTR message);
+
+    /// <summary>
+    /// Writes a formatted error message to the event log.
+    /// </summary>
+    /// <param name="formatter">The format string for the error message.</param>
+    /// <param name="...">Additional arguments for formatting.</param>
+    /// <returns>
+    /// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
+    /// </returns>
     HRESULT WriteErrorFormmated(LPCWSTR formatter, ...);
 };
