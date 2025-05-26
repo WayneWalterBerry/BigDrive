@@ -145,5 +145,70 @@ namespace BigDriveShellFolderTest
             BigDriveEnumIDList_Release(pEnum);
             CoTaskMemFree(pidl);
         }
+
+        /// <summary>
+        /// Tests the constructor that preallocates a buffer for a given initial capacity.
+        /// Verifies that the object is created and can accept up to the initial capacity without reallocating.
+        /// </summary>
+        TEST_METHOD(ConstructorWithInitialCapacity)
+        {
+            // Create with initial capacity of 3
+            BigDriveEnumIDList* pEnum = CreateBigDriveEnumIDListWithCapacity(3);
+            Assert::IsNotNull(pEnum, L"Failed to create BigDriveEnumIDList with initial capacity.");
+
+            // Add up to 3 PIDLs without reallocating
+            LPITEMIDLIST pidls[3] = {
+                (LPITEMIDLIST)CoTaskMemAlloc(32),
+                (LPITEMIDLIST)CoTaskMemAlloc(32),
+                (LPITEMIDLIST)CoTaskMemAlloc(32)
+            };
+            for (int i = 0; i < 3; ++i)
+            {
+                Assert::IsNotNull(pidls[i], L"Failed to allocate PIDL.");
+                HRESULT hr = BigDriveEnumIDList_Add(pEnum, pidls[i]);
+                Assert::AreEqual(S_OK, hr, L"Add did not return S_OK.");
+            }
+
+            // Adding a fourth should still succeed (triggers reallocation)
+            LPITEMIDLIST pidl4 = (LPITEMIDLIST)CoTaskMemAlloc(32);
+            Assert::IsNotNull(pidl4, L"Failed to allocate PIDL 4.");
+            HRESULT hr = BigDriveEnumIDList_Add(pEnum, pidl4);
+            Assert::AreEqual(S_OK, hr, L"Add after capacity did not return S_OK.");
+
+            // Clean up
+            delete pEnum;
+            for (int i = 0; i < 3; ++i) CoTaskMemFree(pidls[i]);
+            CoTaskMemFree(pidl4);
+        }
+
+        /// <summary>
+        /// Tests the constructor with zero initial capacity.
+        /// Ensures the object is created and can still accept PIDLs.
+        /// </summary>
+        TEST_METHOD(ConstructorWithZeroCapacity)
+        {
+            BigDriveEnumIDList* pEnum = CreateBigDriveEnumIDListWithCapacity(0);
+            Assert::IsNotNull(pEnum, L"Failed to create BigDriveEnumIDList with zero capacity.");
+
+            LPITEMIDLIST pidl = (LPITEMIDLIST)CoTaskMemAlloc(32);
+            Assert::IsNotNull(pidl, L"Failed to allocate PIDL.");
+
+            HRESULT hr = BigDriveEnumIDList_Add(pEnum, pidl);
+            Assert::AreEqual(S_OK, hr, L"Add did not return S_OK for zero-capacity list.");
+
+            delete pEnum;
+            CoTaskMemFree(pidl);
+        }
+
+        /// <summary>
+        /// Tests that the destructor properly frees resources when constructed with a nonzero initial capacity.
+        /// </summary>
+        TEST_METHOD(DestructorWithInitialCapacity)
+        {
+            BigDriveEnumIDList* pEnum = CreateBigDriveEnumIDListWithCapacity(5);
+            Assert::IsNotNull(pEnum, L"Failed to create BigDriveEnumIDList with initial capacity.");
+            // No need to add PIDLs; just ensure no crash on delete
+            delete pEnum;
+        }
     };
 }

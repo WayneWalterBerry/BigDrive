@@ -203,11 +203,12 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	BSTR folderName = nullptr;
 	LONG lowerBound = 0, upperBound = 0;
 	IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
-	SAFEARRAY* folders = nullptr;
+	SAFEARRAY* psafolders = nullptr;
 	BSTR bstrPath = nullptr;
 	BSTR bstrFolderName = nullptr;
 	LPITEMIDLIST pidl = nullptr;
 	BigDriveEnumIDList *pResult = nullptr;
+	LONG lCount = 0;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -246,16 +247,18 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		goto End;
 	}
 
-	hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &folders);
-	if (FAILED(hr) || (folders == nullptr))
+	hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &psafolders);
+	if (FAILED(hr) || (psafolders == nullptr))
 	{
 		goto End;
 	}
 
-	::SafeArrayGetLBound(folders, 1, &lowerBound);
-	::SafeArrayGetUBound(folders, 1, &upperBound);
+	::SafeArrayGetLBound(psafolders, 1, &lowerBound);
+	::SafeArrayGetUBound(psafolders, 1, &upperBound);
 
-	pResult = new BigDriveEnumIDList();
+	lCount = upperBound - lowerBound + 1;
+
+	pResult = new BigDriveEnumIDList(lCount);
 	if (!pResult) 
 	{
 		hr = E_OUTOFMEMORY;
@@ -264,7 +267,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 
 	for (LONG i = lowerBound; i <= upperBound; ++i)
 	{
-		::SafeArrayGetElement(folders, &i, &bstrFolderName);
+		::SafeArrayGetElement(psafolders, &i, &bstrFolderName);
 
 		// Allocate the Relative PIDL to pass back to 
 		hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
@@ -310,10 +313,10 @@ End:
 		pResult = nullptr;
 	}
 
-	if (folders) 
+	if (psafolders)
 	{
-		::SafeArrayDestroy(folders);
-		folders = nullptr;
+		::SafeArrayDestroy(psafolders);
+		psafolders = nullptr;
 	}
 
 	if (pidl)

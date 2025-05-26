@@ -16,14 +16,30 @@
 /// The enumerator clones each PIDL and manages their lifetime.
 /// </summary>
 BigDriveEnumIDList::BigDriveEnumIDList(LPITEMIDLIST* pidls, ULONG count)
-    : m_refCount(1), m_index(0), m_count(count), m_pidls(nullptr)
+    : m_refCount(1), m_index(0), m_count(count), m_capacity(count), m_pidls(nullptr)
 {
-    if (count > 0 && pidls) 
+    if (count > 0 && pidls)
     {
         m_pidls = new LPITEMIDLIST[count];
-        for (ULONG i = 0; i < count; ++i) 
+        for (ULONG i = 0; i < count; ++i)
         {
             m_pidls[i] = ILClone(pidls[i]);
+        }
+    }
+}
+
+/// <summary>
+/// Constructs a new BigDriveEnumIDList with a preallocated buffer for the specified number of PIDLs.
+/// </summary>
+BigDriveEnumIDList::BigDriveEnumIDList(ULONG initialCapacity)
+    : m_refCount(1), m_index(0), m_count(0), m_capacity(initialCapacity), m_pidls(nullptr)
+{
+    if (initialCapacity > 0)
+    {
+        m_pidls = new LPITEMIDLIST[initialCapacity];
+        for (ULONG i = 0; i < initialCapacity; ++i)
+        {
+            m_pidls[i] = nullptr;
         }
     }
 }
@@ -33,9 +49,9 @@ BigDriveEnumIDList::BigDriveEnumIDList(LPITEMIDLIST* pidls, ULONG count)
 /// </summary>
 BigDriveEnumIDList::~BigDriveEnumIDList()
 {
-    if (m_pidls) 
+    if (m_pidls)
     {
-        for (ULONG i = 0; i < m_count; ++i) 
+        for (ULONG i = 0; i < m_count; ++i)
         {
             if (m_pidls[i]) ILFree(m_pidls[i]);
         }
@@ -52,22 +68,33 @@ BigDriveEnumIDList::~BigDriveEnumIDList()
 HRESULT BigDriveEnumIDList::Add(LPITEMIDLIST pidl)
 {
     if (!pidl)
-        return E_INVALIDARG;
-
-    // Allocate new array
-    LPITEMIDLIST* newArray = new LPITEMIDLIST[m_count + 1];
-    if (!newArray)
     {
-        return E_OUTOFMEMORY;
+        return E_INVALIDARG;
     }
 
-    // Copy existing pointers
+    if (m_count < m_capacity)
+    {
+        m_pidls[m_count] = ILClone(pidl);
+        if (!m_pidls[m_count])
+        {
+            return E_OUTOFMEMORY;
+        }
+        ++m_count;
+        return S_OK;
+    }
+
+    // Need to grow the buffer
+    ULONG newCapacity = (m_capacity == 0) ? 4 : m_capacity * 2;
+
+    LPITEMIDLIST* newArray = new LPITEMIDLIST[newCapacity];
+    if (!newArray)
+        return E_OUTOFMEMORY;
+
     for (ULONG i = 0; i < m_count; ++i)
     {
         newArray[i] = m_pidls[i];
     }
 
-    // Clone and add the new PIDL
     newArray[m_count] = ILClone(pidl);
     if (!newArray[m_count])
     {
@@ -75,11 +102,19 @@ HRESULT BigDriveEnumIDList::Add(LPITEMIDLIST pidl)
         return E_OUTOFMEMORY;
     }
 
-    // Delete old array (but not the PIDLs themselves, as they are moved)
+    for (ULONG i = m_count + 1; i < newCapacity; ++i)
+    {
+        newArray[i] = nullptr;
+    }
+
     if (m_pidls)
+    {
         delete[] m_pidls;
+    }
 
     m_pidls = newArray;
     ++m_count;
+    m_capacity = newCapacity;
+
     return S_OK;
 }

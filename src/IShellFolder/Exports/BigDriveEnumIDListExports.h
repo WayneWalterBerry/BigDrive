@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
     __declspec(dllexport) BigDriveEnumIDList* CreateBigDriveEnumIDList();
+    __declspec(dllexport) BigDriveEnumIDList* CreateBigDriveEnumIDListWithCapacity(ULONG initialCapacity); 
     __declspec(dllexport) BigDriveEnumIDList* CreateBigDriveEnumIDListWithItems(LPITEMIDLIST* pidls, ULONG count);
     __declspec(dllexport) void DestroyBigDriveEnumIDList(BigDriveEnumIDList* pEnum);
 

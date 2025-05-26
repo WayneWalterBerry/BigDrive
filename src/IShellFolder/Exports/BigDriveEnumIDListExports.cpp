@@ -12,6 +12,11 @@ extern "C" {
         return new BigDriveEnumIDList();
     }
 
+    BigDriveEnumIDList* CreateBigDriveEnumIDListWithCapacity(ULONG initialCapacity)
+    {
+        return new BigDriveEnumIDList(initialCapacity);
+    }
+
     BigDriveEnumIDList* CreateBigDriveEnumIDListWithItems(LPITEMIDLIST* pidls, ULONG count)
     {
         return new BigDriveEnumIDList(pidls, count);

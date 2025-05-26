@@ -18,7 +18,8 @@ class BigDriveEnumIDList : public IEnumIDList
 {
     LONG m_refCount;
     ULONG m_index;
-    ULONG m_count;
+    ULONG m_count;      // Number of PIDLs currently stored
+    ULONG m_capacity;   // Size of the allocated buffer
     LPITEMIDLIST* m_pidls;
 
 public:
@@ -27,7 +28,7 @@ public:
     /// Default constructor. Initializes an empty enumerator with no PIDLs.
     /// </summary>
     BigDriveEnumIDList()
-        : m_refCount(1), m_index(0), m_count(0), m_pidls(nullptr)
+        : m_refCount(1), m_index(0), m_count(0), m_capacity(0), m_pidls(nullptr)
     {
     }
 
@@ -38,6 +39,12 @@ public:
     /// <param name="pidls">Array of LPITEMIDLIST to enumerate.</param>
     /// <param name="count">Number of PIDLs in the array.</param>
     BigDriveEnumIDList(LPITEMIDLIST* pidls, ULONG count);
+
+    /// <summary>
+    /// Constructs a new BigDriveEnumIDList with a preallocated buffer for the specified number of PIDLs.
+    /// </summary>
+    /// <param name="initialCapacity">Initial buffer size for PIDLs.</param>
+    BigDriveEnumIDList(ULONG initialCapacity);
 
     /// <summary>
     /// Destructor. Releases all cloned PIDLs and internal resources.
@@ -64,7 +71,7 @@ public:
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // IEnumIDList methods
-    
+
     /// <summary>
     /// Retrieves the next set of PIDLs in the enumeration sequence.
     /// </summary>
