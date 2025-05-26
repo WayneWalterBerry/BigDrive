@@ -8,9 +8,6 @@
 #include <objbase.h> // For COM initialization
 #include <string>
 
-// Local
-#include "ItemIdDictionary.h" 
-
 /// <summary>
 /// Object identifiers in the explorer's name space (ItemID and IDList)
 ///
@@ -94,11 +91,6 @@ private:
     /// </summary>
     LONG m_refCount;
 
-	/// <summary>
-	/// A dictionary that stores item IDs.
-	/// </summary>
-	ItemIdDictionary *m_pItemIdDictionary; 
-
 public:
 
     /// <summary>
@@ -123,12 +115,6 @@ public:
         {
             ::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
             m_pidlAbsolute = nullptr;
-        }
-
-        if (m_pItemIdDictionary != nullptr)
-        {
-            delete m_pItemIdDictionary;
-            m_pItemIdDictionary = nullptr;
         }
     }
 

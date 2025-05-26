@@ -6,8 +6,6 @@
 
 #include "BigDriveShellFolderTraceLogger.h"
 
-#include "ItemIdDictionary.h"
-
 // Provider Id: {A356D4CC-CDAC-4894-A93D-35C4C3F84944}
 TRACELOGGING_DEFINE_PROVIDER(
     g_hMyProvider,
