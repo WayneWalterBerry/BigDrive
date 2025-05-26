@@ -12,5 +12,12 @@
 
 HRESULT BigDriveShellFolder::GetProviderCLSID(CLSID& clsidProvider) const
 {
-    return S_OK;
+	return S_OK;
 }
+
+HRESULT BigDriveShellFolder::GetPath(BSTR& bstrPath)
+{
+	bstrPath = ::SysAllocString(L"\\");
+	return S_OK;
+}
+

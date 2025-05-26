@@ -11,6 +11,7 @@
 #include "LaunchDebugger.h"
 #include "EmptyEnumIDList.h"
 #include "BigDriveShellFolderTraceLogger.h"
+#include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -197,6 +198,13 @@ End:
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
 	HRESULT hr = S_OK;
+	BigDriveInterfaceProvider *pInterfaceProvider = nullptr;
+	BSTR folderName = nullptr;
+	LONG lowerBound = 0, upperBound = 0;
+	IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
+	SAFEARRAY* folders = nullptr;
+	BSTR bstrPath = nullptr;
+	BSTR bstrFolderName = nullptr;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -209,14 +217,80 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 
 	*ppenumIDList = nullptr;
 
+	pInterfaceProvider = new BigDriveInterfaceProvider(m_driveGuid);
+	if (pInterfaceProvider == nullptr)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	hr = pInterfaceProvider->GetIBigDriveEnumerate(&pBigDriveEnumerate);
+	switch (hr)
+	{
+	case S_OK:
+		break;
+	case S_FALSE:
+		// Iterface isn't Implemented By The Provider
+		goto End;
+	default:
+		// TODO Log Error
+		break;
+	}
+
+	hr = GetPath(bstrPath);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &folders);
+	if (FAILED(hr) || (folders == nullptr))
+	{
+		goto End;
+	}
+
+	::SafeArrayGetLBound(folders, 1, &lowerBound);
+	::SafeArrayGetUBound(folders, 1, &upperBound);
+
+	for (LONG i = lowerBound; i <= upperBound; ++i)
+	{
+		::SafeArrayGetElement(folders, &i, &bstrFolderName);
+
+
+
+		if (bstrFolderName)
+		{
+			::SysFreeString(bstrFolderName);
+			bstrFolderName = nullptr;
+		}
+	}
+
 	// For a minimal implementation, return an empty enumerator (no files/folders)
 	// This is sufficient for a shell folder that is empty or as a stub for a drive root.
 
 	*ppenumIDList = new EmptyEnumIDList();
 
+End:
+
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
-End:
+	if (pBigDriveEnumerate)
+	{
+		pBigDriveEnumerate->Release();
+		pBigDriveEnumerate = nullptr;
+	}
+
+	if (bstrFolderName)
+	{
+		::SysFreeString(bstrFolderName);
+		bstrFolderName = nullptr;
+	}
+
+	if (bstrPath)
+	{
+		::SysFreeString(bstrPath);
+		bstrPath = nullptr;
+	}
 
 	return hr;
 }
