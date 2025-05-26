@@ -164,6 +164,8 @@
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />
     <ClInclude Include="Exports\BigDriveEnumIDListExports.h" />
     <ClInclude Include="Exports\BigDriveEnumIDListImports.h" />
+    <ClInclude Include="Exports\BigDriveShellFolderExports.h" />
+    <ClInclude Include="Exports\BigDriveShellFolderImports.h" />
     <ClInclude Include="Exports\RegistrationManagerExports.h" />
     <ClInclude Include="Exports\RegistrationManagerImports.h" />
     <ClInclude Include="framework.h" />
@@ -188,6 +190,7 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
     <ClCompile Include="Exports\BigDriveEnumIDListExports.cpp" />
+    <ClCompile Include="Exports\BigDriveShellFolderExports.cpp" />
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">

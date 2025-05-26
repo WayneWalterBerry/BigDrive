@@ -1,4 +1,4 @@
-// <copyright file="BigDriveShellFolder-IDispatch.cpp" company="Wayne Walter Berry">
+// <copyright file="BigDriveShellFolder.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -23,11 +23,14 @@ HRESULT BigDriveShellFolder::GetPath(BSTR& bstrPath)
 
 // Allocates a BIGDRIVE_ITEMID as a valid SHITEMID for use in a PIDL.
 // The returned pointer must be freed with CoTaskMemFree.
-HRESULT BigDriveShellFolder::AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& ppidl)
+HRESULT BigDriveShellFolder::AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& pidl)
 {
-    ppidl = nullptr;
+    pidl = nullptr;
+
     if (!bstrName)
+    {
         return E_INVALIDARG;
+    }
 
     // Calculate the size needed for the name (including null terminator)
     size_t nameLen = (SysStringLen(bstrName) + 1) * sizeof(WCHAR);
@@ -51,6 +54,6 @@ HRESULT BigDriveShellFolder::AllocateBigDriveItemId(BigDriveItemType nType, BSTR
     // Add PIDL terminator (USHORT 0) after the SHITEMID
     *(USHORT*)(buffer + cb) = 0;
 
-    ppidl = reinterpret_cast<LPITEMIDLIST>(buffer);
+    pidl = reinterpret_cast<LPITEMIDLIST>(buffer);
     return S_OK;
 }
