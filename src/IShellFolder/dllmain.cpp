@@ -33,7 +33,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         BigDriveShellFolderTraceLogger::Initialize();
 
         // Initialize COM
-        hr = ::CoInitialize(NULL);
+        hr = ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         if (FAILED(hr)) 
         {
             // Handle the error (e.g., log it or return FALSE to indicate failure)

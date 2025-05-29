@@ -83,8 +83,9 @@
                 $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
-            </AdditionalIncludeDirectories>
-    </ClCompile>
+      </AdditionalIncludeDirectories>
+	  <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+	</ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -106,8 +107,9 @@
                 $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
-            </AdditionalIncludeDirectories>
-    </ClCompile>
+      </AdditionalIncludeDirectories>
+	  <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+	</ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -129,8 +131,9 @@
                 $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
-            </AdditionalIncludeDirectories>
-    </ClCompile>
+       </AdditionalIncludeDirectories>
+	   <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+	</ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -152,7 +155,8 @@
                 $(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\shared;
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
-            </AdditionalIncludeDirectories>
+       </AdditionalIncludeDirectories>
+	   <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
