@@ -41,6 +41,22 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName)
 }
 
 /// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl)
+{
+    WCHAR szPath[MAX_PATH];
+
+    StoreCurrentTimeForDurationTracking();
+
+    if (::SHGetPathFromIDListW(pidl, szPath))
+    {
+        TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(szPath, "Path"));
+    }
+
+    TraceLoggingWrite(g_hMyProvider, "Enter", TraceLoggingString(functionName, "FunctionName"));
+}
+
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, CLSID* pClassID)
 {
     StoreCurrentTimeForDurationTracking();
@@ -48,7 +64,7 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, CLSID* pClass
 }
 
 /// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogDllGetClassObject(LPCSTR functionName, REFCLSID clsid, REFIID riid)
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFCLSID clsid, REFIID riid)
 {
     HRESULT hr = S_OK;
     BSTR bstrIIDName = nullptr;

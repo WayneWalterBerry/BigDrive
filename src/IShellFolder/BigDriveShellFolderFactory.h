@@ -5,19 +5,14 @@
 #include <unknwn.h> // For IClassFactory
 #include "BigDriveShellFolder.h" // For BigDriveFolder
 
-
-
 class BigDriveShellFolderFactory : public IClassFactory 
 {
 
 private:
 
-    /// <summary>
-    /// Static member that holds the absolute PIDL (Pointer to an Item ID List) representing the root location
-    /// of the BigDrive namespace within the shell. This PIDL is used as a reference point for resolving
-    /// relative item locations and for operations that require knowledge of the namespace root.
-    /// </summary>
-    static PIDLIST_ABSOLUTE s_pidlRoot;
+    static BigDriveShellFolderEventLogger s_eventLogger;
+
+private:
 
     // Reference count for COM object
     LONG m_refCount; 
@@ -55,31 +50,11 @@ public:
     /// <param name="riid">The interface identifier (IID) being requested.</param>
     /// <param name="ppvObject">Address of pointer variable that receives the interface pointer if successful.</param>
     /// <returns>S_OK if the interface is supported; otherwise, E_NOINTERFACE.</returns>
-    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override 
-    {
-        if (riid == IID_IUnknown || riid == IID_IClassFactory) 
-        {
-            *ppvObject = static_cast<IClassFactory*>(this);
-            AddRef();
-            return S_OK;
-        }
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override;
 
-        *ppvObject = nullptr;
-        return E_NOINTERFACE;
-    }
+    ULONG __stdcall AddRef() override;
 
-    ULONG __stdcall AddRef() override 
-    {
-        return InterlockedIncrement(&m_refCount);
-    }
-
-    ULONG __stdcall Release() override {
-        LONG ref = InterlockedDecrement(&m_refCount);
-        if (ref == 0) {
-            delete this;
-        }
-        return ref;
-    }
+    ULONG __stdcall Release() override;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // IClassFactory methods
@@ -105,13 +80,44 @@ public:
     /// </returns>
     HRESULT __stdcall CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override;
 
-    HRESULT __stdcall LockServer(BOOL fLock) override {
-        // Lock or unlock the server
-        if (fLock) {
-            InterlockedIncrement(&m_refCount);
-        } else {
-            InterlockedDecrement(&m_refCount);
-        }
-        return S_OK;
-    }
+    /// <summary>
+    /// Implements the IClassFactory::LockServer method to control the server's lifetime.
+    /// This method is called by the COM runtime to increment or decrement the lock count
+    /// on the class factory's server. When the lock count is nonzero, the server (typically
+    /// a DLL) is kept loaded in memory, preventing it from being unloaded. This is useful
+    /// for scenarios where clients may create and release objects frequently, and unloading
+    /// the server would be inefficient.
+    ///
+    /// <para><b>Parameters:</b></para>
+    /// <param name="fLock">
+    ///   [in] If TRUE, increments the server's lock count to prevent unloading. If FALSE,
+    ///   decrements the lock count, allowing the server to unload if the count reaches zero.
+    /// </param>
+    ///
+    /// <para><b>Return Value:</b></para>
+    /// <returns>
+    ///   S_OK if the operation succeeds. Returns a COM error code if the operation fails.
+    /// </returns>
+    ///
+    /// <para><b>Behavior and Notes:</b></para>
+    /// <list type="bullet">
+    ///   <item>This method is typically implemented by incrementing or decrementing a global
+    ///         lock count (such as with InterlockedIncrement/InterlockedDecrement).</item>
+    ///   <item>When the lock count is greater than zero, the COM runtime will not unload the
+    ///         DLL, even if there are no active object references.</item>
+    ///   <item>When the lock count reaches zero and there are no outstanding object references,
+    ///         the server may be unloaded from memory.</item>
+    ///   <item>This mechanism is important for in-process servers (DLLs) to manage their lifetime
+    ///         efficiently and avoid unnecessary load/unload cycles.</item>
+    ///   <item>For most shell extensions, a minimal implementation that always returns S_OK is
+    ///         sufficient, unless you need to control DLL lifetime explicitly.</item>
+    /// </list>
+    ///
+    /// <para><b>Typical Usage:</b></para>
+    /// <list type="bullet">
+    ///   <item>Called by COM when a client calls CoLockObjectExternal or similar APIs.</item>
+    ///   <item>Used internally by COM to manage the lifetime of in-process servers.</item>
+    /// </list>
+    /// </summary>
+    HRESULT __stdcall LockServer(BOOL fLock) override;
 };

@@ -1,4 +1,4 @@
-// <copyright file="BigDriveShellFolderFactory.cpp" company="Wayne Walter Berry">
+// <copyright file="BigDriveShellFolderFactory-IClassFactory.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -9,9 +9,6 @@
 
 #include <windows.h>
 
-// Define the static member outside the class
-PIDLIST_ABSOLUTE BigDriveShellFolderFactory::s_pidlRoot = ILCreateFromPathW(L"::");
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // IClassFactory methods
 
@@ -19,10 +16,15 @@ PIDLIST_ABSOLUTE BigDriveShellFolderFactory::s_pidlRoot = ILCreateFromPathW(L"::
 HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
 {
     HRESULT hr = S_OK;
-
     BigDriveShellFolder* pFolder = nullptr;
 
     BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+
+    if (!ppvObject) 
+    {
+        hr = E_POINTER;
+        goto End;
+    }
 
     if (pUnkOuter != nullptr)
     {
@@ -31,10 +33,13 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
         goto End;
     }
 
+    *ppvObject = nullptr;
+
     // Create an instance of BigDriveFolder
-    hr = BigDriveShellFolder::Create(m_driveGuid, nullptr, s_pidlRoot, &pFolder);
+    hr = BigDriveShellFolder::Create(m_driveGuid, nullptr, nullptr, &pFolder);
     if (FAILED(hr))
     {
+        s_eventLogger.WriteErrorFormmated(L"CreateInstance: Create() Failed. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -42,6 +47,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
     hr = pFolder->QueryInterface(riid, ppvObject);
     if (FAILED(hr))
     {
+        s_eventLogger.WriteErrorFormmated(L"CreateInstance: QueryInterface() Failed. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -56,4 +62,24 @@ End:
     BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
     return hr;
+}
+
+/// <inheritdoc />
+HRESULT __stdcall BigDriveShellFolderFactory::LockServer(BOOL fLock) 
+{
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
+    // Lock or unlock the server
+    if (fLock) 
+    {
+        ::InterlockedIncrement(&m_refCount);
+    }
+    else 
+    {
+        ::InterlockedDecrement(&m_refCount);
+    }
+
+    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, S_OK);
+
+    return S_OK;
 }

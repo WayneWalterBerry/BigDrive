@@ -186,6 +186,8 @@
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory-IClassFactory.cpp" />
+    <ClCompile Include="BigDriveShellFolderFactory-IUnknown.cpp" />
+    <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderTraceLogger.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />

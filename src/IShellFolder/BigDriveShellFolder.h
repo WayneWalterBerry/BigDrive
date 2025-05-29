@@ -6,7 +6,7 @@
 
 #include "BigDriveItemType.h"
 
-// #include "Exports/BigDriveShellFolderExports.h"
+#include "BigDriveShellFolderEventLogger.h"
 
 #include <shlobj.h> // For IShellFolder and related interfaces
 #include <objbase.h> // For COM initialization
@@ -75,6 +75,10 @@ class BigDriveShellFolder : public
 {
 private:
 
+	static BigDriveShellFolderEventLogger s_eventLogger;
+
+private:
+
 	/// <summary>
 	/// The Drive guid 
 	/// </summary>
@@ -105,11 +109,13 @@ public:
 	/// <param name="driveGuid">The GUID associated with the virtual drive or shell folder.</param>
 	/// <param name="pParentShellFolder">Pointer to the parent shell folder, if any. Can be nullptr for root folders.</param>
 	/// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
-	BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCIDLIST_ABSOLUTE pidl) :
+	BigDriveShellFolder(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCIDLIST_ABSOLUTE pidlAbsolute) :
 		m_driveGuid(driveGuid), m_pParentShellFolder(pParentShellFolder), m_pidlAbsolute(nullptr), m_refCount(1)
 	{
-		// Clone the PIDL to ensure it is owned by this instance
-		m_pidlAbsolute = ILClone(pidl);
+		if (pidlAbsolute != nullptr)
+		{
+			m_pidlAbsolute = ::ILClone(pidlAbsolute);
+		}
 	}
 
 	~BigDriveShellFolder()
@@ -133,14 +139,25 @@ public:
 	/// <param name="pidl">The absolute PIDL identifying the folder's location within the shell namespace.</param>
 	/// <param name="ppBigDriveShellFolder">Receives the pointer to the created BigDriveShellFolder instance on success; set to nullptr on failure.</param>
 	/// <returns>S_OK if the folder was created successfully; error HRESULT (such as E_OUTOFMEMORY) on failure.</returns>
-	static HRESULT Create(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCUIDLIST_RELATIVE pidl, BigDriveShellFolder** ppBigDriveShellFolder)
+	static HRESULT Create(CLSID driveGuid, BigDriveShellFolder* pParentShellFolder, PCIDLIST_ABSOLUTE pidlAbsolute, BigDriveShellFolder** ppBigDriveShellFolder)
 	{
 		HRESULT hr = S_OK;
+		BigDriveShellFolder* pNewFolder = nullptr;
 
-		BigDriveShellFolder* pNewFolder = new BigDriveShellFolder(driveGuid, pParentShellFolder, pidl);
+		if (!ppBigDriveShellFolder)
+		{
+			hr = E_POINTER;
+			s_eventLogger.WriteErrorFormmated(L"Create: Invalid Pointer. HRESULT: 0x%08X", hr);
+			goto End;
+		}
+
+		*ppBigDriveShellFolder = nullptr;
+
+		pNewFolder = new BigDriveShellFolder(driveGuid, pParentShellFolder, pidlAbsolute);
 		if (!pNewFolder)
 		{
 			hr = E_OUTOFMEMORY;
+			s_eventLogger.WriteErrorFormmated(L"Create: Out of Memory. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 
@@ -153,7 +170,7 @@ public:
 		{
 			// Clean up on failure
 			delete pNewFolder;
-			*ppBigDriveShellFolder = nullptr;
+			pNewFolder = nullptr;
 		}
 
 		return hr;

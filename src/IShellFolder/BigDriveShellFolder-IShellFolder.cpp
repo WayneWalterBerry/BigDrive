@@ -247,61 +247,67 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		goto End;
 	}
 
-	hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &psafolders);
-	if (FAILED(hr) || (psafolders == nullptr))
+	if (grfFlags & SHCONTF_FOLDERS)
 	{
-		goto End;
-	}
-
-	::SafeArrayGetLBound(psafolders, 1, &lowerBound);
-	::SafeArrayGetUBound(psafolders, 1, &upperBound);
-
-	lCount = upperBound - lowerBound + 1;
-
-	pResult = new BigDriveEnumIDList(lCount);
-	if (!pResult) 
-	{
-		hr = E_OUTOFMEMORY;
-		goto End;
-	}
-
-	for (LONG i = lowerBound; i <= upperBound; ++i)
-	{
-		::SafeArrayGetElement(psafolders, &i, &bstrFolderName);
-
-		// Allocate the Relative PIDL to pass back to 
-		hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
-		if (FAILED(hr) || (pidl == nullptr))
+		hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &psafolders);
+		if (FAILED(hr) || (psafolders == nullptr))
 		{
 			goto End;
 		}
 
-		if (pidl == nullptr)
+		::SafeArrayGetLBound(psafolders, 1, &lowerBound);
+		::SafeArrayGetUBound(psafolders, 1, &upperBound);
+
+		lCount = upperBound - lowerBound + 1;
+
+		pResult = new BigDriveEnumIDList(lCount);
+		if (!pResult)
 		{
-			hr = E_FAIL;
+			hr = E_OUTOFMEMORY;
 			goto End;
 		}
 
-		hr = pResult->Add(pidl);
-		if (FAILED(hr))
+		for (LONG i = lowerBound; i <= upperBound; ++i)
 		{
-			goto End;
-		}
+			::SafeArrayGetElement(psafolders, &i, &bstrFolderName);
 
-		if (pidl)
-		{
-			::CoTaskMemFree(pidl);
-			pidl = nullptr;
-		}
+			// Allocate the Relative PIDL to pass back to 
+			hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
+			if (FAILED(hr) || (pidl == nullptr))
+			{
+				goto End;
+			}
 
-		if (bstrFolderName)
-		{
-			::SysFreeString(bstrFolderName);
-			bstrFolderName = nullptr;
+			if (pidl == nullptr)
+			{
+				hr = E_FAIL;
+				goto End;
+			}
+
+			hr = pResult->Add(pidl);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			if (pidl)
+			{
+				::CoTaskMemFree(pidl);
+				pidl = nullptr;
+			}
+
+			if (bstrFolderName)
+			{
+				::SysFreeString(bstrFolderName);
+				bstrFolderName = nullptr;
+			}
 		}
 	}
 
-	*ppenumIDList = pResult;
+	if (pResult == nullptr)
+	{
+		*ppenumIDList = new EmptyEnumIDList();
+	}
 
 End:
 
@@ -571,6 +577,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 
 	if (!ppv)
 	{
+		s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Invalid Pointer", hr);
 		return E_INVALIDARG;
 	}
 
@@ -589,6 +596,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 		hr = ::SHCreateShellFolderView(&sfv, reinterpret_cast<IShellView**>(ppv));
 		if (FAILED(hr))
 		{
+			s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Failed to Create IShellView. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 	}

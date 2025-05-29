@@ -27,6 +27,7 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
     if (!ppidl)
     {
         hr = E_POINTER;
+        s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Invalid Pointer. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -37,6 +38,7 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
         *ppidl = ::ILClone(m_pidlAbsolute);
         if (!(*ppidl))
         {
+            s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Unable to Close PIDL. HRESULT: 0x%08X", hr);
             hr = E_OUTOFMEMORY;
             goto End;
         }

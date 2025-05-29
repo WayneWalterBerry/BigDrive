@@ -28,6 +28,7 @@ HRESULT __stdcall BigDriveShellFolder::GetClassID(CLSID* pClassID)
     if (!pClassID)
     {
         hr = E_POINTER;
+        s_eventLogger.WriteErrorFormmated(L"GetClassID: Invalid Pointer. HRESULT: 0x%08X", hr);
         goto End;
     }
 
