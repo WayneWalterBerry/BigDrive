@@ -20,9 +20,23 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
 
     BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
-    if (riid == IID_IUnknown || riid == IID_IShellFolder)
+    if (riid == IID_IUnknown)
     {
         *ppvObject = static_cast<IShellFolder*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+    }
+    if (riid == IID_IShellFolder)
+    {
+        *ppvObject = static_cast<IShellFolder*>(this);
+        AddRef();
+        hr = S_OK;
+        goto End;
+    }
+    else if (IsEqualIID(riid, IID_IShellFolder2))
+    {
+        *ppvObject = static_cast<IShellFolder2*>(this);
         AddRef();
         hr = S_OK;
         goto End;

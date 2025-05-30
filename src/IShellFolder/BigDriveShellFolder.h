@@ -67,7 +67,7 @@ struct BIGDRIVE_ITEMID {
 /// Provides functionality for interacting with the shell folder hierarchy.
 /// </summary>
 class BigDriveShellFolder : public
-	IShellFolder,
+	IShellFolder2,
 	IPersistFolder2, // IPersistFolder is deprecated, use IPersistFolder2 instead
 	IObjectWithBackReferences,
 	IProvideClassInfo
@@ -349,6 +349,115 @@ public:
 	/// <returns>S_OK if successful; otherwise, an error code.</returns>
 	HRESULT __stdcall SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl, LPCOLESTR pszName,
 		SHGDNF uFlags, PITEMID_CHILD* ppidlOut) override;
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// IShellFolder2 methods (implemented in BigDriveShellFolder-IShellFolder2.cpp)
+
+	/// <summary>
+	/// Retrieves the default search GUID for the folder. This GUID is used by the Windows Shell
+	/// to determine the search behavior for the folder. A minimal implementation returns E_NOTIMPL
+	/// to indicate that search is not supported for this namespace extension.
+	/// </summary>
+	/// <param name="pguid">Pointer to a GUID that receives the search GUID.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate search is not implemented.
+	/// </returns>
+	HRESULT __stdcall GetDefaultSearchGUID(GUID* pguid) override;
+
+	/// <summary>
+	/// Returns an enumerator for the columns supported by the folder. The Windows Shell uses this
+	/// to display columns in details view. A minimal implementation returns E_NOTIMPL to indicate
+	/// that no custom columns are provided by this folder.
+	/// </summary>
+	/// <param name="ppEnum">Receives the IEnumExtraSearch interface pointer.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate no columns are provided.
+	/// </returns>
+	HRESULT __stdcall EnumSearches(IEnumExtraSearch** ppEnum) override;
+
+	/// <summary>
+	/// Retrieves information about the default sort and display columns for the folder.
+	/// The Shell calls this to determine which columns to show and how to sort them by default.
+	/// A minimal implementation returns E_NOTIMPL to indicate no custom columns are provided.
+	/// </summary>
+	/// <param name="dwRes">Reserved. Always zero.</param>
+	/// <param name="pSort">Pointer to a ULONG to receive the default sort column index.</param>
+	/// <param name="pDisplay">Pointer to a ULONG to receive the default display column index.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate no column information is provided.
+	/// </returns>
+	HRESULT __stdcall GetDefaultColumn(DWORD dwRes, ULONG* pSort, ULONG* pDisplay) override;
+
+	/// <summary>
+	/// Retrieves the default state for a column, such as visibility and width. The Shell uses this
+	/// to determine how to display columns by default. A minimal implementation returns E_NOTIMPL.
+	/// </summary>
+	/// <param name="iColumn">The index of the column.</param>
+	/// <param name="pcsFlags">Pointer to a DWORD to receive the state flags.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate no default state is provided.
+	/// </returns>
+	HRESULT __stdcall GetDefaultColumnState(UINT iColumn, SHCOLSTATEF* pcsFlags) override;
+
+	/// <summary>
+	/// Retrieves information about a column, such as its title, width, and format. The Shell calls
+	/// this to display column headers in details view. A minimal implementation returns E_NOTIMPL
+	/// to indicate no custom columns are provided.
+	/// </summary>
+	/// <param name="pidl">The item ID of the item (may be nullptr for header information).</param>
+	/// <param name="iColumn">The index of the column.</param>
+	/// <param name="psd">Pointer to a SHELLDETAILS structure to receive the details.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate no details are provided.
+	/// </returns>
+	HRESULT __stdcall GetDetailsOf(PCUITEMID_CHILD pidl, UINT iColumn, SHELLDETAILS* psd) override;
+
+	/// <summary>
+	/// Retrieves a property value for a specified item in the shell folder, as identified by a property key (SHCOLUMNID).
+	/// This method is called by the Windows Shell to obtain extended details (such as file size, date, or custom properties)
+	/// for items in the folder, and is part of the IShellFolder2 interface. The property value is returned as a VARIANT,
+	/// allowing for a wide range of data types to be represented.
+	/// 
+	/// <para><b>Parameters:</b></para>
+	/// <param name="pidl">
+	///   [in] The item ID (relative PIDL) of the item for which the property is requested. May be nullptr for folder-wide properties.
+	/// </param>
+	/// <param name="pscid">
+	///   [in] Pointer to a SHCOLUMNID structure that specifies the property (column) to retrieve.
+	/// </param>
+	/// <param name="pv">
+	///   [out] Pointer to a VARIANT that receives the property value. The caller is responsible for initializing and clearing the VARIANT.
+	/// </param>
+	/// 
+	/// <para><b>Return Value:</b></para>
+	/// <returns>
+	///   S_OK if the property was retrieved successfully and the VARIANT is set.
+	///   E_POINTER if pv is null.
+	///   E_NOTIMPL if the property is not supported or not implemented.
+	///   Other HRESULT error codes as appropriate.
+	/// </returns>
+	/// 
+	/// <para><b>Behavior and Notes:</b></para>
+	/// <list type="bullet">
+	///   <item>This minimal implementation only initializes the output VARIANT and returns S_OK if pv is not null, but does not provide any property values.</item>
+	///   <item>To support shell details view or custom columns, override this method to return actual property values for known SHCOLUMNID keys.</item>
+	///   <item>If the property is not supported, return E_NOTIMPL or set the VARIANT to VT_EMPTY.</item>
+	///   <item>The shell may call this method frequently for each item and property displayed in Explorer.</item>
+	/// </list>
+	/// </summary>
+	HRESULT __stdcall GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv) override;
+
+	/// <summary>
+	/// Maps a property set ID and property ID to a column index. The Shell uses this to correlate
+	/// property columns with their indices. A minimal implementation returns E_NOTIMPL to indicate
+	/// no mapping is provided.
+	/// </summary>
+	/// <param name="iColumn">The index of the column.</param>
+	/// <param name="pscid">Pointer to the SHCOLUMNID structure to receive the property set and property ID.</param>
+	/// <returns>
+	/// E_NOTIMPL to indicate no mapping is provided.
+	/// </returns>
+	HRESULT __stdcall MapColumnToSCID(UINT iColumn, SHCOLUMNID* pscid) override;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// IPersist

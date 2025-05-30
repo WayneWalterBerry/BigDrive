@@ -82,8 +82,8 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-	  <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-	</ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -101,7 +101,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>		
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,7 +121,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>D:\BigDrive\src\Shared;D:\BigDrive\src\BigDrive.Client;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-	  <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>		
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,8 +146,8 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-	  <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-	</ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -186,6 +186,7 @@
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IProvideClassInfo.cpp" />
+    <ClCompile Include="BigDriveShellFolder-IShellFolder2.cpp" />
     <ClCompile Include="BigDriveShellFolder-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolder-IShellFolder.cpp" />
     <ClCompile Include="BigDriveShellFolder.cpp" />
