@@ -202,7 +202,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 {
 	HRESULT hr = S_OK;
 	DriveConfiguration driveConfiguration;
-	BigDriveInterfaceProvider *pInterfaceProvider = nullptr;
+	BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
 	BSTR folderName = nullptr;
 	LONG lowerBound = 0, upperBound = 0;
 	IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
@@ -210,7 +210,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	BSTR bstrPath = nullptr;
 	BSTR bstrFolderName = nullptr;
 	LPITEMIDLIST pidl = nullptr;
-	BigDriveEnumIDList *pResult = nullptr;
+	BigDriveEnumIDList* pResult = nullptr;
 	LONG lCount = 0;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
@@ -257,7 +257,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		hr = E_FAIL;
 		WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveEnumerate, HRESULT: 0x%08X", hr);
 		goto End;
-	}	
+	}
 
 	hr = GetPath(bstrPath);
 	if (FAILED(hr))
@@ -335,7 +335,7 @@ End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
-	if (FAILED(hr) && pResult) 
+	if (FAILED(hr) && pResult)
 	{
 		delete pResult;
 		pResult = nullptr;
@@ -371,7 +371,7 @@ End:
 		bstrPath = nullptr;
 	}
 
-	if (pInterfaceProvider) 
+	if (pInterfaceProvider)
 	{
 		delete pInterfaceProvider;
 		pInterfaceProvider = nullptr;
@@ -631,11 +631,58 @@ End:
 }
 
 /// <summary>
-/// Retrieves the attributes of one or more items in the folder.
+/// Retrieves the attributes of one or more items in the folder for the Windows Shell.
+/// The Shell calls this method to determine the capabilities and characteristics of the specified items,
+/// such as whether they are folders, files, support renaming, have subfolders, or are part of the file system.
+/// The returned attributes (SFGAO_* flags) are used by the Shell to enable or disable UI features,
+/// optimize operations, and control user interactions (e.g., context menus, drag-and-drop, property sheets).
+///
+/// <para><b>Shell Expectations:</b></para>
+/// <list type="bullet">
+///   <item>The method must fill in the output attribute flags for all specified items, using the SFGAO_* constants.</item>
+///   <item>If multiple items are specified, the method should return the intersection of the attributes that apply to all items.</item>
+///   <item>If any parameter is invalid or attributes cannot be determined, return an error and do not modify the output.</item>
+///   <item>This method must not display UI or block for a long time; it is called frequently and must be efficient.</item>
+/// </list>
+///
+/// <para><b>Parameters:</b></para>
+/// <param name="cidl">
+///   [in] The number of items for which attributes are requested. Must be greater than 0.
+/// </param>
+/// <param name="apidl">
+///   [in] An array of pointers to item ID lists (PIDLs), each identifying an item relative to this folder.
+/// </param>
+/// <param name="rgfInOut">
+///   [in, out] On input, a bitmask specifying which attributes the caller is interested in.
+///   On output, receives the bitmask of SFGAO_* flags that apply to all specified items.
+/// </param>
+///
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the attributes were successfully retrieved and set in <paramref name="rgfInOut"/>.
+///   E_INVALIDARG if any parameter is invalid (e.g., cidl == 0, apidl == nullptr, or rgfInOut == nullptr).
+///   Other COM error codes as appropriate.
+/// </returns>
+///
+/// <para><b>Output:</b></para>
+/// <list type="bullet">
+///   <item><paramref name="rgfInOut"/> is set to a bitmask of SFGAO_* flags describing the items' attributes.</item>
+///   <item>Common flags: SFGAO_FOLDER, SFGAO_FILESYSTEM, SFGAO_HASSUBFOLDER, SFGAO_FILESYSANCESTOR, SFGAO_STORAGE.</item>
+/// </list>
+///
+/// <para><b>Notes:</b></para>
+/// <list type="bullet">
+///   <item>Do not allocate or free memory for the PIDLs; ownership remains with the caller.</item>
+///   <item>Return only the attributes that apply to all items if more than one is specified.</item>
+///   <item>This method is called frequently by the Shell and must be fast and reliable.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, SFGAOF* rgfInOut)
 {
 	HRESULT hr = S_OK;
+
+	// Start with all bits set for intersection
+	SFGAOF resultFlags = ~0ULL; 
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -645,25 +692,129 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 		goto End;
 	}
 
-	*rgfInOut = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+	for (UINT i = 0; i < cidl; ++i)
+	{
+		const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(apidl[i]);
+		SFGAOF itemFlags = 0;
+
+		if (!pItem)
+		{
+			hr = E_INVALIDARG;
+			goto End;
+		}
+
+		switch (static_cast<BigDriveItemType>(pItem->uType))
+		{
+		case BigDriveItemType_Folder:
+			itemFlags = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+			break;
+		case BigDriveItemType_File:
+			itemFlags = SFGAO_FILESYSTEM | SFGAO_STREAM;
+			break;
+		default:
+			itemFlags = 0;
+			break;
+		}
+
+		resultFlags &= itemFlags;
+	}
+
+	*rgfInOut = resultFlags;
 
 End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
-
 	return hr;
 }
 
 /// <summary>
-/// Retrieves an object that can be used to carry out actions on the specified items.
+/// Retrieves a COM interface object that enables actions or UI operations on one or more items in the folder.
+/// The Windows Shell calls this method to obtain interfaces such as IContextMenu, IDataObject, IDropTarget,
+/// or IShellIcon for the specified items, enabling features like context menus, drag-and-drop, clipboard operations,
+/// and custom icons in Explorer.
+/// 
+/// <para><b>Shell Expectations:</b></para>
+/// <list type="bullet">
+///   <item>The method must validate all input parameters and return E_INVALIDARG if any are invalid.</item>
+///   <item>The method should support standard interfaces requested by the Shell, such as IID_IContextMenu,
+///         IID_IDataObject, IID_IDropTarget, and IID_IShellIcon, as appropriate for the items.</item>
+///   <item>If the requested interface is not supported, return E_NOINTERFACE and set *ppv to nullptr.</item>
+///   <item>The returned interface pointer must be properly reference-counted; the Shell will release it when done.</item>
+///   <item>Do not display UI or block for a long time; this method is called frequently and must be efficient.</item>
+/// </list>
+/// 
+/// <para><b>Parameters:</b></para>
+/// <param name="hwndOwner">
+///   [in] Handle to the owner window for any UI that may be displayed. Typically used for context menu or property sheet dialogs.
+///   May be NULL if not needed.
+/// </param>
+/// <param name="cidl">
+///   [in] The number of items for which the interface is requested. If 1, apidl[0] is the single item; if >1, applies to all.
+/// </param>
+/// <param name="apidl">
+///   [in] Array of pointers to item ID lists (PIDLs), each identifying an item relative to this folder.
+/// </param>
+/// <param name="riid">
+///   [in] The interface identifier (IID) of the requested interface (e.g., IID_IContextMenu, IID_IDataObject).
+/// </param>
+/// <param name="rgfReserved">
+///   [in] Reserved. Must be set to NULL by the caller.
+/// </param>
+/// <param name="ppv">
+///   [out] Address of a pointer that receives the requested interface pointer on success. Set to nullptr on failure.
+/// </param>
+/// 
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the requested interface was successfully created and returned in *ppv.<br/>
+///   E_NOINTERFACE if the requested interface is not supported.<br/>
+///   E_INVALIDARG if any required parameter is invalid.<br/>
+///   Other COM error codes as appropriate.
+/// </returns>
+/// 
+/// <para><b>Output:</b></para>
+/// <list type="bullet">
+///   <item>*ppv receives the requested interface pointer if successful; otherwise, set to nullptr.</item>
+/// </list>
+/// 
+/// <para><b>Notes:</b></para>
+/// <list type="bullet">
+///   <item>This method is called by the Shell for context menus, drag-and-drop, clipboard, and icon operations.</item>
+///   <item>Implement only the interfaces relevant to your namespace extension; return E_NOINTERFACE for others.</item>
+///   <item>Do not allocate or free memory for the PIDLs; ownership remains with the caller.</item>
+///   <item>Do not display UI unless required for the requested interface (e.g., context menu invocation).</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
-	// Placeholder implementation
+	if (!ppv || !apidl || cidl == 0 || (cidl > 1 && !rgfReserved))
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	*ppv = nullptr;
+
+	if (riid == IID_IExtractIconW)
+	{
+		hr = this->QueryInterface(riid, ppv);
+		if (FAILED(hr))
+		{
+			this->Release();
+			goto End;
+		}
+	}
+	else
+	{
+		hr = E_NOINTERFACE;
+		goto End;
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
