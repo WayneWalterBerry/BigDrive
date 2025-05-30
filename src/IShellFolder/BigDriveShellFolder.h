@@ -566,6 +566,8 @@ private:
 
 	HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
 	HRESULT GetPath(BSTR& bstrPath);
+	HRESULT WriteErrorFormatted(LPCWSTR formatter, ...);
+	HRESULT WriteError(LPCWSTR szMessage);
 
 public:
 

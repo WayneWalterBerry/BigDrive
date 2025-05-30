@@ -127,3 +127,47 @@ HRESULT BigDriveShellFolder::GetBigDriveItemNameFromPidl(PCUIDLIST_RELATIVE pidl
 
     return S_OK;
 }
+
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::WriteError(LPCWSTR szMessage)
+{
+    wchar_t guidStr[64];
+
+    // Format: {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}
+    swprintf(guidStr, 64,
+        L"{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}",
+        m_driveGuid.Data1, m_driveGuid.Data2, m_driveGuid.Data3,
+        m_driveGuid.Data4[0], m_driveGuid.Data4[1],
+        m_driveGuid.Data4[2], m_driveGuid.Data4[3], m_driveGuid.Data4[4], m_driveGuid.Data4[5], m_driveGuid.Data4[6], m_driveGuid.Data4[7]);
+
+	s_eventLogger.WriteErrorFormmated(L"%s for drive: %s", szMessage, guidStr);
+
+    return S_OK;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::WriteErrorFormatted(LPCWSTR formatter, ...)
+{
+    wchar_t formattedMsg[1024];
+    va_list args;
+    va_start(args, formatter);
+    _vsnwprintf_s(formattedMsg, _countof(formattedMsg), _TRUNCATE, formatter, args);
+    va_end(args);
+
+    wchar_t guidStr[64];
+
+    // Format: {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}
+    swprintf(guidStr, 64,
+        L"{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}",
+        m_driveGuid.Data1, m_driveGuid.Data2, m_driveGuid.Data3,
+        m_driveGuid.Data4[0], m_driveGuid.Data4[1],
+        m_driveGuid.Data4[2], m_driveGuid.Data4[3], m_driveGuid.Data4[4], m_driveGuid.Data4[5], m_driveGuid.Data4[6], m_driveGuid.Data4[7]);
+
+    wchar_t finalMsg[1200];
+
+    _snwprintf_s(finalMsg, _countof(finalMsg), _TRUNCATE, L"%s for drive: %s", formattedMsg, guidStr);
+
+	s_eventLogger.WriteError(finalMsg);
+
+    return S_OK;
+}

@@ -13,6 +13,11 @@
 #include "BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
+#include <propkey.h>
+
+#ifndef PID_STG_NAME
+	#define PID_STG_NAME 10
+#endif
 
 /// <summary>
 /// Retrieves the default search GUID for the folder. This is used by the shell
@@ -26,6 +31,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultSearchGUID(GUID* pguid)
 	HRESULT hr = E_NOTIMPL;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
 	return hr;
@@ -93,41 +99,104 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumn(DWORD dwRes, ULONG* pSor
 /// <returns>E_NOTIMPL to indicate no default state is provided.</returns>
 HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOLSTATEF* pcsFlags)
 {
-	HRESULT hr = E_NOTIMPL;
+	HRESULT hr = S_OK;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-	if (pcsFlags)
+	if (!pcsFlags)
 	{
-		*pcsFlags = (SHCOLSTATEF)0;
+		hr = E_INVALIDARG;
+		goto End;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	switch (iColumn)
+	{
+	case 0:
+		*pcsFlags = SHCOLSTATE_TYPE_STR | SHCOLSTATE_ONBYDEFAULT;
+		break;
+	default:
+		*pcsFlags = 0;
+		hr = E_NOTIMPL;
+		break;
+	}
 
+End:
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
 /// <summary>
-/// Retrieves information about a column, such as its title, width, and format.
-/// The shell calls this to display column headers in details view. A minimal
-/// implementation returns E_NOTIMPL to indicate no custom columns are provided.
+/// Retrieves information about a column for an item in the shell folder, such as its title, width, and format.
+/// This method is called by the Windows Shell to display column headers and item details in details view.
+///
+/// <para>
+/// If <paramref name="pidl"/> is <c>nullptr</c>, the shell is requesting information about the column header itself
+/// (such as the column title, width, and format). In this case, the implementation should fill the <paramref name="psd"/>
+/// structure with the appropriate header information for the specified <paramref name="iColumn"/>.
+/// </para>
+/// <para>
+/// If <paramref name="pidl"/> is not <c>nullptr</c>, the shell is requesting the value for the specified column for a particular item.
+/// The implementation should fill the <paramref name="psd"/> structure with the item's details for the given column.
+/// </para>
+/// <para>
+/// If <paramref name="psd"/> is <c>nullptr</c>, the method should return <c>E_INVALIDARG</c>.
+/// </para>
+///
+/// <b>Parameters:</b>
+/// <param name="pidl">[in] The item ID of the item, or <c>nullptr</c> to request column header information.</param>
+/// <param name="iColumn">[in] The index of the column.</param>
+/// <param name="psd">[out] Pointer to a SHELLDETAILS structure to receive the details.</param>
+///
+/// <b>Return Value:</b>
+/// <returns>
+///   S_OK if the details were retrieved successfully.<br/>
+///   E_INVALIDARG if <paramref name="psd"/> is <c>nullptr</c>.<br/>
+///   E_NOTIMPL if the column or item is not supported.<br/>
+///   Other HRESULT error codes as appropriate.
+/// </returns>
+///
+/// <b>Behavior and Notes:</b>
+/// <list type="bullet">
+///   <item>If <paramref name="pidl"/> is <c>nullptr</c>, provide column header information in <paramref name="psd"/> for <paramref name="iColumn"/>.</item>
+///   <item>If <paramref name="pidl"/> is not <c>nullptr</c>, provide the item's value for the column in <paramref name="psd"/>.</item>
+///   <item>If the column or item is not supported, return E_NOTIMPL and initialize <paramref name="psd"/> to default/empty values.</item>
+///   <item>This minimal implementation always returns E_NOTIMPL and sets <paramref name="psd"/> to default values if not null.</item>
+/// </list>
 /// </summary>
-/// <param name="iColumn">The index of the column.</param>
-/// <param name="psci">Pointer to a SHELLDETAILS structure to receive the details.</param>
-/// <returns>E_NOTIMPL to indicate no details are provided.</returns>
 HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT iColumn, SHELLDETAILS* psd)
 {
-	HRESULT hr = E_NOTIMPL;
+	HRESULT hr = S_OK;
+	const int COLUMN_COUNT = 1; // Adjust as needed for your columns
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-	if (psd)
+	if (!psd)
 	{
-		psd->fmt = 0;
-		psd->cxChar = 0;
-		psd->str.uType = STRRET_CSTR;
-		psd->str.cStr[0] = '\0';
+		hr = E_INVALIDARG;
+		goto End;
 	}
+
+	if (pidl != nullptr)
+	{
+		hr = E_NOTIMPL;
+		goto End;
+	}
+
+	switch (iColumn)
+	{
+	case 0:
+		psd->fmt = LVCFMT_LEFT;
+		psd->cxChar = 20;
+		psd->str.uType = STRRET_CSTR;
+		::strcpy_s(psd->str.cStr, "Name");
+		goto End;
+	default:
+		// Unsupported column
+		hr = E_NOTIMPL; 
+		goto End;
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 	return hr;
@@ -168,19 +237,20 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 /// </summary>
 HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
 {
-	HRESULT hr = S_OK;
+	HRESULT hr = E_NOTIMPL;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
 	if (!pv)
 	{
-		hr =  E_POINTER;
+		hr = E_POINTER;
 		goto End;
 	}
 
 	::VariantInit(pv);
 
 End:
+
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
 	return hr;
@@ -197,15 +267,28 @@ End:
 HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID* pscid)
 {
 	HRESULT hr = E_NOTIMPL;
-
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-	if (pscid)
+	if (!pscid)
 	{
-		ZeroMemory(pscid, sizeof(SHCOLUMNID));
+		hr = E_INVALIDARG;
+		goto End;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	if (iColumn == 0)
+	{
+		// Map to the standard "Name" column
+		pscid->fmtid = FMTID_Storage;      // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->pid = PID_STG_NAME;       // 10
+		hr = S_OK;
+		goto End;
+	}
 
+	// Not a supported column
+	::ZeroMemory(pscid, sizeof(SHCOLUMNID));
+	hr = E_NOTIMPL;
+
+End:
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 	return hr;
 }

@@ -74,11 +74,13 @@ HRESULT BigDriveEnumIDList::Add(LPITEMIDLIST pidl)
 
     if (m_count < m_capacity)
     {
-        m_pidls[m_count] = ILClone(pidl);
+        m_pidls[m_count] = ::ILClone(pidl);
         if (!m_pidls[m_count])
         {
             return E_OUTOFMEMORY;
         }
+
+		// Successfully added the PIDL, increment the count
         ++m_count;
         return S_OK;
     }
@@ -88,14 +90,16 @@ HRESULT BigDriveEnumIDList::Add(LPITEMIDLIST pidl)
 
     LPITEMIDLIST* newArray = new LPITEMIDLIST[newCapacity];
     if (!newArray)
+    {
         return E_OUTOFMEMORY;
+    }
 
     for (ULONG i = 0; i < m_count; ++i)
     {
         newArray[i] = m_pidls[i];
     }
 
-    newArray[m_count] = ILClone(pidl);
+    newArray[m_count] = ::ILClone(pidl);
     if (!newArray[m_count])
     {
         delete[] newArray;
@@ -110,6 +114,7 @@ HRESULT BigDriveEnumIDList::Add(LPITEMIDLIST pidl)
     if (m_pidls)
     {
         delete[] m_pidls;
+		m_pidls = nullptr;
     }
 
     m_pidls = newArray;

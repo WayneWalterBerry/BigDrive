@@ -30,7 +30,7 @@ public:
     /// </summary>
     /// <param name="guid">Drive Guid</param>
     /// <param name="pszConfiguration">Configuration</param>
-    static HRESULT GetDriveConfiguration(GUID guid, LPWSTR* pszConfiguration);
+    static HRESULT GetDriveConfig(GUID guid, LPWSTR* pszConfiguration);
 
     /// <summary>
     /// Gets the configuration from the registry by calling the BigDriveConfiguration COM object.

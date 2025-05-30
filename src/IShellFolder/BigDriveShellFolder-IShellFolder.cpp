@@ -13,6 +13,8 @@
 #include "BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 #include "BigDriveEnumIDList.h"
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+#include "..\BigDrive.Client\DriveConfiguration.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -199,6 +201,7 @@ End:
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
 	HRESULT hr = S_OK;
+	DriveConfiguration driveConfiguration;
 	BigDriveInterfaceProvider *pInterfaceProvider = nullptr;
 	BSTR folderName = nullptr;
 	LONG lowerBound = 0, upperBound = 0;
@@ -221,9 +224,17 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 
 	*ppenumIDList = nullptr;
 
-	pInterfaceProvider = new BigDriveInterfaceProvider(m_driveGuid);
+	hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+	if (FAILED(hr))
+	{
+		WriteErrorFormatted(L"EnumObjects: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+		goto End;
+	}
+
+	pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
 	if (pInterfaceProvider == nullptr)
 	{
+		WriteError(L"EnumObjects: Failed to create BigDriveInterfaceProvider");
 		hr = E_OUTOFMEMORY;
 		goto End;
 	}
@@ -234,12 +245,19 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	case S_OK:
 		break;
 	case S_FALSE:
-		// Iterface isn't Implemented By The Provider
+		// Interface isn't Implemented By The Provider
 		goto End;
 	default:
-		// TODO Log Error
+		WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveEnumerate, HRESULT: 0x%08X", hr);
 		break;
 	}
+
+	if (pBigDriveEnumerate == nullptr)
+	{
+		hr = E_FAIL;
+		WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveEnumerate, HRESULT: 0x%08X", hr);
+		goto End;
+	}	
 
 	hr = GetPath(bstrPath);
 	if (FAILED(hr))
@@ -307,6 +325,10 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	if (pResult == nullptr)
 	{
 		*ppenumIDList = new EmptyEnumIDList();
+	}
+	else
+	{
+		*ppenumIDList = pResult;
 	}
 
 End:
@@ -419,7 +441,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
 	*ppv = nullptr;
 
-	pidlSubFolder = ILCombine(m_pidlAbsolute, pidl);
+	pidlSubFolder = ::ILCombine(m_pidlAbsolute, pidl);
 
 	hr = BigDriveShellFolder::Create(m_driveGuid, this, pidlSubFolder, &pSubFolder);
 	if (FAILED(hr))

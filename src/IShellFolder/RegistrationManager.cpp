@@ -337,7 +337,7 @@ HRESULT RegistrationManager::RegisterInprocServer32(GUID guidDrive, BSTR bstrNam
 		goto End;
 	}
 
-	dwAttributes = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGEANCESTOR | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+	dwAttributes = SFGAO_FOLDER | SFGAO_HASSUBFOLDER | SFGAO_FILESYSANCESTOR;
 	lResult = ::RegSetValueExW(hShellFolderKey, L"Attributes", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwAttributes), sizeof(dwAttributes));
 	if (lResult != ERROR_SUCCESS)
 	{
