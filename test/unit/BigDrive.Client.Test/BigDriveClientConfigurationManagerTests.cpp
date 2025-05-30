@@ -232,7 +232,7 @@ namespace BigDriveClientTest
             hr = BigDriveClientConfigurationManager::WriteDriveGuid(driveGuid, testName, clsid);
             Assert::AreEqual(S_OK, hr);
 
-            hr = BigDriveConfigurationClient::GetDriveConfiguration(driveGuid, &pszConfiguration);
+            hr = BigDriveConfigurationClient::GetDriveConfig(driveGuid, &pszConfiguration);
             Assert::AreEqual(S_OK, hr);
 
             // Verify the configuration string

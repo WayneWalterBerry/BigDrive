@@ -11,6 +11,10 @@
 #include "LaunchDebugger.h"
 #include "EmptyEnumIDList.h"
 #include "BigDriveShellFolderTraceLogger.h"
+#include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
+#include "BigDriveEnumIDList.h"
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+#include "..\BigDrive.Client\DriveConfiguration.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -197,6 +201,17 @@ End:
 HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IEnumIDList** ppenumIDList)
 {
 	HRESULT hr = S_OK;
+	DriveConfiguration driveConfiguration;
+	BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
+	BSTR folderName = nullptr;
+	LONG lowerBound = 0, upperBound = 0;
+	IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
+	SAFEARRAY* psafolders = nullptr;
+	BSTR bstrPath = nullptr;
+	BSTR bstrFolderName = nullptr;
+	LPITEMIDLIST pidl = nullptr;
+	BigDriveEnumIDList* pResult = nullptr;
+	LONG lCount = 0;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -209,14 +224,158 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 
 	*ppenumIDList = nullptr;
 
-	// For a minimal implementation, return an empty enumerator (no files/folders)
-	// This is sufficient for a shell folder that is empty or as a stub for a drive root.
+	hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+	if (FAILED(hr))
+	{
+		WriteErrorFormatted(L"EnumObjects: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+		goto End;
+	}
 
-	*ppenumIDList = new EmptyEnumIDList();
+	pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+	if (pInterfaceProvider == nullptr)
+	{
+		WriteError(L"EnumObjects: Failed to create BigDriveInterfaceProvider");
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	hr = pInterfaceProvider->GetIBigDriveEnumerate(&pBigDriveEnumerate);
+	switch (hr)
+	{
+	case S_OK:
+		break;
+	case S_FALSE:
+		// Interface isn't Implemented By The Provider
+		goto End;
+	default:
+		WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveEnumerate, HRESULT: 0x%08X", hr);
+		break;
+	}
+
+	if (pBigDriveEnumerate == nullptr)
+	{
+		hr = E_FAIL;
+		WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveEnumerate, HRESULT: 0x%08X", hr);
+		goto End;
+	}
+
+	hr = GetPath(bstrPath);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	if (grfFlags & SHCONTF_FOLDERS)
+	{
+		hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &psafolders);
+		if (FAILED(hr) || (psafolders == nullptr))
+		{
+			goto End;
+		}
+
+		::SafeArrayGetLBound(psafolders, 1, &lowerBound);
+		::SafeArrayGetUBound(psafolders, 1, &upperBound);
+
+		lCount = upperBound - lowerBound + 1;
+
+		pResult = new BigDriveEnumIDList(lCount);
+		if (!pResult)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		for (LONG i = lowerBound; i <= upperBound; ++i)
+		{
+			::SafeArrayGetElement(psafolders, &i, &bstrFolderName);
+
+			// Allocate the Relative PIDL to pass back to 
+			hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
+			if (FAILED(hr) || (pidl == nullptr))
+			{
+				goto End;
+			}
+
+			if (pidl == nullptr)
+			{
+				hr = E_FAIL;
+				goto End;
+			}
+
+			hr = pResult->Add(pidl);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			if (pidl)
+			{
+				::CoTaskMemFree(pidl);
+				pidl = nullptr;
+			}
+
+			if (bstrFolderName)
+			{
+				::SysFreeString(bstrFolderName);
+				bstrFolderName = nullptr;
+			}
+		}
+	}
+
+	if (pResult == nullptr)
+	{
+		*ppenumIDList = new EmptyEnumIDList();
+	}
+	else
+	{
+		*ppenumIDList = pResult;
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
-End:
+	if (FAILED(hr) && pResult)
+	{
+		delete pResult;
+		pResult = nullptr;
+	}
+
+	if (psafolders)
+	{
+		::SafeArrayDestroy(psafolders);
+		psafolders = nullptr;
+	}
+
+	if (pidl)
+	{
+		::CoTaskMemFree(pidl);
+		pidl = nullptr;
+	}
+
+	if (pBigDriveEnumerate)
+	{
+		pBigDriveEnumerate->Release();
+		pBigDriveEnumerate = nullptr;
+	}
+
+	if (bstrFolderName)
+	{
+		::SysFreeString(bstrFolderName);
+		bstrFolderName = nullptr;
+	}
+
+	if (bstrPath)
+	{
+		::SysFreeString(bstrPath);
+		bstrPath = nullptr;
+	}
+
+	if (pInterfaceProvider)
+	{
+		delete pInterfaceProvider;
+		pInterfaceProvider = nullptr;
+	}
 
 	return hr;
 }
@@ -282,7 +441,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 
 	*ppv = nullptr;
 
-	pidlSubFolder = ILCombine(m_pidlAbsolute, pidl);
+	pidlSubFolder = ::ILCombine(m_pidlAbsolute, pidl);
 
 	hr = BigDriveShellFolder::Create(m_driveGuid, this, pidlSubFolder, &pSubFolder);
 	if (FAILED(hr))
@@ -440,6 +599,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 
 	if (!ppv)
 	{
+		s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Invalid Pointer", hr);
 		return E_INVALIDARG;
 	}
 
@@ -458,6 +618,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 		hr = ::SHCreateShellFolderView(&sfv, reinterpret_cast<IShellView**>(ppv));
 		if (FAILED(hr))
 		{
+			s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Failed to Create IShellView. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 	}
@@ -470,11 +631,58 @@ End:
 }
 
 /// <summary>
-/// Retrieves the attributes of one or more items in the folder.
+/// Retrieves the attributes of one or more items in the folder for the Windows Shell.
+/// The Shell calls this method to determine the capabilities and characteristics of the specified items,
+/// such as whether they are folders, files, support renaming, have subfolders, or are part of the file system.
+/// The returned attributes (SFGAO_* flags) are used by the Shell to enable or disable UI features,
+/// optimize operations, and control user interactions (e.g., context menus, drag-and-drop, property sheets).
+///
+/// <para><b>Shell Expectations:</b></para>
+/// <list type="bullet">
+///   <item>The method must fill in the output attribute flags for all specified items, using the SFGAO_* constants.</item>
+///   <item>If multiple items are specified, the method should return the intersection of the attributes that apply to all items.</item>
+///   <item>If any parameter is invalid or attributes cannot be determined, return an error and do not modify the output.</item>
+///   <item>This method must not display UI or block for a long time; it is called frequently and must be efficient.</item>
+/// </list>
+///
+/// <para><b>Parameters:</b></para>
+/// <param name="cidl">
+///   [in] The number of items for which attributes are requested. Must be greater than 0.
+/// </param>
+/// <param name="apidl">
+///   [in] An array of pointers to item ID lists (PIDLs), each identifying an item relative to this folder.
+/// </param>
+/// <param name="rgfInOut">
+///   [in, out] On input, a bitmask specifying which attributes the caller is interested in.
+///   On output, receives the bitmask of SFGAO_* flags that apply to all specified items.
+/// </param>
+///
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the attributes were successfully retrieved and set in <paramref name="rgfInOut"/>.
+///   E_INVALIDARG if any parameter is invalid (e.g., cidl == 0, apidl == nullptr, or rgfInOut == nullptr).
+///   Other COM error codes as appropriate.
+/// </returns>
+///
+/// <para><b>Output:</b></para>
+/// <list type="bullet">
+///   <item><paramref name="rgfInOut"/> is set to a bitmask of SFGAO_* flags describing the items' attributes.</item>
+///   <item>Common flags: SFGAO_FOLDER, SFGAO_FILESYSTEM, SFGAO_HASSUBFOLDER, SFGAO_FILESYSANCESTOR, SFGAO_STORAGE.</item>
+/// </list>
+///
+/// <para><b>Notes:</b></para>
+/// <list type="bullet">
+///   <item>Do not allocate or free memory for the PIDLs; ownership remains with the caller.</item>
+///   <item>Return only the attributes that apply to all items if more than one is specified.</item>
+///   <item>This method is called frequently by the Shell and must be fast and reliable.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, SFGAOF* rgfInOut)
 {
 	HRESULT hr = S_OK;
+
+	// Start with all bits set for intersection
+	SFGAOF resultFlags = ~0ULL; 
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
@@ -484,7 +692,127 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 		goto End;
 	}
 
-	*rgfInOut = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+	for (UINT i = 0; i < cidl; ++i)
+	{
+		const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(apidl[i]);
+		SFGAOF itemFlags = 0;
+
+		if (!pItem)
+		{
+			hr = E_INVALIDARG;
+			goto End;
+		}
+
+		switch (static_cast<BigDriveItemType>(pItem->uType))
+		{
+		case BigDriveItemType_Folder:
+			itemFlags = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+			break;
+		case BigDriveItemType_File:
+			itemFlags = SFGAO_FILESYSTEM | SFGAO_STREAM;
+			break;
+		default:
+			itemFlags = 0;
+			break;
+		}
+
+		resultFlags &= itemFlags;
+	}
+
+	*rgfInOut = resultFlags;
+
+End:
+
+	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	return hr;
+}
+
+/// <summary>
+/// Retrieves a COM interface object that enables actions or UI operations on one or more items in the folder.
+/// The Windows Shell calls this method to obtain interfaces such as IContextMenu, IDataObject, IDropTarget,
+/// or IShellIcon for the specified items, enabling features like context menus, drag-and-drop, clipboard operations,
+/// and custom icons in Explorer.
+/// 
+/// <para><b>Shell Expectations:</b></para>
+/// <list type="bullet">
+///   <item>The method must validate all input parameters and return E_INVALIDARG if any are invalid.</item>
+///   <item>The method should support standard interfaces requested by the Shell, such as IID_IContextMenu,
+///         IID_IDataObject, IID_IDropTarget, and IID_IShellIcon, as appropriate for the items.</item>
+///   <item>If the requested interface is not supported, return E_NOINTERFACE and set *ppv to nullptr.</item>
+///   <item>The returned interface pointer must be properly reference-counted; the Shell will release it when done.</item>
+///   <item>Do not display UI or block for a long time; this method is called frequently and must be efficient.</item>
+/// </list>
+/// 
+/// <para><b>Parameters:</b></para>
+/// <param name="hwndOwner">
+///   [in] Handle to the owner window for any UI that may be displayed. Typically used for context menu or property sheet dialogs.
+///   May be NULL if not needed.
+/// </param>
+/// <param name="cidl">
+///   [in] The number of items for which the interface is requested. If 1, apidl[0] is the single item; if >1, applies to all.
+/// </param>
+/// <param name="apidl">
+///   [in] Array of pointers to item ID lists (PIDLs), each identifying an item relative to this folder.
+/// </param>
+/// <param name="riid">
+///   [in] The interface identifier (IID) of the requested interface (e.g., IID_IContextMenu, IID_IDataObject).
+/// </param>
+/// <param name="rgfReserved">
+///   [in] Reserved. Must be set to NULL by the caller.
+/// </param>
+/// <param name="ppv">
+///   [out] Address of a pointer that receives the requested interface pointer on success. Set to nullptr on failure.
+/// </param>
+/// 
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the requested interface was successfully created and returned in *ppv.<br/>
+///   E_NOINTERFACE if the requested interface is not supported.<br/>
+///   E_INVALIDARG if any required parameter is invalid.<br/>
+///   Other COM error codes as appropriate.
+/// </returns>
+/// 
+/// <para><b>Output:</b></para>
+/// <list type="bullet">
+///   <item>*ppv receives the requested interface pointer if successful; otherwise, set to nullptr.</item>
+/// </list>
+/// 
+/// <para><b>Notes:</b></para>
+/// <list type="bullet">
+///   <item>This method is called by the Shell for context menus, drag-and-drop, clipboard, and icon operations.</item>
+///   <item>Implement only the interfaces relevant to your namespace extension; return E_NOINTERFACE for others.</item>
+///   <item>Do not allocate or free memory for the PIDLs; ownership remains with the caller.</item>
+///   <item>Do not display UI unless required for the requested interface (e.g., context menu invocation).</item>
+/// </list>
+/// </summary>
+HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
+{
+	HRESULT hr = E_NOTIMPL;
+
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+
+	if (!ppv || !apidl || cidl == 0 || (cidl > 1 && !rgfReserved))
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	*ppv = nullptr;
+
+	if (riid == IID_IExtractIconW)
+	{
+		hr = this->QueryInterface(riid, ppv);
+		if (FAILED(hr))
+		{
+			this->Release();
+			goto End;
+		}
+	}
+	else
+	{
+		hr = E_NOINTERFACE;
+		goto End;
+	}
 
 End:
 
@@ -494,23 +822,58 @@ End:
 }
 
 /// <summary>
-/// Retrieves an object that can be used to carry out actions on the specified items.
-/// </summary>
-HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
-{
-	HRESULT hr = E_NOTIMPL;
-
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
-
-	// Placeholder implementation
-
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
-
-	return hr;
-}
-
-/// <summary>
-/// Retrieves the display name of an item in the folder.
+/// Retrieves the display name of an item in the BigDrive shell folder namespace.
+/// This method is called by the Windows Shell when it needs to obtain a user-friendly or parsing name for an item,
+/// such as when displaying the item in Explorer, showing tooltips, or generating paths for drag-and-drop, copy, or property dialogs.
+///
+/// <para><b>How the Shell Calls This Method:</b></para>
+/// The shell calls GetDisplayNameOf() whenever it needs to display or use the name of an item represented by a PIDL.
+/// This includes populating folder views, address bars, tooltips, context menus, and when resolving paths for shell operations.
+/// The shell may call this method multiple times for the same item with different flags to obtain different name formats.
+///
+/// <para><b>Parameters:</b></para>
+/// <param name="pidl">
+///   [in] The relative PIDL (Pointer to an Item ID List) that identifies the item within this folder.
+///   This PIDL is typically created by ParseDisplayName or returned by EnumObjects.
+/// </param>
+/// <param name="uFlags">
+///   [in] Flags (of type SHGDNF) that specify the type of display name to retrieve. Common values include:
+///   <list type="bullet">
+///     <item>SHGDN_NORMAL - The default display name for UI (e.g., file/folder name).</item>
+///     <item>SHGDN_FORPARSING - A name suitable for parsing (e.g., a full path or canonical name).</item>
+///     <item>SHGDN_INFOLDER - The name relative to the parent folder.</item>
+///   </list>
+///   These flags may be combined to request specific formats.
+/// </param>
+/// <param name="pName">
+///   [out] Pointer to a STRRET structure that receives the display name. The method must fill this structure
+///   with the requested name in one of the supported formats (OLE string, C string, or offset).
+///   The caller is responsible for freeing any allocated memory as indicated by the STRRET type.
+/// </param>
+///
+/// <para><b>Return Value:</b></para>
+/// <returns>
+///   S_OK if the display name was successfully retrieved and returned in pName.
+///   Returns a COM error code (e.g., E_INVALIDARG, E_FAIL) if the operation fails.
+/// </returns>
+///
+/// <para><b>Behavior and Notes:</b></para>
+/// <list type="bullet">
+///   <item>The method should extract the item's name from the PIDL and format it according to the requested flags.</item>
+///   <item>For SHGDN_NORMAL, return the user-visible name (e.g., "File.txt" or "Folder").</item>
+///   <item>For SHGDN_FORPARSING, return a fully qualified name or path suitable for parsing (e.g., "C:\BigDrive\File.txt").</item>
+///   <item>For SHGDN_INFOLDER, return the name relative to the parent folder.</item>
+///   <item>The returned name must be placed in the STRRET structure using the appropriate type (STRRET_WSTR, STRRET_CSTR, or STRRET_OFFSET).</item>
+///   <item>If the PIDL is invalid or the name cannot be determined, return an error code and do not modify pName.</item>
+///   <item>Do not display UI; this method is for programmatic retrieval of names only.</item>
+/// </list>
+///
+/// <para><b>Typical Usage:</b></para>
+/// <list type="bullet">
+///   <item>Used by the shell to display item names in folder views, address bars, and dialogs.</item>
+///   <item>Used to generate parsing names for drag-and-drop, copy, and property operations.</item>
+///   <item>Called frequently during enumeration, navigation, and shell operations.</item>
+/// </list>
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
@@ -518,7 +881,24 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
 
-	// Placeholder implementation
+	if ((uFlags & SHGDN_FORPARSING) == SHGDN_FORPARSING)
+	{
+		hr = GetBigDriveItemNameFromPidl(pidl, pName);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+	else
+	{
+		hr = GetBigDriveItemNameFromPidl(pidl, pName);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 

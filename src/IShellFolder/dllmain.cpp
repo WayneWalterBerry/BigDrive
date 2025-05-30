@@ -33,7 +33,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         BigDriveShellFolderTraceLogger::Initialize();
 
         // Initialize COM
-        hr = ::CoInitialize(NULL);
+        hr = ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         if (FAILED(hr)) 
         {
             // Handle the error (e.g., log it or return FALSE to indicate failure)
@@ -147,7 +147,7 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogDllGetClassObject(__FUNCTION__, rclsid, riid);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, rclsid, riid);
 
     if (ppv == nullptr)
     {

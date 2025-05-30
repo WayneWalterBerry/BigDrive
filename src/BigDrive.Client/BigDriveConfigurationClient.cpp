@@ -25,7 +25,7 @@
 BigDriveClientEventLogger BigDriveConfigurationClient::s_eventLogger(L"BigDrive.Client");
 
 /// </inheritdoc>
-HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, LPWSTR* pszConfiguration)
+HRESULT BigDriveConfigurationClient::GetDriveConfig(GUID guid, LPWSTR* pszConfiguration)
 {
     HRESULT hr = S_OK;
     IBigDriveConfiguration* pBigDriveConfiguration = nullptr;
@@ -100,7 +100,7 @@ HRESULT BigDriveConfigurationClient::GetDriveConfiguration(GUID guid, DriveConfi
     LPWSTR pszConfiguration = nullptr;
 
     // Get the configuration from the registry
-    hr = GetDriveConfiguration(guid, &pszConfiguration);
+    hr = GetDriveConfig(guid, &pszConfiguration);
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"Failed to get drive configuration from registry. HRESULT: 0x%08X", hr);

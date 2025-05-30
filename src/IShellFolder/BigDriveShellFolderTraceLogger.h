@@ -47,6 +47,8 @@ public:
     /// <param name="functionName">The name of the function being entered.</param>
     static void LogEnter(LPCSTR functionName);
 
+    static void LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl);
+
     /// <summary>
     /// Logs exit from a function, including the elapsed time since LogEnter and the HRESULT result.
     /// </summary>
@@ -62,7 +64,7 @@ public:
     /// <param name="functionName">The function name (typically __FUNCTION__).</param>
     /// <param name="clsid">The CLSID requested.</param>
     /// <param name="riid">The IID requested.</param>
-    static void LogDllGetClassObject(LPCSTR functionName, REFCLSID clsid, REFIID riid);
+    static void LogEnter(LPCSTR functionName, REFCLSID clsid, REFIID riid);
 
     /// <summary>
     /// Logs entry into CreateInstance, including the requested IID.

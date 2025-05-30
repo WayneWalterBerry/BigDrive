@@ -49,6 +49,7 @@ HRESULT __stdcall BigDriveShellFolder::GetBackReferencesCount(ULONG* pcRef)
     if (!pcRef)
     {
         hr = E_POINTER;
+        s_eventLogger.WriteErrorFormmated(L"GetBackReferencesCount: Invalid Pointer. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -85,8 +86,11 @@ End:
 HRESULT __stdcall BigDriveShellFolder::RemoveBackReferences()
 {
     BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    
     // No back references to remove in this minimal implementation.
     HRESULT hr = S_OK;
+
     BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
     return hr;
 }

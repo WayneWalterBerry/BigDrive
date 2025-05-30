@@ -30,7 +30,7 @@ public:
     BSTR name;
 
     /// <summary>
-    /// The CLSID (Class Identifier) associated with the drive.
+	/// The CLSID (Class Identifier) of the COM++ Provider for the drive.
     /// </summary>
     GUID clsid;
 

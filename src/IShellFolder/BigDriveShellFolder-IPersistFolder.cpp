@@ -24,11 +24,12 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
 
     if (!pidl)
     {
         hr = E_INVALIDARG;
+        s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Invalid Argument. HRESULT: 0x%08X", hr);
         goto End;
     }
 
@@ -40,10 +41,11 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
     }
 
     // Clone and store the new PIDL
-    m_pidlAbsolute = ILClone(pidl);
+    m_pidlAbsolute = ::ILClone(pidl);
     if (!m_pidlAbsolute)
     {
         hr = E_OUTOFMEMORY;
+        s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Unable to ILClone(). HRESULT: 0x%08X", hr);
         goto End;
     }
 
