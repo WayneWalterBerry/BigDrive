@@ -1,31 +1,32 @@
-// <copyright file="BigDriveShellFolder-IExtractIconA.cpp" company="Wayne Walter Berry">
+// <copyright file="BigDriveShellIcon-IExtractIconW.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
 #include "pch.h"
-#include "BigDriveShellFolder.h"
+
+#include "BigDriveShellIcon.h"
+
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
 
 /// <summary>
-/// Retrieves the location and index of the icon for a specified item in the BigDrive shell namespace (ANSI version).
+/// Retrieves the location and index of the icon for a specified item in the BigDrive shell namespace.
 /// The Shell calls this method to determine which icon to display for a given item (file or folder).
-///
+/// 
 /// <para><b>Parameters:</b></para>
-/// <param name="uFlags">[in] Flags specifying icon retrieval options (GIL_*).</param>
-/// <param name="pszFile">[out] Buffer to receive the icon location (DLL or EXE path, or special string, ANSI).</param>
+/// <param name="pszFile">[out] Buffer to receive the icon location (DLL or EXE path, or special string).</param>
 /// <param name="cchMax">[in] Size of the pszFile buffer, in characters.</param>
 /// <param name="pIndex">[out] Receives the icon index within the file specified by pszFile.</param>
 /// <param name="pwFlags">[in, out] On input, specifies icon retrieval flags (GIL_*). On output, can specify additional flags.</param>
-///
+/// 
 /// <para><b>Return Value:</b></para>
 /// <returns>
 ///   S_OK if the icon location and index were successfully retrieved.<br/>
 ///   S_FALSE if a default icon should be used.<br/>
 ///   E_FAIL or other COM error codes on failure.
 /// </returns>
-///
+/// 
 /// <para><b>Notes:</b></para>
 /// <list type="bullet">
 ///   <item>Set *pszFile to the path of the icon file (e.g., system DLL or EXE).</item>
@@ -34,55 +35,96 @@
 ///   <item>Return S_FALSE to let the Shell use the default icon.</item>
 /// </list>
 /// </summary>
-HRESULT __stdcall BigDriveShellFolder::GetIconLocation(
+HRESULT __stdcall BigDriveShellIcon::GetIconLocation(
     UINT uFlags,
-    LPSTR pszFile,
+    LPWSTR pszFile,
     UINT cchMax,
     int* pIndex,
     UINT* pwFlags)
 {
-    // For demonstration, always return the standard folder icon from shell32.dll
+	HRESULT hr = S_OK;
+    const BIGDRIVE_ITEMID* pItem = nullptr;
+
+    // For demonstration, always return the standard folder icon
     if (!pszFile || !pIndex || !pwFlags)
+    {
         return E_INVALIDARG;
+    }
 
-    // Use the system's shell32.dll as the icon source (ANSI)
-    HRESULT hr = StringCchCopyA(pszFile, cchMax, "shell32.dll");
-    if (FAILED(hr))
-        return hr;
+    switch (m_cidl)
+    {
+    case 0:
 
-    // Use icon index 3 for folders, 1 for files (standard indices in shell32.dll)
-    *pIndex = 3; // Folder icon in shell32.dll
-    *pwFlags = GIL_PERINSTANCE;
+        // This tells the Shell to use its own default icon for the selection.
+        return S_FALSE;
 
-    return S_OK;
+    case 1:
+
+        // Use the system's shell32.dll as the icon source
+        hr = ::StringCchCopyW(pszFile, cchMax, L"shell32.dll");
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        // Cast the PIDL to BIGDRIVE_ITEMID and check the type
+        pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(m_apidl[0]);
+        if (!pItem)
+        {
+            return S_FALSE;
+        }
+
+        switch (static_cast<BigDriveItemType>(pItem->uType))
+        {
+        case BigDriveItemType_Folder:
+            // Standard folder icon in shell32.dll
+            *pIndex = 3; 
+            break;
+        case BigDriveItemType_File:
+            // Standard file icon in shell32.dll
+            *pIndex = 1;
+            break;
+        default:
+            *pIndex = 0; // Default icon
+            break;
+        }
+        break;
+
+    default:
+		// Mutli-select or other cases
+        // This tells the Shell to use its own default icon for the selection.
+        return S_FALSE;
+    }
+
+    return hr;
 }
 
 /// <summary>
-/// Extracts the icon image for a specified item in the BigDrive shell namespace (ANSI version).
+/// Extracts the icon image for a specified item in the BigDrive shell namespace.
 /// The Shell calls this method if GetIconLocation returns S_OK and expects the actual icon handle.
-///
+/// 
 /// <para><b>Parameters:</b></para>
-/// <param name="pszFile">[in] The icon location string returned by GetIconLocation (ANSI).</param>
+/// <param name="pszFile">[in] The icon location string returned by GetIconLocation.</param>
 /// <param name="nIconIndex">[in] The icon index within the file.</param>
 /// <param name="phiconLarge">[out] Receives the large icon handle (32x32).</param>
 /// <param name="phiconSmall">[out] Receives the small icon handle (16x16).</param>
 /// <param name="nIconSize">[in] Specifies the desired icon sizes (LOWORD = large, HIWORD = small).</param>
-///
+/// 
 /// <para><b>Return Value:</b></para>
 /// <returns>
 ///   S_OK if the icon(s) were successfully extracted.<br/>
 ///   S_FALSE if the Shell should extract the icon itself.<br/>
 ///   E_FAIL or other COM error codes on failure.
 /// </returns>
-///
+/// 
 /// <para><b>Notes:</b></para>
 /// <list type="bullet">
 ///   <item>If you do not provide the icon, return S_FALSE to let the Shell extract it using the location and index.</item>
 ///   <item>If you return icon handles, the Shell will destroy them when done.</item>
 /// </list>
 /// </summary>
-HRESULT __stdcall BigDriveShellFolder::Extract(
-    LPCSTR pszFile,
+HRESULT __stdcall BigDriveShellIcon::Extract(
+    LPCWSTR pszFile,
     UINT nIconIndex,
     HICON* phiconLarge,
     HICON* phiconSmall,

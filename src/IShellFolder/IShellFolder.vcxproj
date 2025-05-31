@@ -163,6 +163,7 @@
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
     <ClInclude Include="BigDriveShellFolderTraceLogger.h" />
+    <ClInclude Include="BigDriveShellIcon.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
     <ClInclude Include="BigDriveShellFolderEventLogger.h" />
@@ -181,8 +182,8 @@
     <ClCompile Include="BigDriveEnumIDList-IEnumIDList.cpp" />
     <ClCompile Include="BigDriveEnumIDList-IUnknown.cpp" />
     <ClCompile Include="BigDriveEnumIDList.cpp" />
-    <ClCompile Include="BigDriveShellFolder-IExtractIconA.cpp" />
-    <ClCompile Include="BigDriveShellFolder-IExtractIconW.cpp" />
+    <ClCompile Include="BigDriveShellIcon-IExtractIconA.cpp" />
+    <ClCompile Include="BigDriveShellIcon-IExtractIconW.cpp" />
     <ClCompile Include="BigDriveShellFolder-IObjectWithBackReferences.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersist.cpp" />
     <ClCompile Include="BigDriveShellFolder-IPersistFolder.cpp" />
@@ -196,6 +197,8 @@
     <ClCompile Include="BigDriveShellFolderFactory-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderTraceLogger.cpp" />
+    <ClCompile Include="BigDriveShellIcon-IUnknown.cpp" />
+    <ClCompile Include="BigDriveShellIcon.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="BigDriveShellFolderEventLogger.cpp" />
     <ClCompile Include="Exports\BigDriveEnumIDListExports.cpp" />

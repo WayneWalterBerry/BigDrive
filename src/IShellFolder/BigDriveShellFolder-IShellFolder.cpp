@@ -15,6 +15,7 @@
 #include "BigDriveEnumIDList.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 #include "..\BigDrive.Client\DriveConfiguration.h"
+#include "BigDriveShellIcon.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -207,8 +208,10 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	LONG lowerBound = 0, upperBound = 0;
 	IBigDriveEnumerate* pBigDriveEnumerate = nullptr;
 	SAFEARRAY* psafolders = nullptr;
+	SAFEARRAY* psaFiles = nullptr;
 	BSTR bstrPath = nullptr;
 	BSTR bstrFolderName = nullptr;
+	BSTR bstrFileName = nullptr;
 	LPITEMIDLIST pidl = nullptr;
 	BigDriveEnumIDList* pResult = nullptr;
 	LONG lCount = 0;
@@ -265,6 +268,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		goto End;
 	}
 
+	/// Folders and Files are enumerated separately, so we need to check the flags
 	if (grfFlags & SHCONTF_FOLDERS)
 	{
 		hr = pBigDriveEnumerate->EnumerateFolders(m_driveGuid, bstrPath, &psafolders);
@@ -278,11 +282,14 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 
 		lCount = upperBound - lowerBound + 1;
 
-		pResult = new BigDriveEnumIDList(lCount);
-		if (!pResult)
+		if (pResult == nullptr)
 		{
-			hr = E_OUTOFMEMORY;
-			goto End;
+			pResult = new BigDriveEnumIDList(lCount);
+			if (!pResult)
+			{
+				hr = E_OUTOFMEMORY;
+				goto End;
+			}
 		}
 
 		for (LONG i = lowerBound; i <= upperBound; ++i)
@@ -322,6 +329,66 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		}
 	}
 
+	if (grfFlags & SHCONTF_NONFOLDERS)
+	{
+		hr = pBigDriveEnumerate->EnumerateFiles(m_driveGuid, bstrPath, &psaFiles);
+		if (FAILED(hr) || (psaFiles == nullptr))
+		{
+			goto End;
+		}
+
+		::SafeArrayGetLBound(psaFiles, 1, &lowerBound);
+		::SafeArrayGetUBound(psaFiles, 1, &upperBound);
+
+		lCount = upperBound - lowerBound + 1;
+
+		if (pResult == nullptr)
+		{
+			pResult = new BigDriveEnumIDList(lCount);
+			if (!pResult)
+			{
+				hr = E_OUTOFMEMORY;
+				goto End;
+			}
+		}
+
+		for (LONG i = lowerBound; i <= upperBound; ++i)
+		{
+			::SafeArrayGetElement(psaFiles, &i, &bstrFileName);
+
+			// Allocate the Relative PIDL to pass back to 
+			hr = AllocateBigDriveItemId(BigDriveItemType_File, bstrFileName, pidl);
+			if (FAILED(hr) || (pidl == nullptr))
+			{
+				goto End;
+			}
+
+			if (pidl == nullptr)
+			{
+				hr = E_FAIL;
+				goto End;
+			}
+
+			hr = pResult->Add(pidl);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			if (pidl)
+			{
+				::CoTaskMemFree(pidl);
+				pidl = nullptr;
+			}
+
+			if (bstrFileName)
+			{
+				::SysFreeString(bstrFileName);
+				bstrFileName = nullptr;
+			}
+		}
+	}
+
 	if (pResult == nullptr)
 	{
 		*ppenumIDList = new EmptyEnumIDList();
@@ -347,6 +414,12 @@ End:
 		psafolders = nullptr;
 	}
 
+	if (psaFiles)
+	{
+		::SafeArrayDestroy(psaFiles);
+		psaFiles = nullptr;
+	}
+
 	if (pidl)
 	{
 		::CoTaskMemFree(pidl);
@@ -363,6 +436,12 @@ End:
 	{
 		::SysFreeString(bstrFolderName);
 		bstrFolderName = nullptr;
+	}
+
+	if (bstrFileName)
+	{
+		::SysFreeString(bstrFileName);
+		bstrFileName = nullptr;
 	}
 
 	if (bstrPath)
@@ -788,6 +867,7 @@ End:
 HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, UINT* rgfReserved, void** ppv)
 {
 	HRESULT hr = E_NOTIMPL;
+	BigDriveShellIcon* pBigDriveShellIcon = nullptr;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
 
@@ -799,9 +879,16 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 
 	*ppv = nullptr;
 
-	if (riid == IID_IExtractIconW)
+	if ((riid == IID_IExtractIconW) || (riid == IID_IExtractIconA))
 	{
-		hr = this->QueryInterface(riid, ppv);
+		pBigDriveShellIcon = new BigDriveShellIcon(m_driveGuid, this, cidl, apidl);
+		if (!pBigDriveShellIcon)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		hr = pBigDriveShellIcon->QueryInterface(riid, ppv);
 		if (FAILED(hr))
 		{
 			this->Release();
@@ -815,6 +902,12 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 	}
 
 End:
+
+	if (pBigDriveShellIcon != nullptr)
+	{
+		pBigDriveShellIcon->Release();
+		pBigDriveShellIcon = nullptr;
+	}
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 

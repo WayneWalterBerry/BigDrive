@@ -62,13 +62,6 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
         hr = S_OK;
         goto End;
 	}
-    else if (IsEqualIID(riid, IID_IExtractIconW) || IsEqualIID(riid, IID_IExtractIconA) || IsEqualIID(riid, IID_IExtractIcon))
-    {
-        *ppvObject = static_cast<IExtractIconW*>(this);
-        AddRef();
-        hr = S_OK;
-        goto End;
-    }
 
     *ppvObject = nullptr;
     hr = E_NOINTERFACE;

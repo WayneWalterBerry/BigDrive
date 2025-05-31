@@ -13,11 +13,19 @@ namespace BigDrive.Interfaces
     public interface IBigDriveEnumerate
     {
         /// <summary>
-        /// Return all the folders in the root.
+        /// Return all the folders in the specified path.
         /// </summary>
         /// <param name="driveGuid">Registered Drive Identifier</param>
         /// <param name="path">Path to Enumerate</param>
         /// <returns>Folder Names</returns>
         string[] EnumerateFolders(Guid driveGuid, string path);
+
+        /// <summary>
+        /// Returns all the files in the specified path.
+        /// </summary>
+        /// <param name="driveGuid">Registered Drive Identifier</param>
+        /// <param name="path">Path to Enumerate</param>
+        /// <returns>File Names</returns>
+        string[] EnumerateFiles(Guid driveGuid, string path);
     }
 }

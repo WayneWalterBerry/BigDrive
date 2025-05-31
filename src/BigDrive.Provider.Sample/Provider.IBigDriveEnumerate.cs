@@ -5,16 +5,22 @@
 namespace BigDrive.Provider.Sample
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
+    /// <summary>
+    /// Empty implementation of <see cref="IBigDriveEnumerate"/> for the sample provider.
+    /// </summary>
     public partial class Provider
     {
+        /// <inheritdoc />
         public string[] EnumerateFolders(Guid driveGuid, string path)
         {
             return new string[] { "RootFolder1", "RootFolder2", "RootFolder3" };
+        }
+
+        /// <inheritdoc />
+        public string[] EnumerateFiles(Guid driveGuid, string path)
+        {
+            return new string[] { "Root File 1.txt", "Root File 2.txt", "Root File 3.txt" };
         }
     }
 }
