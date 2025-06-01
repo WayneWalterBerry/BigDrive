@@ -10,13 +10,15 @@
 extern "C" {
 #endif
 
-    __declspec(dllimport) HRESULT AllocateBigDriveItemIdExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl);
+    __declspec(dllimport) HRESULT AllocBigDrivePidlExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl);
 
     /// <summary>
     /// Extracts the Unicode name (as a BSTR) from the last BIGDRIVE_ITEMID in the given PIDL chain.
     /// The caller is responsible for freeing the BSTR using SysFreeString.
     /// </summary>
     __declspec(dllimport) HRESULT GetBigDriveItemNameFromPidlExport(PCUITEMID_CHILD pidl, STRRET* pName);
+
+    __declspec(dllimport) HRESULT GetPathExport(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath);
 
 #ifdef __cplusplus
 }

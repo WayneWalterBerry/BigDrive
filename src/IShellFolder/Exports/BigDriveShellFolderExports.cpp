@@ -7,7 +7,7 @@
 
 extern "C" {
 
-    HRESULT AllocateBigDriveItemIdExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl)
+    HRESULT AllocBigDrivePidlExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl)
     {
         if (ppidl == nullptr)
         {
@@ -16,11 +16,16 @@ extern "C" {
 
         // Forward directly to the implementation in BigDriveShellFolder.cpp
         // This assumes the function is implemented as a free function, not a member.
-        return BigDriveShellFolder::AllocateBigDriveItemId(nType, bstrName, *ppidl);
+        return BigDriveShellFolder::AllocBigDrivePidl(nType, bstrName, *ppidl);
     }
 
     HRESULT GetBigDriveItemNameFromPidlExport(PCUITEMID_CHILD pidl, STRRET* pName)
     {
         return BigDriveShellFolder::GetBigDriveItemNameFromPidl(pidl, pName);
+    }
+
+    HRESULT GetPathExport(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath)
+    {
+		return BigDriveShellFolder::GetPath(pidl, nSkip, bstrPath);
     }
 }

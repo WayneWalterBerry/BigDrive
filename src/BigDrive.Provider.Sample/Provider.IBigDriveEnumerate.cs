@@ -14,13 +14,35 @@ namespace BigDrive.Provider.Sample
         /// <inheritdoc />
         public string[] EnumerateFolders(Guid driveGuid, string path)
         {
-            return new string[] { "RootFolder1", "RootFolder2", "RootFolder3" };
+            if (path == "\\")
+            {
+                return new string[] { "RootFolder1", "RootFolder2", "RootFolder3" };
+            }
+            else if (path == "\\RootFolder1")
+            {
+                return new string[] { "SubFolder1" };
+            }
+            else if (path == "\\RootFolder2")
+            {
+                return new string[] { "SubFolder2" };
+            }
+            else if (path == "\\RootFolder2\\Folder2")
+            {
+                return new string[] { "Folder2" };
+            }
+
+            return Array.Empty<string>();
         }
 
         /// <inheritdoc />
         public string[] EnumerateFiles(Guid driveGuid, string path)
         {
-            return new string[] { "Root File 1.txt", "Root File 2.txt", "Root File 3.txt" };
+            if (path == "\\")
+            {
+                return new string[] { "A File.txt", "Root File 2.txt", "Z File.txt" };
+            }
+
+            return Array.Empty<string>();
         }
     }
 }

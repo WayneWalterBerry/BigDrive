@@ -38,7 +38,7 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
         *ppidl = ::ILClone(m_pidlAbsolute);
         if (!(*ppidl))
         {
-            s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Unable to Close PIDL. HRESULT: 0x%08X", hr);
+            s_eventLogger.WriteErrorFormmated(L"GetCurFolder: Unable to Clone PIDL. HRESULT: 0x%08X", hr);
             hr = E_OUTOFMEMORY;
             goto End;
         }

@@ -19,43 +19,196 @@ HRESULT BigDriveShellFolder::GetProviderCLSID(CLSID& clsidProvider) const
 
 HRESULT BigDriveShellFolder::GetPath(BSTR& bstrPath)
 {
-	bstrPath = ::SysAllocString(L"\\");
-	return S_OK;
+    return BigDriveShellFolder::GetPath(m_pidlAbsolute, bstrPath);
+}
+
+HRESULT BigDriveShellFolder::GetPath(LPCITEMIDLIST pidl, BSTR& bstrPath)
+{
+    // Skip the first two PIDLs (My PC and Extension GUID)
+	return BigDriveShellFolder::GetPath(pidl, 2, bstrPath);
+}
+
+HRESULT BigDriveShellFolder::GetPath(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath)
+{
+    bstrPath = nullptr;
+
+    // Start with the initial '\'
+    WCHAR szPath[MAX_PATH] = L"\\";
+    size_t cchPath = 1;
+
+    const BYTE* p = reinterpret_cast<const BYTE*>(pidl);
+    int pidlIndex = 0;
+
+    // Traverse the PIDL chain
+    while (true)
+    {
+        USHORT cb = *(reinterpret_cast<const USHORT*>(p));
+        if (cb == 0)
+        {
+            break;
+        }
+
+        if (pidlIndex >= nSkip)
+        {
+            if (!IsValidBigDriveItemId(reinterpret_cast<PCUIDLIST_RELATIVE>(p)))
+            {
+				// Not a valid BigDrive PIDL
+                return E_FAIL;
+			}
+
+            const WCHAR* szName = reinterpret_cast<const WCHAR*>(p + sizeof(USHORT) + sizeof(int));
+
+            // Defensive: ensure null-terminated
+            size_t maxChars = (cb - sizeof(USHORT) - sizeof(int)) / sizeof(WCHAR);
+            size_t len = 0;
+
+            for (; len < maxChars; ++len)
+            {
+                if (szName[len] == L'\0')
+                {
+                    break;
+                }
+            }
+
+            if (len == 0 || len == maxChars)
+            {
+                // Not null-terminated or empty
+                return E_FAIL;
+            }
+
+            // Add '\' if not the first component after root
+            if (cchPath > 1 && cchPath < MAX_PATH - 1)
+            {
+                szPath[cchPath++] = L'\\';
+            }
+
+            // Copy szName to szPath
+            size_t i = 0;
+            for (; i < len && cchPath < MAX_PATH - 1; ++i)
+            {
+                szPath[cchPath++] = szName[i];
+            }
+            szPath[cchPath] = L'\0';
+        }
+
+        p += cb;
+        ++pidlIndex;
+    }
+
+    bstrPath = ::SysAllocString(szPath);
+    if (!bstrPath)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    return S_OK;
 }
 
 /// <inheritdoc />
-HRESULT BigDriveShellFolder::AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& pidl)
+HRESULT BigDriveShellFolder::AllocBigDrivePidl(BigDriveItemType nType, BSTR bstrPath, LPITEMIDLIST& ppidl)
 {
-    pidl = nullptr;
-
-    if (!bstrName)
+    if (!bstrPath)
     {
         return E_INVALIDARG;
     }
 
-    // Calculate the size needed for the name (including null terminator)
-    size_t nameLen = (SysStringLen(bstrName) + 1) * sizeof(WCHAR);
+    ppidl = nullptr;
 
-    // The SHITEMID structure: [cb][nType as int][bstrName][terminator]
-    size_t cb = sizeof(USHORT) + sizeof(int) + nameLen;
-    BYTE* buffer = (BYTE*)CoTaskMemAlloc(cb + sizeof(USHORT)); // +2 for PIDL terminator
+    LPWSTR szPath = bstrPath;
 
-    if (!buffer)
+    if (szPath[0] == L'\\')
+    {
+        ++szPath;
+    }
+
+    const wchar_t* p = szPath;
+
+    // Count components
+    int cComponents = 0;
+
+    while (*p)
+    {
+        ++cComponents;
+        // Find next backslash or end
+        while (*p && *p != L'\\') ++p;
+        if (*p == L'\\') ++p;
+    }
+
+    if (cComponents == 0)
+    {
+        return E_INVALIDARG;
+    }
+
+    // Allocate array of pointers for component strings
+    wchar_t** componentPtrs = (wchar_t**)CoTaskMemAlloc(sizeof(wchar_t*) * cComponents);
+    int* componentLens = (int*)CoTaskMemAlloc(sizeof(int) * cComponents);
+    if (!componentPtrs || !componentLens)
+    {
+        if (componentPtrs) CoTaskMemFree(componentPtrs);
+        if (componentLens) CoTaskMemFree(componentLens);
         return E_OUTOFMEMORY;
+    }
 
-    // Set cb (size of this SHITEMID, including cb itself)
-    *(USHORT*)buffer = static_cast<USHORT>(cb);
+    // Split path into components (in-place, no std::)
+    int idx = 0;
+    p = szPath;
+    while (*p && idx < cComponents)
+    {
+        componentPtrs[idx] = (wchar_t*)p;
+        int len = 0;
+        while (p[len] && p[len] != L'\\') ++len;
+        componentLens[idx] = len;
+        p += len;
+        if (*p == L'\\') ++p;
+        ++idx;
+    }
 
-    // Set nType as int
-    *(int*)(buffer + sizeof(USHORT)) = static_cast<int>(nType);
+    // Calculate total size for all SHITEMIDs
+    SIZE_T totalSize = 0;
+    for (int i = 0; i < cComponents; ++i)
+    {
+        SIZE_T nameLen = (componentLens[i] + 1) * sizeof(wchar_t);
+        SIZE_T cb = sizeof(USHORT) + sizeof(UINT) + nameLen;
+        totalSize += cb;
+    }
+    totalSize += sizeof(USHORT); // zero terminator
 
-    // Copy bstrName after nType
-    memcpy(buffer + sizeof(USHORT) + sizeof(int), bstrName, nameLen);
+    BYTE* pidlMem = (BYTE*)CoTaskMemAlloc(totalSize);
+    if (!pidlMem)
+    {
+        ::CoTaskMemFree(componentPtrs);
+        ::CoTaskMemFree(componentLens);
+        return E_OUTOFMEMORY;
+    }
 
-    // Add PIDL terminator (USHORT 0) after the SHITEMID
-    *(USHORT*)(buffer + cb) = 0;
+    // Fill each SHITEMID
+    BYTE* dest = pidlMem;
+    for (int i = 0; i < cComponents; ++i)
+    {
+        SIZE_T nameLen = (componentLens[i] + 1) * sizeof(wchar_t);
+        SIZE_T cb = sizeof(USHORT) + sizeof(UINT) + nameLen;
+        USHORT* pcb = (USHORT*)dest;
+        *pcb = (USHORT)cb;
+        UINT* puType = (UINT*)(dest + sizeof(USHORT));
+        *puType = (i == cComponents - 1) ? (UINT)nType : (UINT)BigDriveItemType_Folder;
+        wchar_t* pszName = (wchar_t*)(dest + sizeof(USHORT) + sizeof(UINT));
+        for (int j = 0; j < componentLens[i]; ++j)
+        {
+            pszName[j] = componentPtrs[i][j];
+        }
 
-    pidl = reinterpret_cast<LPITEMIDLIST>(buffer);
+        pszName[componentLens[i]] = L'\0';
+        dest += cb;
+    }
+
+    // Add zero terminator
+    *((USHORT*)dest) = 0;
+
+    ppidl = reinterpret_cast<LPITEMIDLIST>(pidlMem);
+
+    ::CoTaskMemFree(componentPtrs);
+    ::CoTaskMemFree(componentLens);
+
     return S_OK;
 }
 
@@ -63,10 +216,12 @@ HRESULT BigDriveShellFolder::AllocateBigDriveItemId(BigDriveItemType nType, BSTR
 HRESULT BigDriveShellFolder::GetBigDriveItemNameFromPidl(PCUIDLIST_RELATIVE pidl, STRRET* pName)
 {
     if (!pidl || !pName)
+    {
         return E_INVALIDARG;
+    }
 
     // Initialize output
-    ZeroMemory(pName, sizeof(STRRET));
+    ::ZeroMemory(pName, sizeof(STRRET));
 
     // Traverse to the last SHITEMID in the PIDL chain
     const BYTE* current = reinterpret_cast<const BYTE*>(pidl);
@@ -110,16 +265,25 @@ HRESULT BigDriveShellFolder::GetBigDriveItemNameFromPidl(PCUIDLIST_RELATIVE pidl
     for (; len < maxChars; ++len)
     {
         if (szName[len] == L'\0')
+        {
             break;
+        }
     }
+
     if (len == maxChars)
+    {
         return E_FAIL; // Not null-terminated
+    }
 
     // Allocate and copy the name for STRRET_WSTR
     size_t nameBytes = (len + 1) * sizeof(WCHAR);
-    LPWSTR pOut = (LPWSTR)CoTaskMemAlloc(nameBytes);
+    LPWSTR pOut = (LPWSTR)::CoTaskMemAlloc(nameBytes);
+
     if (!pOut)
+    {
         return E_OUTOFMEMORY;
+    }
+
     memcpy(pOut, szName, nameBytes);
 
     pName->uType = STRRET_WSTR;
@@ -170,4 +334,48 @@ HRESULT BigDriveShellFolder::WriteErrorFormatted(LPCWSTR formatter, ...)
 	s_eventLogger.WriteError(finalMsg);
 
     return S_OK;
+}
+
+/// <inheritdoc /
+bool BigDriveShellFolder::IsValidBigDriveItemId(PCUIDLIST_RELATIVE pidl)
+{
+    if (!pidl)
+    {
+        return false;
+    }
+
+    // Minimum size: [USHORT cb][UINT uType][at least one WCHAR for szName + null]
+    const USHORT cb = *(const USHORT*)pidl;
+    if (cb < sizeof(USHORT) + sizeof(UINT) + sizeof(WCHAR))
+    {
+        return false;
+    }
+
+    // Check uType is a known value
+    const BYTE* p = reinterpret_cast<const BYTE*>(pidl);
+    UINT uType = *(const UINT*)(p + sizeof(USHORT));
+    if (uType != BigDriveItemType_File && uType != BigDriveItemType_Folder)
+    {
+        return false;
+    }
+
+    // szName points just after [USHORT][UINT]
+    const WCHAR* szName = reinterpret_cast<const WCHAR*>(p + sizeof(USHORT) + sizeof(UINT));
+    if (!szName || szName[0] == L'\0')
+    {
+        return false;
+    }
+
+    // Defensive: ensure null-terminated within bounds
+    size_t maxChars = (cb - sizeof(USHORT) - sizeof(UINT)) / sizeof(WCHAR);
+    size_t i = 0;
+    for (; i < maxChars; ++i)
+    {
+        if (szName[i] == L'\0')
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

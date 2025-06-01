@@ -174,6 +174,7 @@
     <ClInclude Include="Exports\RegistrationManagerExports.h" />
     <ClInclude Include="Exports\RegistrationManagerImports.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="ILExtensions.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />

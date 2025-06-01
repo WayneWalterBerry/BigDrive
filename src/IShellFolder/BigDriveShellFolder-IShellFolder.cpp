@@ -16,6 +16,7 @@
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "BigDriveShellIcon.h"
+#include "ILExtensions.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -78,14 +79,7 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 	PIDLIST_RELATIVE* ppidl,
 	ULONG* pdwAttributes)
 {
-	// All local variables declared at the beginning
 	HRESULT hr = S_OK;
-	size_t len = 0;
-	size_t nameLen = 0;
-	size_t pidlSize = 0;
-	BYTE* pidlMem = nullptr;
-	USHORT* pcb = nullptr;
-	USHORT* pcbEnd = nullptr;
 
 	BigDriveShellFolderTraceLogger::LogParseDisplayName(__FUNCTION__, pszDisplayName);
 
@@ -107,31 +101,24 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 		goto End;
 	}
 
-	// For a minimal implementation, just create a simple one-level PIDL for the display name
-	len = wcslen(pszDisplayName);
-	if (pchEaten) *pchEaten = static_cast<ULONG>(len);
-
-	// Allocate a minimal PIDL: [cb][data...][cb=0]
-	// We'll use the display name as the "data" for the PIDL
-	nameLen = (len + 1) * sizeof(wchar_t);
-	pidlSize = sizeof(USHORT) + nameLen + sizeof(USHORT); // [cb][name][cb=0]
-	pidlMem = (BYTE*)::CoTaskMemAlloc(pidlSize);
-	if (!pidlMem)
+	// Use AllocBigDrivePidl to create a valid PIDL
+	// For demonstration, default to folder type. You may want to parse the name to determine type.
+	hr = AllocBigDrivePidl(BigDriveItemType_Folder, pszDisplayName, *ppidl);
+	if (FAILED(hr) || !*ppidl)
 	{
-		hr = E_OUTOFMEMORY;
+		if (pchEaten)
+		{
+			*pchEaten = 0;
+		}
+
 		goto End;
 	}
 
-	// Fill in the PIDL
-	pcb = (USHORT*)pidlMem;
-	*pcb = static_cast<USHORT>(nameLen); // size of this item
-	memcpy(pidlMem + sizeof(USHORT), pszDisplayName, nameLen);
-	pcbEnd = (USHORT*)(pidlMem + sizeof(USHORT) + nameLen);
-	*pcbEnd = 0; // null terminator for the PIDL
+	if (pchEaten)
+	{
+		*pchEaten = static_cast<ULONG>(wcslen(pszDisplayName));
+	}
 
-	*ppidl = (PIDLIST_RELATIVE)pidlMem;
-
-	// Optionally set attributes
 	if (pdwAttributes)
 	{
 		*pdwAttributes = SFGAO_FILESYSTEM | SFGAO_FOLDER;
@@ -141,18 +128,17 @@ End:
 
 	if (FAILED(hr))
 	{
-		if (ppidl && (*ppidl))
+		if (ppidl && *ppidl)
 		{
 			::CoTaskMemFree(*ppidl);
 			*ppidl = nullptr;
 		}
-
 		if (pchEaten) *pchEaten = 0;
 	}
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
-	return S_OK;
+	return hr;
 }
 
 /// <summary>
@@ -297,7 +283,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 			::SafeArrayGetElement(psafolders, &i, &bstrFolderName);
 
 			// Allocate the Relative PIDL to pass back to 
-			hr = AllocateBigDriveItemId(BigDriveItemType_Folder, bstrFolderName, pidl);
+			hr = AllocBigDrivePidl(BigDriveItemType_Folder, bstrFolderName, pidl);
 			if (FAILED(hr) || (pidl == nullptr))
 			{
 				goto End;
@@ -357,7 +343,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 			::SafeArrayGetElement(psaFiles, &i, &bstrFileName);
 
 			// Allocate the Relative PIDL to pass back to 
-			hr = AllocateBigDriveItemId(BigDriveItemType_File, bstrFileName, pidl);
+			hr = AllocBigDrivePidl(BigDriveItemType_File, bstrFileName, pidl);
 			if (FAILED(hr) || (pidl == nullptr))
 			{
 				goto End;
@@ -397,6 +383,8 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	{
 		*ppenumIDList = pResult;
 	}
+
+	BigDriveShellFolderTraceLogger::LogResults(__FUNCTION__, *ppenumIDList);
 
 End:
 
@@ -510,7 +498,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 	PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
 	BigDriveShellFolder* pSubFolder = nullptr;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid, pidl);
 
 	if (!pidl || !ppv)
 	{
@@ -614,10 +602,52 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2)
 {
 	HRESULT hr = E_NOTIMPL;
+	int cmpResult = 0;
+	const BIGDRIVE_ITEMID* pItem1;
+	const BIGDRIVE_ITEMID* pItem2;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl1, pidl2);
 
-	// Placeholder implementation
+	if (!pidl1 || !pidl2)
+	{
+		s_eventLogger.WriteErrorFormmated(L"CompareIDs: Invalid PIDL pointers", E_INVALIDARG);
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	if (!::ILIsEqual(pidl1, pidl2))
+	{
+		// If the PIDLs are equal, return 0
+		hr = S_OK;
+		goto End;
+	}
+
+	if (!IsValidBigDriveItemId(pidl1) || !IsValidBigDriveItemId(pidl2))
+	{
+		// Can only compare valid BigDrive item IDs
+		hr = S_OK;
+		goto End;
+	}
+
+	// Cast to BIGDRIVE_ITEMID
+	pItem1 = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl1);
+	pItem2 = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl2);
+
+	if (!pItem1 || !pItem2 || !pItem1->szName || !pItem2->szName)
+	{
+		s_eventLogger.WriteErrorFormmated(L"Invalid PIDL or item name in CompareIDs");
+
+		// Treat as equal if invalid
+		return 0; 
+	}
+
+	// Compare szName (case-insensitive)
+	cmpResult = ::lstrcmpiW(pItem1->szName, pItem2->szName);
+
+	// Return as required by IShellFolder: negative, zero, or positive in LOWORD
+	hr = HRESULT_FROM_WIN32((cmpResult < 0) ? -1 : (cmpResult > 0) ? 1 : 0);
+
+End:
 
 	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
 
@@ -694,6 +724,8 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 		sfv.psvOuter = nullptr;
 		sfv.psfvcb = nullptr;
 
+		// SHCreateShellFolderView() Requires that IShellView2::GetDetailsOf() be implemented, if it isn't implemented
+		// then the shell will not be able to display the folder contents.
 		hr = ::SHCreateShellFolderView(&sfv, reinterpret_cast<IShellView**>(ppv));
 		if (FAILED(hr))
 		{
@@ -763,7 +795,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 	// Start with all bits set for intersection
 	SFGAOF resultFlags = ~0ULL; 
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, cidl, apidl);
 
 	if (cidl == 0 || !apidl || !rgfInOut)
 	{
@@ -785,7 +817,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 		switch (static_cast<BigDriveItemType>(pItem->uType))
 		{
 		case BigDriveItemType_Folder:
-			itemFlags = SFGAO_FOLDER | SFGAO_FILESYSANCESTOR | SFGAO_HASSUBFOLDER | SFGAO_STORAGE | SFGAO_FILESYSTEM;
+			itemFlags = SFGAO_FOLDER | SFGAO_HASSUBFOLDER | SFGAO_FILESYSANCESTOR | SFGAO_BROWSABLE;
 			break;
 		case BigDriveItemType_File:
 			itemFlags = SFGAO_FILESYSTEM | SFGAO_STREAM;
@@ -973,6 +1005,18 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 	HRESULT hr = E_NOTIMPL;
 
 	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
+	if (!pidl || !pName)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	if (::ILGetCount(pidl) != 1)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
 
 	if ((uFlags & SHGDN_FORPARSING) == SHGDN_FORPARSING)
 	{

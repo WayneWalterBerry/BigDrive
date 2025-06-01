@@ -57,7 +57,7 @@
 struct BIGDRIVE_ITEMID {
 	USHORT  cb;        // Size of this structure including cb
 	UINT    uType;     // Type Of Item (Folder, Files, Etc...)
-	LPCWSTR szName;    // Unique identifier
+	wchar_t szName[1]; // Unique identifier
 };
 #pragma pack(pop)
 
@@ -572,17 +572,40 @@ private:
 
 public:
 
+	static HRESULT GetPath(LPCITEMIDLIST pidl, BSTR& bstrPath);
+
 	/// <summary>
-	/// Allocates a BIGDRIVE_ITEMID structure as a valid SHITEMID for use in a PIDL (Pointer to an Item ID List).
-	/// This function creates a single-item PIDL containing the specified item type and Unicode name, and appends
-	/// the required SHITEMID terminator. The resulting PIDL can be passed to Shell APIs and must be freed by the
-	/// caller using CoTaskMemFree.
+	/// Generate a Readable Path from a PIDL (Pointer to an Item ID List).
 	/// </summary>
-	/// <param name="nType">The type of the item (custom value for your shell extension, e.g., folder, file, etc.).</param>
-	/// <param name="bstrName">The name of the item as a BSTR (Unicode string). Must not be nullptr.</param>
+	/// <param name="pidl">PIDL to traverse</param>
+	/// <param name="nSkip">Number of items to skip in creating the path</param>
+	/// <param name="bstrPath">[Out] Path</param>
+	/// <returns>S_OK if successful; E_INVALIDARG if pidl is null; E_OUTOFMEMORY if memory allocation fails.</returns>
+	static HRESULT GetPath(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath);
+
+	/// <summary>
+	/// Validates whether the given PIDL is a BIGDRIVE_ITEMID created by this shell extension.
+	/// Checks the minimum size, ensures the uType field matches a known BigDriveItemType,
+	/// and verifies that szName is a valid, null-terminated string within the PIDL bounds.
+	/// Returns true if the PIDL is valid and safe to use as a BIGDRIVE_ITEMID; otherwise, returns false.
+	/// </summary>
+	static bool IsValidBigDriveItemId(PCUIDLIST_RELATIVE pidl);
+
+	/// <summary>
+	/// Allocates a PIDL (Pointer to an Item ID List) composed of one or more SHITEMID structures,
+	/// each representing a component of the specified path. The function splits the input path (bstrPath)
+	/// into components (separated by backslashes), creates a SHITEMID for each component, and sets the
+	/// item type (uType) for the last component to the specified nType (e.g., file or folder).
+	/// Each SHITEMID contains the component name as an inline, null-terminated Unicode string.
+	/// The resulting PIDL is terminated with a zero-length SHITEMID and must be freed by the caller
+	/// using CoTaskMemFree. Returns S_OK on success, E_INVALIDARG if bstrPath is null or empty,
+	/// or E_OUTOFMEMORY if allocation fails.
+	/// </summary>
+	/// <param name="nType">The type of the last item (e.g., file or folder).</param>
+	/// <param name="bstrPath">The full path as a BSTR, with components separated by backslashes.</param>
 	/// <param name="ppidl">[out] Receives the allocated PIDL on success, or nullptr on failure.</param>
-	/// <returns>S_OK if the PIDL was allocated successfully; E_INVALIDARG if bstrName is nullptr; E_OUTOFMEMORY if allocation fails.</returns>
-	static HRESULT AllocateBigDriveItemId(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST& ppidl);
+	/// <returns>S_OK if the PIDL was allocated successfully; E_INVALIDARG or E_OUTOFMEMORY on failure.</returns>
+	static HRESULT AllocBigDrivePidl(BigDriveItemType nType, BSTR bstrPath, LPITEMIDLIST& ppidl);
 
 	/// <summary>
 	/// Extracts the Unicode name from the last BIGDRIVE_ITEMID in the given PIDL chain and returns it in a STRRET structure.

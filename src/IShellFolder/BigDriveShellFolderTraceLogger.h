@@ -49,12 +49,11 @@ public:
 
     static void LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl);
 
-    /// <summary>
-    /// Logs exit from a function, including the elapsed time since LogEnter and the HRESULT result.
-    /// </summary>
-    /// <param name="functionName">The name of the function being exited.</param>
-    /// <param name="hr">The HRESULT returned by the function.</param>
-    static void LogExit(LPCSTR functionName, HRESULT hr);
+    static void LogEnter(LPCSTR functionName, PCUIDLIST_RELATIVE pidl1, PCUIDLIST_RELATIVE pidl2);
+
+	static void LogEnter(LPCSTR functionName, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
+
+    static void LogEnter(LPCSTR functionName, REFIID riid, LPCITEMIDLIST pidl);
 
     static void LogEnter(LPCSTR functionName, CLSID* pClassID);
 
@@ -79,6 +78,15 @@ public:
     /// <param name="functionName">The function name (typically __FUNCTION__).</param>
     /// <param name="pszDisplayName">The display name being parsed.</param>
     static void LogParseDisplayName(LPCSTR functionName, LPOLESTR pszDisplayName);
+
+    /// <summary>
+    /// Logs exit from a function, including the elapsed time since LogEnter and the HRESULT result.
+    /// </summary>
+    /// <param name="functionName">The name of the function being exited.</param>
+    /// <param name="hr">The HRESULT returned by the function.</param>
+    static void LogExit(LPCSTR functionName, HRESULT hr);
+
+    static void LogResults(LPCSTR functionName, IEnumIDList *pEnumIdList);
 
 private:
 
