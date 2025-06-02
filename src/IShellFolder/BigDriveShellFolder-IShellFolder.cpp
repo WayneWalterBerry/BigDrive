@@ -17,6 +17,7 @@
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "BigDriveShellIcon.h"
 #include "ILExtensions.h"
+#include "BigDriveShellContextMenu.h"
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -900,6 +901,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 {
 	HRESULT hr = E_NOTIMPL;
 	BigDriveShellIcon* pBigDriveShellIcon = nullptr;
+	BigDriveShellContextMenu* pBigDriveShellContextMenu = nullptr;
 
 	m_traceLogger.LogEnter(__FUNCTION__, riid);
 
@@ -924,6 +926,14 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 		if (FAILED(hr))
 		{
 			this->Release();
+			goto End;
+		}
+	}
+	else if ((riid == IID_IContextMenu) || (riid == IID_IContextMenu2) || (riid == IID_IContextMenu3))
+	{
+		hr = BigDriveShellContextMenu::CreateInstance(this, cidl, apidl, ppv);
+		if (FAILED(hr))
+		{
 			goto End;
 		}
 	}
