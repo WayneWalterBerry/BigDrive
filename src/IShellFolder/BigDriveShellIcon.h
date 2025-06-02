@@ -45,11 +45,36 @@ private:
 	/// </summary>
 	BigDriveShellFolderTraceLogger m_traceLogger;
 
-public:
+private:
 
+	/// <summary>
+	/// Private constructor - use CreateInstance to create instances.
+	/// </summary>
+	/// <param name="pFolder">The parent BigDriveShellFolder object.</param>
+	/// <param name="cidl">Count of item IDs in the array.</param>
+	/// <param name="apidl">Array of item IDs for which to create the context menu.</param>
 	BigDriveShellIcon(const CLSID& driveGuid, BigDriveShellFolder* pParentFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
 
+	/// <summary>
+	/// Destructor.
+	/// </summary>
 	~BigDriveShellIcon();
+
+public:
+
+
+
+	/// <summary>
+	/// Factory method to create an instance of BigDriveShellIcon.
+	/// </summary>
+	/// <param name="driveGuid">The GUID of the drive.</param>
+	/// <param name="pFolder">The parent shell folder.</param>
+	/// <param name="cidl">Count of item IDs in the array.</param>
+	/// <param name="apidl">Array of item IDs for which to create the icon handler.</param>
+	/// <param name="riid">The requested interface ID.</param>
+	/// <param name="ppv">On success, receives the requested interface pointer.</param>
+	/// <returns>S_OK if successful, or an error code.</returns>
+	static HRESULT CreateInstance(const CLSID& driveGuid, BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, REFIID riid, void** ppv);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// IUnknown methods

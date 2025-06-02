@@ -44,3 +44,29 @@ BigDriveShellIcon::~BigDriveShellIcon()
 
 	m_traceLogger.Uninitialize();
 }
+
+/// <summary>
+/// Factory method to create an instance of BigDriveShellIcon.
+/// </summary>
+HRESULT BigDriveShellIcon::CreateInstance(
+	const CLSID& driveGuid,
+	BigDriveShellFolder* pFolder,
+	UINT cidl,
+	PCUITEMID_CHILD_ARRAY apidl,
+	REFIID riid,
+	void** ppv)
+{
+	if (!ppv)
+		return E_POINTER;
+
+	*ppv = nullptr;
+
+	BigDriveShellIcon* pShellIcon = new(std::nothrow) BigDriveShellIcon(driveGuid, pFolder, cidl, apidl);
+	if (!pShellIcon)
+		return E_OUTOFMEMORY;
+
+	HRESULT hr = pShellIcon->QueryInterface(riid, ppv);
+	pShellIcon->Release();
+
+	return hr;
+}

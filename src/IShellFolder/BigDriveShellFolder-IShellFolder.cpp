@@ -915,17 +915,9 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 
 	if ((riid == IID_IExtractIconW) || (riid == IID_IExtractIconA))
 	{
-		pBigDriveShellIcon = new BigDriveShellIcon(m_driveGuid, this, cidl, apidl);
-		if (!pBigDriveShellIcon)
-		{
-			hr = E_OUTOFMEMORY;
-			goto End;
-		}
-
-		hr = pBigDriveShellIcon->QueryInterface(riid, ppv);
+		hr = BigDriveShellIcon::CreateInstance(m_driveGuid, this, cidl, apidl, riid, ppv);
 		if (FAILED(hr))
 		{
-			this->Release();
 			goto End;
 		}
 	}
