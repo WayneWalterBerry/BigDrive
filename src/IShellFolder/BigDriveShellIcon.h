@@ -23,17 +23,17 @@ private:
 	/// <summary>
 	/// Stores the drive GUID
 	/// </summary>
-	CLSID m_driveGuid;        
-	
+	CLSID m_driveGuid;
+
 	/// <summary>
 	/// Pointer to the parent shell folder
 	/// </summary>
-	BigDriveShellFolder* m_pParentFolder;     
+	BigDriveShellFolder* m_pParentFolder;
 
 	/// <summary>
 	/// Count of items (number of PIDLs)
 	/// </summary>
-	UINT m_cidl;                              
+	UINT m_cidl;
 
 	/// <summary>
 	/// Array of item ID list pointers (PIDLs)
@@ -209,5 +209,4 @@ public:
 		HICON* phiconLarge,
 		HICON* phiconSmall,
 		UINT nIconSize);
-
 };

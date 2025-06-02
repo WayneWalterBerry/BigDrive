@@ -247,14 +247,6 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 		goto End;
 	}
 
-	if (IsEqualGUID(pscid->fmtid, PSGUID_STORAGE) && pscid->pid == 11)
-	{
-		// Handle this specific property
-		// TODO: Set appropriate value in the variant
-		// Example: V_VT(pv) = VT_BSTR; V_BSTR(pv) = SysAllocString(L"Property value");
-		hr = E_NOTIMPL;
-	}
-
 	::VariantInit(pv);
 
 End:

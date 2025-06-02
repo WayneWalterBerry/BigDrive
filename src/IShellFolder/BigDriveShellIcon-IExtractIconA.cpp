@@ -9,6 +9,11 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
+#include <commctrl.h>
+#include <commoncontrols.h>
+
+// Need this to link properly
+#pragma comment(lib, "comctl32.lib")
 
 /// <summary>
 /// Retrieves the location and index of the icon for a specified item in the BigDrive shell namespace (ANSI version).
@@ -51,21 +56,18 @@ HRESULT __stdcall BigDriveShellIcon::GetIconLocation(
 		return E_INVALIDARG;
 	}
 
+	// Initialize flags
+	*pwFlags = 0;
+
 	switch (m_cidl)
 	{
 	case 0:
-		// This tells the Shell to use its own default icon for the selection.
+		// No items selected -- Use default icon
 		return S_FALSE;
 
 	case 1:
-		// Use the system's shell32.dll as the icon source (ANSI version)
-		hr = ::StringCchCopyA(pszFile, cchMax, "shell32.dll");
-		if (FAILED(hr))
-		{
-			return hr;
-		}
 
-		// Cast the PIDL to BIGDRIVE_ITEMID and check the type
+		// Single item selected
 		pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(m_apidl[0]);
 		if (!pItem)
 		{
@@ -75,25 +77,99 @@ HRESULT __stdcall BigDriveShellIcon::GetIconLocation(
 		switch (static_cast<BigDriveItemType>(pItem->uType))
 		{
 		case BigDriveItemType_Folder:
-			*pIndex = 3; // Standard folder icon in shell32.dll
+
+			// For folders, use standard folder icon
+			hr = StringCchCopyA(pszFile, cchMax, "shell32.dll");
+			if (SUCCEEDED(hr))
+			{
+				*pIndex = 3;  // Standard folder icon
+			}
 			break;
+
 		case BigDriveItemType_File:
-			*pIndex = 1; // Standard file icon in shell32.dll
+		{
+			// For files, get the extension and ask the shell for the icon
+			char szExt[MAX_PATH] = ".";
+
+			// Extract extension from the name
+			LPCWSTR pszName = pItem->szName;
+			LPCWSTR pszExtension = wcsrchr(pszName, L'.');
+
+			if (!pszExtension)
+			{
+				// No extension - use generic document icon
+				StringCchCopyA(pszFile, cchMax, "shell32.dll");
+				*pIndex = 1;
+
+				goto End;
+			}
+
+			// Convert the wide extension to ANSI for use with ANSI APIs
+			char szAnsiExt[MAX_PATH] = { 0 };
+			WideCharToMultiByte(CP_ACP, 0, pszExtension, -1, szAnsiExt, MAX_PATH, NULL, NULL);
+
+			// Create dummy filename with extension
+			char szDummyFile[MAX_PATH] = "dummy";
+			strcat_s(szDummyFile, MAX_PATH, szAnsiExt);
+
+			// Query shell for icon
+			SHFILEINFOA shfi = { 0 };
+			DWORD_PTR result = SHGetFileInfoA(
+				szDummyFile,
+				FILE_ATTRIBUTE_NORMAL,
+				&shfi,
+				sizeof(shfi),
+				SHGFI_ICONLOCATION | SHGFI_USEFILEATTRIBUTES
+			);
+
+			if (!result)
+			{
+				// Fallback to generic document icon
+				::StringCchCopyA(pszFile, cchMax, "shell32.dll");
+				*pIndex = 1;
+
+				goto End;
+			}
+
+			if (shfi.szDisplayName[0] != '\0')
+			{
+				// Normal case - icon location is in a specific file
+				::StringCchCopyA(pszFile, cchMax, shfi.szDisplayName);
+				*pIndex = shfi.iIcon;
+			}
+			else if (shfi.iIcon != 0)
+			{
+				// Special case - icon is in the system image list
+				// Use shell32.dll which is the main shell icon resource
+				::StringCchCopyA(pszFile, cchMax, "shell32.dll");
+
+				// GIL_NOTFILENAME is set, the shell will calls the Extract() method
+				*pwFlags |= GIL_NOTFILENAME;  // Tell shell this isn't a real path
+				*pIndex = shfi.iIcon;  // Pass the system image list index
+			}
+			else
+			{
+				// Fallback - no icon found
+				::StringCchCopyA(pszFile, cchMax, "shell32.dll");
+				*pIndex = 1;  // Generic document icon
+			}
+
 			break;
+		}
 		default:
-			*pIndex = 0; // Default icon
-			break;
+			// Unknown type - use default icon
+			return S_FALSE;
 		}
 		break;
 
 	default:
-		// Multi-select or other cases
-		return S_FALSE;
+		// Multiple items selected
+		return S_FALSE;  // Use default icon
 	}
 
-	*pwFlags = GIL_PERINSTANCE;
-	return hr;
+End:
 
+	return hr;
 }
 
 /// <summary>
@@ -127,14 +203,67 @@ HRESULT __stdcall BigDriveShellIcon::Extract(
 	HICON* phiconSmall,
 	UINT nIconSize)
 {
-	// For most extensions, return S_FALSE to let the Shell extract the icon using the location and index
-	// If you want to provide your own icon, load it and return the handles
+	// Check if we're dealing with a system image list icon
+	// (when using shell32.dll with GIL_NOTFILENAME flag)
+	if (strcmp(pszFile, "shell32.dll") == 0 && nIconIndex > 0)
+	{
+		// Get the system image lists
+		IImageList* pImageListLarge = nullptr;
+		IImageList* pImageListSmall = nullptr;
+		HRESULT hr = S_OK;
 
-	UNREFERENCED_PARAMETER(pszFile);
-	UNREFERENCED_PARAMETER(nIconIndex);
-	UNREFERENCED_PARAMETER(phiconLarge);
-	UNREFERENCED_PARAMETER(phiconSmall);
-	UNREFERENCED_PARAMETER(nIconSize);
+		// Get large icon image list (32x32)
+		if (phiconLarge)
+		{
+			hr = SHGetImageList(SHIL_LARGE, IID_IImageList, (void**)&pImageListLarge);
+			if (SUCCEEDED(hr) && pImageListLarge)
+			{
+				// Extract icon from the system image list
+				hr = pImageListLarge->GetIcon(nIconIndex, ILD_TRANSPARENT, phiconLarge);
+				if (FAILED(hr))
+				{
+					*phiconLarge = nullptr;
+				}
 
+				// Release the image list
+				pImageListLarge->Release();
+			}
+			else
+			{
+				*phiconLarge = nullptr;
+			}
+		}
+
+		// Get small icon image list (16x16)
+		if (phiconSmall)
+		{
+			hr = SHGetImageList(SHIL_SMALL, IID_IImageList, (void**)&pImageListSmall);
+			if (SUCCEEDED(hr) && pImageListSmall)
+			{
+				// Extract icon from the system image list
+				hr = pImageListSmall->GetIcon(nIconIndex, ILD_TRANSPARENT, phiconSmall);
+				if (FAILED(hr))
+				{
+					*phiconSmall = nullptr;
+				}
+
+				// Release the image list
+				pImageListSmall->Release();
+			}
+			else
+			{
+				*phiconSmall = nullptr;
+			}
+		}
+
+		// If we were able to extract at least one icon, return success
+		if ((phiconLarge && *phiconLarge) || (phiconSmall && *phiconSmall))
+		{
+			return S_OK;
+		}
+	}
+
+	// For standard icons or if system image list extraction failed,
+	// let the Shell extract the icon using standard methods
 	return S_FALSE;
 }

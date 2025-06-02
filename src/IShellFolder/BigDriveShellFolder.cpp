@@ -499,3 +499,4 @@ bool BigDriveShellFolder::IsValidBigDriveItemId(PCUIDLIST_RELATIVE pidl)
 
     return false;
 }
+

@@ -43,5 +43,4 @@ BigDriveShellIcon::~BigDriveShellIcon()
 	}
 
 	m_traceLogger.Uninitialize();
-
 }
