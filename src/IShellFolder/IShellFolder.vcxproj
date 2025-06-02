@@ -162,7 +162,8 @@
     <ClInclude Include="BigDriveItemType.h" />
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
-    <ClInclude Include="BigDriveShellFolderTraceLogger.h" />
+    <ClInclude Include="BigDriveShellFolderStatic.h" />
+    <ClInclude Include="Logging\BigDriveShellFolderTraceLogger.h" />
     <ClInclude Include="BigDriveShellIcon.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="EmptyEnumIDList.h" />
@@ -176,6 +177,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="ILExtensions.h" />
     <ClInclude Include="LaunchDebugger.h" />
+    <ClInclude Include="Logging\BigDriveTraceLogger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
@@ -197,7 +199,7 @@
     <ClCompile Include="BigDriveShellFolderFactory-IClassFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
-    <ClCompile Include="BigDriveShellFolderTraceLogger.cpp" />
+    <ClCompile Include="Logging\BigDriveShellFolderTraceLogger.cpp" />
     <ClCompile Include="BigDriveShellIcon-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellIcon.cpp" />
     <ClCompile Include="dllmain.cpp" />
@@ -206,6 +208,7 @@
     <ClCompile Include="Exports\BigDriveShellFolderExports.cpp" />
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
+    <ClCompile Include="Logging\BigDriveTraceLogger.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

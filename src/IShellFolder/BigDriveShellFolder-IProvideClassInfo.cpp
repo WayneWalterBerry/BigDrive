@@ -13,7 +13,7 @@
 
 #include "BigDriveShellFolder.h"
 
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <ocidl.h> // For IProvideClassInfo
 #include <objbase.h>
@@ -34,13 +34,15 @@
 /// </remarks>
 HRESULT __stdcall BigDriveShellFolder::GetClassInfo(ITypeInfo** ppTI)
 {
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    m_traceLogger.LogEnter(__FUNCTION__);
+
     // No type information provided in this minimal implementation.
     HRESULT hr = E_NOTIMPL;
     if (ppTI)
     {
         *ppTI = nullptr;
     }
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+
+    m_traceLogger.LogExit(__FUNCTION__, hr);
     return hr;
 }

@@ -10,7 +10,7 @@
 
 #include "pch.h"
 #include "BigDriveShellFolder.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
 #include <propkey.h>
@@ -30,9 +30,9 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultSearchGUID(GUID* pguid)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -48,14 +48,14 @@ HRESULT __stdcall BigDriveShellFolder::EnumSearches(IEnumExtraSearch** ppEnum)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (ppEnum)
 	{
 		*ppEnum = nullptr;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -72,7 +72,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumn(DWORD dwRes, ULONG* pSor
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (pSort)
 	{
@@ -84,7 +84,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumn(DWORD dwRes, ULONG* pSor
 		*pDisplay = 0;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -101,7 +101,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 {
 	HRESULT hr = S_OK;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (!pcsFlags)
 	{
@@ -121,7 +121,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 	}
 
 End:
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
@@ -168,7 +168,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 	HRESULT hr = S_OK;
 	const int COLUMN_COUNT = 1; // Adjust as needed for your columns
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (!psd)
 	{
@@ -198,7 +198,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
@@ -239,7 +239,7 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, pidl, pscid);
 
 	if (!pv)
 	{
@@ -247,11 +247,19 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 		goto End;
 	}
 
+	if (IsEqualGUID(pscid->fmtid, PSGUID_STORAGE) && pscid->pid == 11)
+	{
+		// Handle this specific property
+		// TODO: Set appropriate value in the variant
+		// Example: V_VT(pv) = VT_BSTR; V_BSTR(pv) = SysAllocString(L"Property value");
+		hr = E_NOTIMPL;
+	}
+
 	::VariantInit(pv);
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -267,7 +275,7 @@ End:
 HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID* pscid)
 {
 	HRESULT hr = E_NOTIMPL;
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (!pscid)
 	{
@@ -278,7 +286,7 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 	if (iColumn == 0)
 	{
 		// Map to the standard "Name" column
-		pscid->fmtid = FMTID_Storage;      // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
 		pscid->pid = PID_STG_NAME;       // 10
 		hr = S_OK;
 		goto End;
@@ -289,6 +297,6 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 	hr = E_NOTIMPL;
 
 End:
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }

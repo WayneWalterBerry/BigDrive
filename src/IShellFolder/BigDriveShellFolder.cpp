@@ -9,32 +9,152 @@
 
 // Local
 #include "LaunchDebugger.h"
+#include "BigDriveShellFolderStatic.h"
 
+BigDriveShellFolderStatic BigDriveShellFolder::s_staticData;
 BigDriveShellFolderEventLogger BigDriveShellFolder::s_eventLogger(L"BigDrive.ShellFolder");
 
+/// <inheritdoc />
 HRESULT BigDriveShellFolder::GetProviderCLSID(CLSID& clsidProvider) const
 {
 	return S_OK;
 }
 
-HRESULT BigDriveShellFolder::GetPath(BSTR& bstrPath)
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::GetPathForProviders(LPCITEMIDLIST pidl, BSTR& bstrPath)
 {
-    return BigDriveShellFolder::GetPath(m_pidlAbsolute, bstrPath);
-}
-
-HRESULT BigDriveShellFolder::GetPath(LPCITEMIDLIST pidl, BSTR& bstrPath)
-{
-    // Skip the first two PIDLs (My PC and Extension GUID)
-	return BigDriveShellFolder::GetPath(pidl, 2, bstrPath);
-}
-
-HRESULT BigDriveShellFolder::GetPath(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath)
-{
-    bstrPath = nullptr;
+	int nSkip = 0; 
 
     // Start with the initial '\'
     WCHAR szPath[MAX_PATH] = L"\\";
     size_t cchPath = 1;
+
+    if (s_staticData.IsPidlRootedAtMyComputer(pidl))
+    {
+        // Skip My Computer and GUID PIDLs
+        nSkip = nSkip + 2;
+    }
+
+    const BYTE* p = reinterpret_cast<const BYTE*>(pidl);
+    int pidlIndex = 0;
+
+    // Traverse the PIDL chain
+    while (true)
+    {
+        USHORT cb = *(reinterpret_cast<const USHORT*>(p));
+        if (cb == 0)
+        {
+            break;
+        }
+
+        if (pidlIndex >= nSkip)
+        {
+            if (!IsValidBigDriveItemId(reinterpret_cast<PCUIDLIST_RELATIVE>(p)))
+            {
+                // Not a valid BigDrive PIDL
+                return E_FAIL;
+            }
+
+            const WCHAR* szName = reinterpret_cast<const WCHAR*>(p + sizeof(USHORT) + sizeof(int));
+
+            // Defensive: ensure null-terminated
+            size_t maxChars = (cb - sizeof(USHORT) - sizeof(int)) / sizeof(WCHAR);
+            size_t len = 0;
+
+            for (; len < maxChars; ++len)
+            {
+                if (szName[len] == L'\0')
+                {
+                    break;
+                }
+            }
+
+            if (len == 0 || len == maxChars)
+            {
+                // Not null-terminated or empty
+                return E_FAIL;
+            }
+
+            // Add '\' if not the first component after root
+            if (cchPath > 1 && cchPath < MAX_PATH - 1)
+            {
+                szPath[cchPath++] = L'\\';
+            }
+
+            // Copy szName to szPath
+            size_t i = 0;
+            for (; i < len && cchPath < MAX_PATH - 1; ++i)
+            {
+                szPath[cchPath++] = szName[i];
+            }
+            szPath[cchPath] = L'\0';
+        }
+
+        p += cb;
+        ++pidlIndex;
+    }
+
+    bstrPath = ::SysAllocString(szPath);
+    if (!bstrPath)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    return S_OK;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::GetPathForLogging(CLSID driveGuid, LPCITEMIDLIST pidl, BSTR& bstrPath)
+{
+	int nSkip = 0; // Number of PIDLs to skip
+    bstrPath = nullptr;
+
+    const WCHAR szRootDelimiter[3] = L"\\\\";
+
+    if (pidl == nullptr)
+    {
+        bstrPath = ::SysAllocString(szRootDelimiter);
+        return S_OK;
+    }
+
+    WCHAR szPath[MAX_PATH] = L"";
+    size_t cchPath = 0;
+
+    if (s_staticData.IsPidlRootedAtMyComputer(pidl))
+    {
+        // Root Delimiter
+        ::wcsncat_s(szPath, MAX_PATH, szRootDelimiter, _TRUNCATE);
+        cchPath += wcslen(szRootDelimiter);
+
+        // My PC
+        LPCWSTR szComputeName = s_staticData.GetMyComputerName();
+
+        ::wcsncat_s(szPath, MAX_PATH, szComputeName, _TRUNCATE);
+        cchPath += wcslen(szComputeName);
+
+        // Add the backslash after My PC
+        ::wcsncat_s(szPath, MAX_PATH, L"\\", _TRUNCATE);
+        cchPath += 1;
+
+        // Skip My PC PIDL
+        nSkip++;
+
+        WCHAR guidStr[64];
+        int guidLen = swprintf(guidStr, 64,
+            L"{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}",
+            driveGuid.Data1, driveGuid.Data2, driveGuid.Data3,
+            driveGuid.Data4[0], driveGuid.Data4[1],
+            driveGuid.Data4[2], driveGuid.Data4[3], driveGuid.Data4[4],
+            driveGuid.Data4[5], driveGuid.Data4[6], driveGuid.Data4[7]);
+
+        if (guidLen > 0 && cchPath + guidLen < MAX_PATH) {
+            wcsncat_s(szPath, MAX_PATH, guidStr, _TRUNCATE);
+            cchPath += guidLen;
+        }
+
+        // Skip the GUID PIDL
+        nSkip++;
+    }
 
     const BYTE* p = reinterpret_cast<const BYTE*>(pidl);
     int pidlIndex = 0;

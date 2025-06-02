@@ -7,6 +7,8 @@
 #include "BigDriveItemType.h"
 
 #include "BigDriveShellFolderEventLogger.h"
+#include "BigDriveShellFolderStatic.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h> // For IShellFolder and related interfaces
 #include <objbase.h> // For COM initialization
@@ -75,6 +77,7 @@ class BigDriveShellFolder : public
 private:
 
 	static BigDriveShellFolderEventLogger s_eventLogger;
+	static BigDriveShellFolderStatic s_staticData;
 
 private:
 
@@ -98,6 +101,11 @@ private:
 	/// </summary>
 	LONG m_refCount;
 
+	/// <summary>
+	/// Logger that captures trace information for this shell folder.
+	/// </summary>
+	BigDriveShellFolderTraceLogger m_traceLogger;
+
 public:
 
 	/// <summary>
@@ -115,6 +123,8 @@ public:
 		{
 			m_pidlAbsolute = ::ILClone(pidlAbsolute);
 		}
+
+		m_traceLogger.Initialize(driveGuid);
 	}
 
 	~BigDriveShellFolder()
@@ -125,6 +135,8 @@ public:
 			::ILFree(const_cast<LPITEMIDLIST>(m_pidlAbsolute));
 			m_pidlAbsolute = nullptr;
 		}
+
+		m_traceLogger.Uninitialize();
 	}
 
 	/// <summary>
@@ -561,27 +573,24 @@ public:
 	/// </remarks>
 	HRESULT __stdcall GetClassInfo(ITypeInfo** ppTI);
 
-
-
 private:
 
 	HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
-	HRESULT GetPath(BSTR& bstrPath);
 	HRESULT WriteErrorFormatted(LPCWSTR formatter, ...);
 	HRESULT WriteError(LPCWSTR szMessage);
 
 public:
 
-	static HRESULT GetPath(LPCITEMIDLIST pidl, BSTR& bstrPath);
-
 	/// <summary>
 	/// Generate a Readable Path from a PIDL (Pointer to an Item ID List).
 	/// </summary>
+	/// <param name="driveGuid">The GUID of the drive associated with the PIDL.</param>
 	/// <param name="pidl">PIDL to traverse</param>
-	/// <param name="nSkip">Number of items to skip in creating the path</param>
 	/// <param name="bstrPath">[Out] Path</param>
 	/// <returns>S_OK if successful; E_INVALIDARG if pidl is null; E_OUTOFMEMORY if memory allocation fails.</returns>
-	static HRESULT GetPath(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath);
+	static HRESULT GetPathForLogging(CLSID driveGuid, LPCITEMIDLIST pidl, BSTR& bstrPath);
+
+	static HRESULT GetPathForProviders(LPCITEMIDLIST pidl, BSTR& bstrPath);
 
 	/// <summary>
 	/// Validates whether the given PIDL is a BIGDRIVE_ITEMID created by this shell extension.

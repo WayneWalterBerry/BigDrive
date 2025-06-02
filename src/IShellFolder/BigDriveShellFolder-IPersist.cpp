@@ -7,7 +7,7 @@
 
 #include "BigDriveShellFolder.h"
 
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
 #include <objbase.h>
@@ -23,7 +23,7 @@ HRESULT __stdcall BigDriveShellFolder::GetClassID(CLSID* pClassID)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, m_driveGuid);
+    m_traceLogger.LogEnter(__FUNCTION__, m_driveGuid);
 
     if (!pClassID)
     {
@@ -36,7 +36,7 @@ HRESULT __stdcall BigDriveShellFolder::GetClassID(CLSID* pClassID)
 
 End:
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }

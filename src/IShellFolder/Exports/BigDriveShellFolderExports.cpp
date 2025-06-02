@@ -24,8 +24,8 @@ extern "C" {
         return BigDriveShellFolder::GetBigDriveItemNameFromPidl(pidl, pName);
     }
 
-    HRESULT GetPathExport(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath)
+    HRESULT GetPathForProvidersExport(LPCITEMIDLIST pidl, BSTR& bstrPath)
     {
-		return BigDriveShellFolder::GetPath(pidl, nSkip, bstrPath);
+		return BigDriveShellFolder::GetPathForProviders(pidl, bstrPath);
     }
 }

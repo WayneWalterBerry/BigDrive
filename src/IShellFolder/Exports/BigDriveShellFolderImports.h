@@ -18,7 +18,7 @@ extern "C" {
     /// </summary>
     __declspec(dllimport) HRESULT GetBigDriveItemNameFromPidlExport(PCUITEMID_CHILD pidl, STRRET* pName);
 
-    __declspec(dllimport) HRESULT GetPathExport(LPCITEMIDLIST pidl, int nSkip, BSTR& bstrPath);
+    __declspec(dllimport) HRESULT GetPathForProvidersExport(LPCITEMIDLIST pidl, BSTR& bstrPath);
 
 #ifdef __cplusplus
 }

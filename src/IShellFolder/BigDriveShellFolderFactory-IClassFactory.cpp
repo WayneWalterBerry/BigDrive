@@ -5,7 +5,7 @@
 #include "pch.h"
 
 #include "BigDriveShellFolderFactory.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveTraceLogger.h"
 
 #include <windows.h>
 
@@ -18,7 +18,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::CreateInstance(IUnknown* pUnkOuter
     HRESULT hr = S_OK;
     BigDriveShellFolder* pFolder = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+    BigDriveTraceLogger::LogEnter(__FUNCTION__, riid);
 
     if (!ppvObject) 
     {
@@ -59,7 +59,7 @@ End:
         pFolder = nullptr;
     }
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    BigDriveTraceLogger::LogExit(__FUNCTION__, hr);
 
     return hr;
 }
@@ -67,7 +67,7 @@ End:
 /// <inheritdoc />
 HRESULT __stdcall BigDriveShellFolderFactory::LockServer(BOOL fLock) 
 {
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    BigDriveTraceLogger::LogEnter(__FUNCTION__);
 
     // Lock or unlock the server
     if (fLock) 
@@ -79,7 +79,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::LockServer(BOOL fLock)
         ::InterlockedDecrement(&m_refCount);
     }
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, S_OK);
+    BigDriveTraceLogger::LogExit(__FUNCTION__, S_OK);
 
     return S_OK;
 }

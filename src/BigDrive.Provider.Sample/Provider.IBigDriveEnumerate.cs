@@ -39,7 +39,7 @@ namespace BigDrive.Provider.Sample
         {
             if (path == "\\")
             {
-                return new string[] { "A File.txt", "Root File 2.txt", "Z File.txt" };
+                return new string[] { "A File.txt", "Root File 2.txt", "Z File.txt", "Compact.zip", "Photo.png" };
             }
 
             return Array.Empty<string>();

@@ -9,7 +9,7 @@
 
 // Local
 #include "LaunchDebugger.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 /// <summary>
 /// Queries the object for a pointer to one of its supported interfaces.
@@ -18,7 +18,7 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+    m_traceLogger.LogEnter(__FUNCTION__, riid, m_pidlAbsolute);
 
     if (riid == IID_IUnknown)
     {
@@ -68,7 +68,7 @@ HRESULT __stdcall BigDriveShellFolder::QueryInterface(REFIID riid, void** ppvObj
 
 End:
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }

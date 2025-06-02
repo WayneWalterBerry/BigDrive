@@ -6,7 +6,7 @@
 #include "pch.h"
 
 #include "BigDriveShellFolder.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 #include "LaunchDebugger.h"
 
 #include <shlobj.h>
@@ -22,7 +22,7 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    m_traceLogger.LogEnter(__FUNCTION__);
 
     if (!ppidl)
     {
@@ -46,7 +46,7 @@ HRESULT __stdcall BigDriveShellFolder::GetCurFolder(PIDLIST_ABSOLUTE* ppidl)
 
 End:
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, *ppidl, hr);
 
     return hr;
 }

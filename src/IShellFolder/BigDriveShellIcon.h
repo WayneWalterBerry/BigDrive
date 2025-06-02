@@ -40,6 +40,11 @@ private:
 	/// </summary>
 	PCUITEMID_CHILD* m_apidl;
 
+	/// <summary>
+	/// Logger that captures trace information for the shell folder.
+	/// </summary>
+	BigDriveShellFolderTraceLogger m_traceLogger;
+
 public:
 
 	BigDriveShellIcon(const CLSID& driveGuid, BigDriveShellFolder* pParentFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);

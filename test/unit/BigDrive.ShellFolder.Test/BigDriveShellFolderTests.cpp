@@ -51,7 +51,7 @@ namespace BigDriveShellFolderTest
 			Assert::AreEqual(L"TestFile.txt", strret.pOleStr, L"Extracted file name does not match.");
 
 			BSTR bstrPath;
-			hr = GetPathExport(pidl, 0, bstrPath);
+			hr = GetPathForProvidersExport(pidl, bstrPath);
 			Assert::IsTrue(bstrPath != nullptr, L"Extracted path should not be null.");
 			Assert::AreEqual(S_OK, hr, L"GetPathExport() should succeed for folder PIDL.");
 			Assert::AreEqual(L"\\TestFile.txt", bstrPath, L"Extracted path does not match.");
@@ -103,7 +103,7 @@ namespace BigDriveShellFolderTest
 			Assert::AreEqual(L"File.txt", strret.pOleStr, L"Extracted file name does not match.");
 
 			BSTR bstrPath;
-			hr = GetPathExport(pidl, 0, bstrPath);
+			hr = GetPathForProvidersExport(pidl, bstrPath);
 			Assert::IsTrue(bstrPath != nullptr, L"Extracted path should not be null.");
 			Assert::AreEqual(S_OK, hr, L"GetPathExport() should succeed for folder PIDL.");
 			Assert::AreEqual(L"\\TestFolder\\File.txt", bstrPath, L"Extracted path does not match.");
@@ -162,7 +162,7 @@ namespace BigDriveShellFolderTest
 			Assert::AreEqual(L"File.txt", strret.pOleStr, L"Extracted file name does not match.");
 
 			BSTR bstrPath;
-			hr = GetPathExport(pidl, 0, bstrPath);
+			hr = GetPathForProvidersExport(pidl, bstrPath);
 			Assert::IsTrue(bstrPath != nullptr, L"Extracted path should not be null.");
 			Assert::AreEqual(S_OK, hr, L"GetPathExport() should succeed for folder PIDL.");
 			Assert::AreEqual(L"\\TestFolder\\File.txt", bstrPath, L"Extracted path does not match.");
@@ -191,7 +191,7 @@ namespace BigDriveShellFolderTest
 			Assert::AreEqual(L"SubFolder", strret.pOleStr, L"Extracted folder name does not match.");
 
 			BSTR bstrPath;
-			hr = GetPathExport(pidl, 0, bstrPath);
+			hr = GetPathForProvidersExport(pidl, bstrPath);
 			Assert::IsTrue(bstrPath != nullptr, L"Extracted path should not be null.");
 			Assert::AreEqual(S_OK, hr, L"GetPathExport() should succeed for folder PIDL.");
 			Assert::AreEqual(L"\\TestFolder\\SubFolder", bstrPath, L"Extracted path does not match.");
@@ -233,7 +233,7 @@ namespace BigDriveShellFolderTest
 			Assert::AreEqual(L"TestFile.txt", strret.pOleStr, L"Extracted folder name does not match.");
 
 			BSTR bstrPath;
-			hr = GetPathExport(pidl, 0, bstrPath);
+			hr = GetPathForProvidersExport(pidl, bstrPath);
 			Assert::IsTrue(bstrPath != nullptr, L"Extracted path should not be null.");
 			Assert::AreEqual(S_OK, hr, L"GetPathExport() should succeed for folder PIDL.");
 			Assert::AreEqual(L"\\TestFolder\\SubFolder\\TestFile.txt", bstrPath, L"Extracted path does not match.");

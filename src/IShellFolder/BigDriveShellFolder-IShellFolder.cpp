@@ -10,7 +10,7 @@
 // Local
 #include "LaunchDebugger.h"
 #include "EmptyEnumIDList.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 #include "BigDriveEnumIDList.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
@@ -81,7 +81,7 @@ HRESULT __stdcall BigDriveShellFolder::ParseDisplayName(
 {
 	HRESULT hr = S_OK;
 
-	BigDriveShellFolderTraceLogger::LogParseDisplayName(__FUNCTION__, pszDisplayName);
+	m_traceLogger.LogParseDisplayName(__FUNCTION__, pszDisplayName);
 
 	// Validate output pointer
 	if (!ppidl)
@@ -136,7 +136,7 @@ End:
 		if (pchEaten) *pchEaten = 0;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -202,7 +202,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 	BigDriveEnumIDList* pResult = nullptr;
 	LONG lCount = 0;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	// Validate output pointer
 	if (!ppenumIDList)
@@ -248,7 +248,7 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		goto End;
 	}
 
-	hr = GetPath(bstrPath);
+	hr = GetPathForProviders(m_pidlAbsolute, bstrPath);
 	if (FAILED(hr))
 	{
 		goto End;
@@ -384,11 +384,11 @@ HRESULT __stdcall BigDriveShellFolder::EnumObjects(HWND hwnd, DWORD grfFlags, IE
 		*ppenumIDList = pResult;
 	}
 
-	BigDriveShellFolderTraceLogger::LogResults(__FUNCTION__, *ppenumIDList);
+	m_traceLogger.LogResults(__FUNCTION__, *ppenumIDList);
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	if (FAILED(hr) && pResult)
 	{
@@ -498,7 +498,7 @@ HRESULT __stdcall BigDriveShellFolder::BindToObject(PCUIDLIST_RELATIVE pidl, LPB
 	PIDLIST_ABSOLUTE pidlSubFolder = nullptr;
 	BigDriveShellFolder* pSubFolder = nullptr;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid, pidl);
+	m_traceLogger.LogEnter(__FUNCTION__, riid, m_pidlAbsolute, pidl);
 
 	if (!pidl || !ppv)
 	{
@@ -536,7 +536,7 @@ End:
 		pidlSubFolder = nullptr;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -548,11 +548,11 @@ HRESULT __stdcall BigDriveShellFolder::BindToStorage(PCUIDLIST_RELATIVE pidl, LP
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -606,7 +606,7 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 	const BIGDRIVE_ITEMID* pItem1;
 	const BIGDRIVE_ITEMID* pItem2;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl1, pidl2);
+	m_traceLogger.LogEnter(__FUNCTION__, pidl1, pidl2);
 
 	if (!pidl1 || !pidl2)
 	{
@@ -649,7 +649,7 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -714,7 +714,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 
 	*ppv = nullptr;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+	m_traceLogger.LogEnter(__FUNCTION__, riid);
 
 	if (IsEqualIID(riid, IID_IShellView))
 	{
@@ -736,7 +736,7 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -795,7 +795,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 	// Start with all bits set for intersection
 	SFGAOF resultFlags = ~0ULL; 
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, cidl, apidl);
+	m_traceLogger.LogEnter(__FUNCTION__, cidl, apidl);
 
 	if (cidl == 0 || !apidl || !rgfInOut)
 	{
@@ -834,7 +834,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
@@ -901,7 +901,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 	HRESULT hr = E_NOTIMPL;
 	BigDriveShellIcon* pBigDriveShellIcon = nullptr;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+	m_traceLogger.LogEnter(__FUNCTION__, riid);
 
 	if (!ppv || !apidl || cidl == 0 || (cidl > 1 && !rgfReserved))
 	{
@@ -941,7 +941,7 @@ End:
 		pBigDriveShellIcon = nullptr;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -1004,7 +1004,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (!pidl || !pName)
 	{
@@ -1037,7 +1037,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -1049,11 +1049,11 @@ HRESULT __stdcall BigDriveShellFolder::SetNameOf(HWND hwnd, PCUITEMID_CHILD pidl
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	// Placeholder implementation
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
