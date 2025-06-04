@@ -24,21 +24,18 @@ HRESULT __stdcall BigDriveShellIcon::QueryInterface(REFIID riid, void** ppvObjec
     {
         *ppvObject = static_cast<IExtractIconW*>(this);
         AddRef();
-        hr = S_OK;
         goto End;
     }
     else if (IsEqualIID(riid, IID_IExtractIconW))
     {
         *ppvObject = static_cast<IExtractIconW*>(this);
         AddRef();
-        hr = S_OK;
         goto End;
     }
     else if (IsEqualIID(riid, IID_IExtractIconA))
     {
         *ppvObject = static_cast<IExtractIconA*>(this);
         AddRef();
-        hr = S_OK;
         goto End;
     }
 

@@ -57,7 +57,9 @@ HRESULT BigDriveShellIcon::CreateInstance(
 	void** ppv)
 {
 	if (!ppv)
+	{
 		return E_POINTER;
+	}
 
 	*ppv = nullptr;
 

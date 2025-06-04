@@ -923,7 +923,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 	}
 	else if ((riid == IID_IContextMenu) || (riid == IID_IContextMenu2) || (riid == IID_IContextMenu3))
 	{
-		hr = BigDriveShellContextMenu::CreateInstance(this, cidl, apidl, ppv);
+		hr = BigDriveShellContextMenu::CreateInstance(m_driveGuid, this, cidl, apidl, ppv);
 		if (FAILED(hr))
 		{
 			goto End;

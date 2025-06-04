@@ -186,6 +186,7 @@
     <ClCompile Include="BigDriveEnumIDList-IEnumIDList.cpp" />
     <ClCompile Include="BigDriveEnumIDList-IUnknown.cpp" />
     <ClCompile Include="BigDriveEnumIDList.cpp" />
+    <ClCompile Include="BigDriveShellContextMenu-IContextMenu.cpp" />
     <ClCompile Include="BigDriveShellContextMenu-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellContextMenu.cpp" />
     <ClCompile Include="BigDriveShellIcon-IExtractIconA.cpp" />

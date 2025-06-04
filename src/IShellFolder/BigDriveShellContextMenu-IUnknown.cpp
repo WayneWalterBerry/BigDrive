@@ -20,45 +20,56 @@
 /// </summary>
 HRESULT __stdcall BigDriveShellContextMenu::QueryInterface(REFIID riid, void** ppv)
 {
-    // Validate output parameter
-    if (!ppv)
-    {
-        return E_POINTER;
-    }
+	HRESULT hr = S_OK;
 
-    // Initialize output to null
-    *ppv = nullptr;
+	m_traceLogger.LogEnter(__FUNCTION__, riid);
 
-    // Check for requested interfaces
-    if (IsEqualIID(riid, IID_IUnknown))
-    {
-        // Return IUnknown
-        *ppv = static_cast<IUnknown*>(static_cast<IContextMenu*>(this));
-    }
-    else if (IsEqualIID(riid, IID_IContextMenu))
-    {
-        // Return IContextMenu
-        *ppv = static_cast<IContextMenu*>(this);
-    }
-    else if (IsEqualIID(riid, IID_IContextMenu2))
-    {
-        // Return IContextMenu2
-        *ppv = static_cast<IContextMenu2*>(this);
-    }
-    else if (IsEqualIID(riid, IID_IContextMenu3))
-    {
-        // Return IContextMenu3
-        *ppv = static_cast<IContextMenu3*>(this);
-    }
-    else
-    {
-        // Interface not supported
-        return E_NOINTERFACE;
-    }
+	// Validate output parameter
+	if (!ppv)
+	{
+		hr = E_POINTER;
+		goto End;
+	}
 
-    // AddRef the interface
-    reinterpret_cast<IUnknown*>(*ppv)->AddRef();
-    return S_OK;
+	// Initialize output to null
+	*ppv = nullptr;
+
+	// Check for requested interfaces
+	if (IsEqualIID(riid, IID_IUnknown))
+	{
+		// Return IUnknown
+		*ppv = static_cast<IUnknown*>(static_cast<IContextMenu*>(this));
+	}
+	else if (IsEqualIID(riid, IID_IContextMenu))
+	{
+		// Return IContextMenu
+		*ppv = static_cast<IContextMenu*>(this);
+	}
+	else if (IsEqualIID(riid, IID_IContextMenu2))
+	{
+		// Return IContextMenu2
+		*ppv = static_cast<IContextMenu2*>(this);
+	}
+	else if (IsEqualIID(riid, IID_IContextMenu3))
+	{
+		// Return IContextMenu3
+		*ppv = static_cast<IContextMenu3*>(this);
+	}
+	else
+	{
+		// Interface not supported
+		hr = E_NOINTERFACE;
+		goto End;
+	}
+
+	// AddRef the interface
+	reinterpret_cast<IUnknown*>(*ppv)->AddRef();
+
+End:
+
+	m_traceLogger.LogEnter(__FUNCTION__, riid);
+
+	return hr;
 }
 
 /// <summary>
@@ -66,7 +77,7 @@ HRESULT __stdcall BigDriveShellContextMenu::QueryInterface(REFIID riid, void** p
 /// </summary>
 ULONG __stdcall BigDriveShellContextMenu::AddRef()
 {
-    return InterlockedIncrement(&m_cRef);
+	return InterlockedIncrement(&m_cRef);
 }
 
 /// <summary>
@@ -74,10 +85,10 @@ ULONG __stdcall BigDriveShellContextMenu::AddRef()
 /// </summary>
 ULONG __stdcall BigDriveShellContextMenu::Release()
 {
-    ULONG cRef = InterlockedDecrement(&m_cRef);
-    if (!cRef)
-    {
-        delete this;
-    }
-    return cRef;
+	ULONG cRef = InterlockedDecrement(&m_cRef);
+	if (!cRef)
+	{
+		delete this;
+	}
+	return cRef;
 }
