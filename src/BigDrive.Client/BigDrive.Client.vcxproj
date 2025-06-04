@@ -84,8 +84,8 @@
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-	  <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-	</ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -108,8 +108,8 @@
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-	  <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-	</ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -132,8 +132,8 @@
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
        </AdditionalIncludeDirectories>
-	   <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-	</ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -156,7 +156,7 @@
                 $(VCInstallDir)UnitTest\include;
                 %(AdditionalIncludeDirectories)
        </AdditionalIncludeDirectories>
-	   <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -187,6 +187,7 @@
     <ClInclude Include="FuncDesc.h" />
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
+    <ClInclude Include="Interfaces\IBigDriveFileInfo.h" />
     <ClInclude Include="Interfaces\IBigDriveRegistration.h" />
     <ClInclude Include="Interfaces\IBigDriveEnumerate.h" />
     <ClInclude Include="Interfaces\ICatalogObject.h" />

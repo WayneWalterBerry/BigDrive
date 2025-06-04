@@ -12,6 +12,8 @@
 #include "BigDriveClientEventLogger.h"
 #include "Interfaces/IBigDriveEnumerate.h"
 #include "Interfaces/IBigDriveConfiguration.h"
+#include "Interfaces/IBigDriveFileInfo.h"
+
 #include "DriveConfiguration.h"
 
 /// <summary>
@@ -72,6 +74,15 @@ public:
     /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
     /// </returns>
     HRESULT GetIBigDriveEnumerate(IBigDriveEnumerate** ppBigDriveEnumerate);
+
+    /// <summary>
+    /// Retrieves the IBigDriveFileInfo interface from the COM+ class associated with this provider.
+    /// </summary>
+    /// <param name="ppBigDriveFileInfo">Address of a pointer that receives the IBigDriveFileInfo interface pointer on success. Set to nullptr on failure.</param>
+    /// <returns>
+    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
+    /// </returns>
+    HRESULT GetIBigDriveFileInfo(IBigDriveFileInfo** ppBigDriveFileInfo);
 
 private:
 

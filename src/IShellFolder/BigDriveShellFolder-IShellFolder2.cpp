@@ -12,11 +12,20 @@
 #include "BigDriveShellFolder.h"
 #include "Logging\BigDriveShellFolderTraceLogger.h"
 
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+#include "..\BigDrive.Client\DriveConfiguration.h"
+#include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
+
 #include <shlobj.h>
 #include <propkey.h>
+#include <oaidl.h>
 
 #ifndef PID_STG_NAME
-	#define PID_STG_NAME 10
+#define PID_STG_NAME 10
+#endif
+
+#ifndef PID_STG_WRITETIME
+#define PID_STG_WRITETIME 14
 #endif
 
 /// <summary>
@@ -114,6 +123,10 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 	case 0:
 		*pcsFlags = SHCOLSTATE_TYPE_STR | SHCOLSTATE_ONBYDEFAULT;
 		break;
+	case 1:
+		// Last Modified Date column should be a date type and visible by default
+		*pcsFlags = SHCOLSTATE_TYPE_DATE | SHCOLSTATE_ONBYDEFAULT;
+		break;
 	default:
 		*pcsFlags = 0;
 		hr = E_NOTIMPL;
@@ -166,37 +179,95 @@ End:
 HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT iColumn, SHELLDETAILS* psd)
 {
 	HRESULT hr = S_OK;
-	const int COLUMN_COUNT = 1; // Adjust as needed for your columns
+	VARIANT vt;
 
 	m_traceLogger.LogEnter(__FUNCTION__);
 
-	if (!psd)
+	::VariantInit(&vt);
+
+	if (!psd) 
 	{
 		hr = E_INVALIDARG;
 		goto End;
 	}
 
-	if (pidl != nullptr)
+	if (pidl == nullptr) 
 	{
-		hr = E_NOTIMPL;
-		goto End;
+		// Column headers (when pidl is NULL)
+		switch (iColumn)
+		{
+		case 0:
+			psd->fmt = LVCFMT_LEFT;
+			psd->cxChar = 20;
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Name");
+			break;  // Use break consistently, not goto
+		case 1:
+			// Last Modified column header
+			psd->fmt = LVCFMT_RIGHT;
+			psd->cxChar = 30;
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Date Modified");
+			break;  // Use break consistently
+		default:
+			hr = E_NOTIMPL;
+			break;  // Use break consistently
+		}
 	}
-
-	switch (iColumn)
+	else 
 	{
-	case 0:
-		psd->fmt = LVCFMT_LEFT;
-		psd->cxChar = 20;
-		psd->str.uType = STRRET_CSTR;
-		::strcpy_s(psd->str.cStr, "Name");
-		goto End;
-	default:
-		// Unsupported column
-		hr = E_NOTIMPL; 
-		goto End;
+		// Item data (when pidl is not NULL)
+		switch (iColumn) 
+		{
+		case 0:
+			// Get name for the item
+			hr = GetBigDriveItemNameFromPidl(pidl, &psd->str);
+			if(FAILED(hr))
+			{
+				goto End;
+			}
+
+			break;  
+
+		case 1:
+		{
+			// Get date modified for the item
+			SHCOLUMNID scid;
+
+			::ZeroMemory(&scid, sizeof(scid));
+
+			// Get property ID for the column
+			hr = MapColumnToSCID(iColumn, &scid);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Get the property value
+			hr = GetDetailsEx(pidl, &scid, &vt);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Convert the value to display string
+			hr = VariantToStrRet(vt, &psd->str);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			break;
+		}
+		default:
+			hr = E_NOTIMPL;
+			break;
+		}
 	}
 
 End:
+
+	::VariantClear(&vt);
 
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
@@ -238,6 +309,12 @@ End:
 HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
 {
 	HRESULT hr = E_NOTIMPL;
+	DriveConfiguration driveConfiguration;
+	BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
+	IBigDriveFileInfo* pBigDriveFileInfo = nullptr;
+	BSTR bstrPath = nullptr;
+	DATE dtLastModifiedTime;
+	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 
 	m_traceLogger.LogEnter(__FUNCTION__, pidl, pscid);
 
@@ -247,9 +324,101 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 		goto End;
 	}
 
+	if (!pscid || !pidl)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
 	::VariantInit(pv);
 
+	// Check if this is the Last Modified Date property
+	if (IsEqualGUID(pscid->fmtid, FMTID_Storage))
+	{
+		if (pscid->pid == PID_STG_WRITETIME)
+		{
+			hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+			if (FAILED(hr))
+			{
+				WriteErrorFormatted(L"EnumObjects: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+				goto End;
+			}
+
+			pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+			if (pInterfaceProvider == nullptr)
+			{
+				WriteError(L"EnumObjects: Failed to create BigDriveInterfaceProvider");
+				hr = E_OUTOFMEMORY;
+				goto End;
+			}
+
+			hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
+			switch (hr)
+			{
+			case S_OK:
+				break;
+			case S_FALSE:
+				// Interface isn't Implemented By The Provider
+				goto End;
+			default:
+				WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				break;
+			}
+
+			if (pBigDriveFileInfo == nullptr)
+			{
+				hr = E_FAIL;
+				WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				goto End;
+			}
+
+			pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+
+			hr = GetPathForProviders(pidlAbsolute, bstrPath);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Set VARIANT to FILETIME (corrected)
+			pv->vt = VT_DATE;
+			pv->date = dtLastModifiedTime;
+
+			hr = S_OK;
+		}
+	}
+
 End:
+
+	if (pidlAbsolute)
+	{
+		::ILFree(pidlAbsolute);
+		pidlAbsolute = nullptr;
+	}
+
+	if (bstrPath)
+	{
+		::SysFreeString(bstrPath);
+		bstrPath = nullptr;
+	}
+
+	if (pInterfaceProvider)
+	{
+		delete pInterfaceProvider;
+		pInterfaceProvider = nullptr;
+	}
+
+	if (pBigDriveFileInfo)
+	{
+		pBigDriveFileInfo->Release();
+		pBigDriveFileInfo = nullptr;
+	}
 
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 
@@ -275,11 +444,18 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 		goto End;
 	}
 
-	if (iColumn == 0)
+	switch (iColumn)
 	{
+	case 0:
 		// Map to the standard "Name" column
 		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
 		pscid->pid = PID_STG_NAME;       // 10
+		hr = S_OK;
+		goto End;
+	case 1:
+		// For the Last Modified column
+		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->pid = PID_STG_WRITETIME;  // 14
 		hr = S_OK;
 		goto End;
 	}

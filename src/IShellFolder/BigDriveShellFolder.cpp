@@ -11,6 +11,8 @@
 #include "LaunchDebugger.h"
 #include "BigDriveShellFolderStatic.h"
 
+#include <oleauto.h> 
+
 BigDriveShellFolderStatic BigDriveShellFolder::s_staticData;
 BigDriveShellFolderEventLogger BigDriveShellFolder::s_eventLogger(L"BigDrive.ShellFolder");
 
@@ -456,7 +458,7 @@ HRESULT BigDriveShellFolder::WriteErrorFormatted(LPCWSTR formatter, ...)
     return S_OK;
 }
 
-/// <inheritdoc /
+/// <inheritdoc />
 bool BigDriveShellFolder::IsValidBigDriveItemId(PCUIDLIST_RELATIVE pidl)
 {
     if (!pidl)
@@ -500,3 +502,44 @@ bool BigDriveShellFolder::IsValidBigDriveItemId(PCUIDLIST_RELATIVE pidl)
     return false;
 }
 
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::VariantToStrRet(VARIANT& var, STRRET* pStrRet)
+{
+    WCHAR szBuf[MAX_PATH];
+    SYSTEMTIME st;
+    HRESULT hr = S_OK;
+
+    if (!pStrRet)
+    {
+        return E_POINTER;
+    }
+
+    // Handle DATE for date columns
+    if (var.vt == VT_DATE)
+    {
+        if (VariantTimeToSystemTime(var.date, &st)) 
+        {
+            // Format the date/time according to system locale
+            ::GetDateFormatW(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, szBuf, MAX_PATH);
+
+            // Allocate memory for the string
+            LPWSTR pszStr = (LPWSTR)::CoTaskMemAlloc((wcslen(szBuf) + 1) * sizeof(WCHAR));
+            if (!pszStr)
+            {
+                return E_OUTOFMEMORY;
+            }
+
+            wcscpy_s(pszStr, wcslen(szBuf) + 1, szBuf);
+            pStrRet->uType = STRRET_WSTR;
+            pStrRet->pOleStr = pszStr;
+            return S_OK;
+        }
+
+        return E_FAIL;
+    }
+
+    // Handle other VARIANT types if needed
+    // ...
+
+    return E_NOTIMPL;
+}

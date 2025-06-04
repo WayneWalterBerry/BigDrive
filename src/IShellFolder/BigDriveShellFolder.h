@@ -627,4 +627,5 @@ public:
 	/// <returns>S_OK if the name was extracted successfully; E_INVALIDARG or E_FAIL otherwise.</returns>
 	static HRESULT GetBigDriveItemNameFromPidl(PCUITEMID_CHILD pidl, STRRET* pName);
 
+	static HRESULT VariantToStrRet(VARIANT& var, STRRET* pStrRet);
 };
