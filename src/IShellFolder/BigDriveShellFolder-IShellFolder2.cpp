@@ -340,14 +340,14 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 			hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
 			if (FAILED(hr))
 			{
-				WriteErrorFormatted(L"EnumObjects: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+				WriteErrorFormatted(L"GetDetailsEx: Failed to get drive configuration. HRESULT: 0x%08X", hr);
 				goto End;
 			}
 
 			pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
 			if (pInterfaceProvider == nullptr)
 			{
-				WriteError(L"EnumObjects: Failed to create BigDriveInterfaceProvider");
+				WriteError(L"GetDetailsEx: Failed to create BigDriveInterfaceProvider");
 				hr = E_OUTOFMEMORY;
 				goto End;
 			}
@@ -361,14 +361,14 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 				// Interface isn't Implemented By The Provider
 				goto End;
 			default:
-				WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
 				break;
 			}
 
 			if (pBigDriveFileInfo == nullptr)
 			{
 				hr = E_FAIL;
-				WriteErrorFormatted(L"EnumObjects: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
 				goto End;
 			}
 
