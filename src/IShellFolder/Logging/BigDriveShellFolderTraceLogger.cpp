@@ -36,6 +36,13 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName)
 }
 
 /// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, UINT iColumn)
+{
+	BigDriveTraceLogger::StoreCurrentTimeForDurationTracking();
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingValue(iColumn, "Column"));
+}
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl)
 {
 	HRESULT hr = S_OK;
@@ -51,6 +58,34 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, LPCITEMIDLIST
 	}
 
 	TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"));
+
+End:
+
+	if (bstrPath != nullptr)
+	{
+		::SysFreeString(bstrPath);
+		bstrPath = nullptr;
+	}
+
+	return;
+}
+
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl, UINT iColumn)
+{
+	HRESULT hr = S_OK;
+	BSTR bstrPath = nullptr;
+
+	BigDriveTraceLogger::StoreCurrentTimeForDurationTracking();
+
+	hr = BigDriveShellFolder::GetPathForLogging(m_driveGuid, pidl, bstrPath);
+	if (SUCCEEDED(hr))
+	{
+		TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrPath, "Path"), TraceLoggingValue(iColumn, "Column"));
+		goto End;
+	}
+
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingValue(iColumn, "Column"));
 
 End:
 

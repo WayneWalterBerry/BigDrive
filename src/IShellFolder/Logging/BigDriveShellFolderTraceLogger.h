@@ -53,7 +53,11 @@ public:
 	/// <param name="functionName">The name of the function being entered.</param>
 	void LogEnter(LPCSTR functionName);
 
+	void LogEnter(LPCSTR functionName, UINT iColumn);
+
 	void LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl);
+
+	void LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl, UINT iColumn);
 
 	void LogEnter(LPCSTR functionName, LPCITEMIDLIST pidl, const SHCOLUMNID* pscid);
 

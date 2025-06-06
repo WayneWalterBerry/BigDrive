@@ -181,7 +181,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 	HRESULT hr = S_OK;
 	VARIANT vt;
 
-	m_traceLogger.LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, pidl, iColumn);
 
 	::VariantInit(&vt);
 
@@ -306,7 +306,7 @@ End:
 ///   <item>The shell may call this method frequently for each item and property displayed in Explorer.</item>
 /// </list>
 /// </summary>
-HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
+HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
 {
 	HRESULT hr = E_NOTIMPL;
 	DriveConfiguration driveConfiguration;
@@ -436,7 +436,8 @@ End:
 HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID* pscid)
 {
 	HRESULT hr = E_NOTIMPL;
-	m_traceLogger.LogEnter(__FUNCTION__);
+
+	m_traceLogger.LogEnter(__FUNCTION__, iColumn);
 
 	if (!pscid)
 	{
