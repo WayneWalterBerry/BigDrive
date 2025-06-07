@@ -19,8 +19,10 @@
 #### C# Code
 - Comments:
   - `<summary>` for each method, including `<params>` and `<returns>`.
-  - For shell folder extensions, detailed comments on inputs, outputs, and implementation reasoning.
+  - `<summary>` for each class and interface.
+  - standard `<summary>` constructors.
 - Namespace Usage: Place `using` statements inside the namespace.
+- Learn how to use partial classes and recognize that they might need additional file references.
 
 #### General Preferences
 - File Header:

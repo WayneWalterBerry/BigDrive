@@ -5,66 +5,42 @@
 namespace BigDrive.Provider.Sample
 {
     using System;
-    using System.Collections.Generic;
 
+    /// <summary>
+    /// Provides file information using the in-memory root structure.
+    /// </summary>
     public partial class Provider
     {
-        private readonly Dictionary<string, DateTime> lastModifiedData = new Dictionary<string, DateTime>();
-        private readonly Dictionary<string, ulong> fileSizeData = new Dictionary<string, ulong>();
-        
-
+        /// <summary>
+        /// Gets the last modified time for the file at the specified path using the root structure.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID (unused in sample).</param>
+        /// <param name="path">The file path (e.g., "\A File.txt").</param>
+        /// <returns>The last modified <see cref="DateTime"/> of the file, or <see cref="DateTime.MinValue"/> if not found.</returns>
         public DateTime LastModifiedTime(Guid driveGuid, string path)
         {
-            // Cache the Dates For the Example Provider, So that They Don't Appear To 
-            // "Flutter" around, this isn't nessecary when you have a persisted 
-            // data source.
-            if (!lastModifiedData.ContainsKey(path))
+            var node = FindNodeByPath(path);
+            if (node != null && node.Type == NodeType.File)
             {
-                // Get current time and the time 2 years ago
-                DateTime now = DateTime.Now;
-                DateTime twoYearsAgo = now.AddYears(-2);
-
-                // Create a random number generator
-                Random random = new Random();
-
-                // Generate weighted random value (square the random value to bias toward 0)
-                // This gives more weight to recent dates
-                double randomValue = Math.Pow(random.NextDouble(), 2);
-
-                // Calculate timespan between now and 2 years ago
-                TimeSpan timeSpan = now - twoYearsAgo;
-
-                // Calculate weighted date (closer to now)
-                DateTime resultDate = now.AddDays(-randomValue * timeSpan.TotalDays);
-
-                lastModifiedData.Add(path, resultDate);
+                return node.LastModifiedDate;
             }
-
-            return lastModifiedData[path];
+            return DateTime.MinValue;
         }
 
+        /// <summary>
+        /// Gets the file size for the file at the specified path using the root structure.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID (unused in sample).</param>
+        /// <param name="path">The file path (e.g., "\A File.txt").</param>
+        /// <returns>The file size in bytes, or 0 if not found.</returns>
         public ulong GetFileSize(Guid driveGuid, string path)
         {
-            // Cache the Dates For the Example Provider, So that They Don't Appear To 
-            // "Flutter" around, this isn't nessecary when you have a persisted 
-            // data source.
-            if (!fileSizeData.ContainsKey(path))
+            var node = FindNodeByPath(path);
+            if (node != null && node.Type == NodeType.File)
             {
-                // Create a random number generator
-                Random random = new Random();
-
-                // Define 4MB in bytes = 4 * 1024 * 1024 * 1024
-                ulong fourMG = 4UL * 1024 * 1024;
-
-                // Generate a random size between 0 and 4 GB
-                // We need to use NextDouble() since Random doesn't have a method for ulong
-                double randomFactor = random.NextDouble();
-                ulong fileSize = (ulong)(randomFactor * fourMG);
-
-                fileSizeData.Add(path, fileSize);
+                return node.Size;
             }
-
-            return fileSizeData[path];
+            return 0;
         }
     }
 }

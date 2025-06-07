@@ -8,6 +8,7 @@ namespace BigDrive.Provider.Sample
     using System;
     using System.EnterpriseServices;
     using System.Runtime.InteropServices;
+    using System.Collections.Generic;
 
     [Guid("F8FE2E5A-E8B8-4207-BC04-EA4BCD4C4361")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
@@ -16,9 +17,17 @@ namespace BigDrive.Provider.Sample
         IProcessInitializer,
         IBigDriveRegistration,
         IBigDriveEnumerate,
-        IBigDriveFileInfo
+        IBigDriveFileInfo,
+        IBigDriveFileOperations
     {
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+
+        private readonly FolderNode root = new FolderNode("//");
+
+        public Provider()
+        {
+            InitializeTree();
+        }
 
         public static Guid CLSID
         {
@@ -32,6 +41,77 @@ namespace BigDrive.Provider.Sample
 
                 return Guid.Parse(guidAttribute.Value);
             }
+        }
+
+        /// <summary>
+        /// Initializes the root node with all folders and files as a layered structure.
+        /// Sets LastModifiedDate for each file node to a weighted random date within the last 2 years.
+        /// Sets Size for each file node to a random value up to 4 MB.
+        /// </summary>
+        private void InitializeTree()
+        {
+            root.Children.Clear();
+
+            // Create a random number generator
+            Random random = new Random();
+
+            // Define 4MB in bytes = 4 * 1024 * 1024
+            ulong fourMB = 4UL * 1024 * 1024;
+
+            // Add root folders
+            var rootFolder1 = new FolderNode("RootFolder1") { Type = NodeType.Folder };
+            var rootFolder2 = new FolderNode("RootFolder2") { Type = NodeType.Folder };
+            var rootFolder3 = new FolderNode("RootFolder3") { Type = NodeType.Folder };
+            root.Children.Add(rootFolder1);
+            root.Children.Add(rootFolder2);
+            root.Children.Add(rootFolder3);
+
+            // Add subfolders
+            var subFolder1 = new FolderNode("SubFolder1") { Type = NodeType.Folder };
+            rootFolder1.Children.Add(subFolder1);
+
+            var subFolder2 = new FolderNode("SubFolder2") { Type = NodeType.Folder };
+            rootFolder2.Children.Add(subFolder2);
+
+            var folder2 = new FolderNode("Folder2") { Type = NodeType.Folder };
+            rootFolder2.Children.Add(folder2);
+
+            // Add root files with random LastModifiedDate and random Size
+            root.Children.Add(CreateFileNodeWithRandomDateAndSize("A File.txt", random, fourMB));
+            root.Children.Add(CreateFileNodeWithRandomDateAndSize("Root File 2.txt", random, fourMB));
+            root.Children.Add(CreateFileNodeWithRandomDateAndSize("Z File.txt", random, fourMB));
+            root.Children.Add(CreateFileNodeWithRandomDateAndSize("Compact.zip", random, fourMB));
+            root.Children.Add(CreateFileNodeWithRandomDateAndSize("Photo.png", random, fourMB));
+        }
+
+        /// <summary>
+        /// Creates a file node with a weighted random LastModifiedDate within the last 2 years and a random size up to 4 MB.
+        /// </summary>
+        /// <param name="fileName">The file name for the node.</param>
+        /// <param name="random">The random number generator.</param>
+        /// <param name="maxSize">The maximum file size in bytes.</param>
+        /// <returns>A FolderNode representing a file with a random LastModifiedDate and Size.</returns>
+        private FolderNode CreateFileNodeWithRandomDateAndSize(string fileName, Random random, ulong maxSize)
+        {
+            var node = new FolderNode(fileName) { Type = NodeType.File };
+            node.LastModifiedDate = GenerateWeightedRandomDate();
+            double randomFactor = random.NextDouble();
+            node.Size = (ulong)(randomFactor * maxSize);
+            return node;
+        }
+
+        /// <summary>
+        /// Generates a weighted random DateTime within the last 2 years, biased toward recent dates.
+        /// </summary>
+        /// <returns>A DateTime value.</returns>
+        private DateTime GenerateWeightedRandomDate()
+        {
+            DateTime now = DateTime.Now;
+            DateTime twoYearsAgo = now.AddYears(-2);
+            Random random = new Random(Guid.NewGuid().GetHashCode()); // More unique seed for each call
+            double randomValue = Math.Pow(random.NextDouble(), 2);
+            TimeSpan timeSpan = now - twoYearsAgo;
+            return now.AddDays(-randomValue * timeSpan.TotalDays);
         }
     }
 }
