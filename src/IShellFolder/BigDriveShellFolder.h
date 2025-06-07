@@ -575,11 +575,20 @@ public:
 
 private:
 
-	HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
 	HRESULT WriteErrorFormatted(LPCWSTR formatter, ...);
 	HRESULT WriteError(LPCWSTR szMessage);
 
 public:
+
+	/// <summary>
+	/// Retrieves the CLSID of the provider implementation associated with this shell folder.
+	/// This CLSID identifies the COM component that provides the underlying functionality
+	/// for the shell folder, which can be used by clients to create instances or verify the
+	/// provider's identity.
+	/// </summary>
+	/// <param name="clsidProvider">Reference to a CLSID structure that receives the provider's class identifier.</param>
+	/// <returns>S_OK if successful; otherwise, an error code.</returns>
+	HRESULT GetProviderCLSID(CLSID& clsidProvider) const;
 
 	/// <summary>
 	/// Generate a Readable Path from a PIDL (Pointer to an Item ID List).

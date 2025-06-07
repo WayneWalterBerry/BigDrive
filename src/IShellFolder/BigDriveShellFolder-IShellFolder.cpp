@@ -18,6 +18,7 @@
 #include "BigDriveShellIcon.h"
 #include "ILExtensions.h"
 #include "BigDriveShellContextMenu.h"
+#include "BigDriveDropTarget.h"
 
 // {8279FEB8-5CA4-45C4-BE27-770DCDEA1DEB} // Can't find any information on this one, found name in registry
 static const GUID SDefined_ITopViewAwareItem = 
@@ -713,7 +714,8 @@ End:
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
-	HRESULT hr = E_NOINTERFACE;
+	HRESULT hr = E_NOINTERFACE; 
+	BigDriveDropTarget* pDropTarget = nullptr;
 
 	if (IsEqualIID(riid, SDefined_ITopViewAwareItem) ||
 		IsEqualIID(riid, SDefined_ILibraryDescription))
@@ -749,8 +751,32 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 			goto End;
 		}
 	}
+	else if (IsEqualIID(riid, IID_IDropTarget))
+	{
+		BigDriveDropTarget* pDropTarget = new BigDriveDropTarget(this);
+		if (!pDropTarget)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		hr = pDropTarget->QueryInterface(riid, ppv);
+		if (FAILED(hr))
+		{
+			s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Failed to Create IDropTarget. HRESULT: 0x%08X", hr);
+			goto End;
+		}
+
+		goto End;
+	}
 
 End:
+
+	if (pDropTarget != nullptr)
+	{
+		pDropTarget->Release();
+		pDropTarget = nullptr;
+	}
 
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 

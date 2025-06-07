@@ -188,6 +188,7 @@
     <ClInclude Include="GuidUtil.h" />
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
     <ClInclude Include="Interfaces\IBigDriveFileInfo.h" />
+    <ClInclude Include="Interfaces\IBigDriveFileOperations.h" />
     <ClInclude Include="Interfaces\IBigDriveRegistration.h" />
     <ClInclude Include="Interfaces\IBigDriveEnumerate.h" />
     <ClInclude Include="Interfaces\ICatalogObject.h" />
