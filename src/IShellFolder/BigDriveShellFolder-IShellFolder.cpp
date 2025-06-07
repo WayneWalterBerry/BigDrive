@@ -19,6 +19,14 @@
 #include "ILExtensions.h"
 #include "BigDriveShellContextMenu.h"
 
+// {8279FEB8-5CA4-45C4-BE27-770DCDEA1DEB} // Can't find any information on this one, found name in registry
+static const GUID SDefined_ITopViewAwareItem = 
+	{ 0x8279FEB8, 0x5CA4, 0x45C4, {0xBE, 0x27, 0x77, 0x0D, 0xCD, 0xEA, 0x1D, 0xEB} };
+
+// {86187C37-E662-4D1E-A122-7478676D7E6E} // Can't find any information on this one, found name in registry
+static const GUID SDefined_ILibraryDescription = 
+	{ 0x86187C37, 0xE662, 0x4D1E, {0xA1, 0x22, 0x74, 0x78, 0x67, 0x6D, 0x7E, 0x6E} };
+
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
 /// within the BigDrive shell namespace extension, which emulates a hard drive under "This PC".
@@ -707,6 +715,15 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 {
 	HRESULT hr = E_NOINTERFACE;
 
+	if (IsEqualIID(riid, SDefined_ITopViewAwareItem) ||
+		IsEqualIID(riid, SDefined_ILibraryDescription))
+	{
+		// Thin the Logs For Stuff We Don't Care About
+		return E_NOINTERFACE;
+	}
+
+	m_traceLogger.LogEnter(__FUNCTION__, riid);
+
 	if (!ppv)
 	{
 		s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Invalid Pointer", hr);
@@ -714,8 +731,6 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 	}
 
 	*ppv = nullptr;
-
-	m_traceLogger.LogEnter(__FUNCTION__, riid);
 
 	if (IsEqualIID(riid, IID_IShellView))
 	{

@@ -22,5 +22,13 @@ namespace BigDrive.Interfaces
         /// <param name="path">The path to the file.</param>
         /// <returns>The last modified date and time.</returns>
         DateTime LastModifiedTime(Guid driveGuid, string path);
+
+        /// <summary>
+        /// Gets the File Size
+        /// </summary>
+        /// <param name="driveGuid">The registered Drive Identifier.</param>
+        /// <param name="path">The path to the file.</param>
+        /// <returns>The last modified date and time.</returns>
+        ulong GetFileSize(Guid driveGuid, string path);
     }
 }

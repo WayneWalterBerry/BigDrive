@@ -25,6 +25,11 @@ public:
         /* [in] */ REFGUID driveGuid,
         /* [in] */ LPWSTR path,
         /* [out] */ DATE* pDATE) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetFileSize(
+        /* [in] */ REFGUID driveGuid,
+        /* [in] */ LPWSTR path,
+        /* [out] */ ULONGLONG* pSize) = 0;
 };
 
 

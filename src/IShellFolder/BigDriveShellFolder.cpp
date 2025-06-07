@@ -537,6 +537,41 @@ HRESULT BigDriveShellFolder::VariantToStrRet(VARIANT& var, STRRET* pStrRet)
 
         return E_FAIL;
     }
+    else if (var.vt == VT_UI8)
+    {
+        ULONGLONG size = var.ullVal;
+
+        // Format the size in a human-readable way (KB, MB, GB)
+        if (size < 1024) // Bytes
+        {
+            swprintf_s(szBuf, MAX_PATH, L"%llu bytes", size);
+        }
+        else if (size < 1024 * 1024) // KB
+        {
+            double kb = size / 1024.0;
+            swprintf_s(szBuf, MAX_PATH, L"%.1f KB", kb);
+        }
+        else if (size < 1024 * 1024 * 1024) // MB
+        {
+            double mb = size / (1024.0 * 1024.0);
+            swprintf_s(szBuf, MAX_PATH, L"%.1f MB", mb);
+        }
+        else // GB
+        {
+            double gb = size / (1024.0 * 1024.0 * 1024.0);
+            swprintf_s(szBuf, MAX_PATH, L"%.2f GB", gb);
+        }
+
+        // Allocate memory for the string
+        LPWSTR pszStr = (LPWSTR)::CoTaskMemAlloc((wcslen(szBuf) + 1) * sizeof(WCHAR));
+        if (!pszStr)
+            return E_OUTOFMEMORY;
+
+        wcscpy_s(pszStr, wcslen(szBuf) + 1, szBuf);
+        pStrRet->uType = STRRET_WSTR;
+        pStrRet->pOleStr = pszStr;
+        return S_OK;
+    }
 
     // Handle other VARIANT types if needed
     // ...

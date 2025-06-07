@@ -28,6 +28,10 @@
 #define PID_STG_WRITETIME 14
 #endif
 
+#ifndef PID_STG_SIZE
+#define PID_STG_SIZE 12
+#endif
+
 /// <summary>
 /// Retrieves the default search GUID for the folder. This is used by the shell
 /// to determine the search behavior for the folder. A minimal implementation
@@ -127,6 +131,10 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 		// Last Modified Date column should be a date type and visible by default
 		*pcsFlags = SHCOLSTATE_TYPE_DATE | SHCOLSTATE_ONBYDEFAULT;
 		break;
+	case 2:
+		// Size column should be numeric and visible by default
+		*pcsFlags = SHCOLSTATE_TYPE_INT | SHCOLSTATE_ONBYDEFAULT;
+		break;
 	default:
 		*pcsFlags = 0;
 		hr = E_NOTIMPL;
@@ -201,17 +209,24 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 			psd->cxChar = 20;
 			psd->str.uType = STRRET_CSTR;
 			::strcpy_s(psd->str.cStr, "Name");
-			break;  // Use break consistently, not goto
+			break;  
 		case 1:
 			// Last Modified column header
 			psd->fmt = LVCFMT_RIGHT;
 			psd->cxChar = 30;
 			psd->str.uType = STRRET_CSTR;
 			::strcpy_s(psd->str.cStr, "Date Modified");
-			break;  // Use break consistently
+			break;  
+		case 2:
+			// Size column header
+			psd->fmt = LVCFMT_RIGHT;  // Size is typically right-aligned
+			psd->cxChar = 15;         // Width for size display
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Size");
+			break;
 		default:
 			hr = E_NOTIMPL;
-			break;  // Use break consistently
+			break;  
 		}
 	}
 	else 
@@ -230,6 +245,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT i
 			break;  
 
 		case 1:
+		case 2:  
 		{
 			// Get date modified for the item
 			SHCOLUMNID scid;
@@ -315,6 +331,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const 
 	BSTR bstrPath = nullptr;
 	DATE dtLastModifiedTime;
 	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+	ULONGLONG ullFileSize;
 
 	m_traceLogger.LogEnter(__FUNCTION__, pidl, pscid);
 
@@ -335,8 +352,12 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const 
 	// Check if this is the Last Modified Date property
 	if (IsEqualGUID(pscid->fmtid, FMTID_Storage))
 	{
-		if (pscid->pid == PID_STG_WRITETIME)
+		// Initialize common components needed for both properties
+		switch (pscid->pid)
 		{
+		case PID_STG_WRITETIME:
+		case PID_STG_SIZE:
+
 			hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
 			if (FAILED(hr))
 			{
@@ -380,6 +401,14 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const 
 				goto End;
 			}
 
+			break;
+		}
+
+		// Speific Code For Each Column
+		switch(pscid->pid)
+		{
+		case  PID_STG_WRITETIME:
+
 			hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
 			if (FAILED(hr))
 			{
@@ -391,6 +420,34 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const 
 			pv->date = dtLastModifiedTime;
 
 			hr = S_OK;
+
+			break;
+
+		case PID_STG_SIZE:
+
+			// Check if this is a folder
+			const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+			if (pItem && pItem->uType == BigDriveItemType_Folder)
+			{
+				// Don't display size for folders
+				pv->vt = VT_EMPTY;
+				hr = S_OK;
+				goto End;
+			}
+
+			// Get the file size from our provider
+			hr = pBigDriveFileInfo->GetFileSize(m_driveGuid, bstrPath, &ullFileSize);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Set VARIANT to 64-bit unsigned integer
+			pv->vt = VT_UI8;
+			pv->ullVal = ullFileSize;
+			hr = S_OK;
+
+			break;
 		}
 	}
 
@@ -457,6 +514,12 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 		// For the Last Modified column
 		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
 		pscid->pid = PID_STG_WRITETIME;  // 14
+		hr = S_OK;
+		goto End;
+	case 2:
+		// For the Size column
+		pscid->fmtid = FMTID_Storage;   // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->pid = PID_STG_SIZE;      // 12
 		hr = S_OK;
 		goto End;
 	}

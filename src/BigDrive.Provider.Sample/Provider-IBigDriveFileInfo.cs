@@ -9,11 +9,13 @@ namespace BigDrive.Provider.Sample
 
     public partial class Provider
     {
-        Dictionary<string, DateTime> lastModifiedData = new Dictionary<string, DateTime>();
+        private readonly Dictionary<string, DateTime> lastModifiedData = new Dictionary<string, DateTime>();
+        private readonly Dictionary<string, ulong> fileSizeData = new Dictionary<string, ulong>();
+        
 
         public DateTime LastModifiedTime(Guid driveGuid, string path)
         {
-            // Cache the Dates For the Example, So that They Don't Appear To 
+            // Cache the Dates For the Example Provider, So that They Don't Appear To 
             // "Flutter" around, this isn't nessecary when you have a persisted 
             // data source.
             if (!lastModifiedData.ContainsKey(path))
@@ -36,10 +38,33 @@ namespace BigDrive.Provider.Sample
                 DateTime resultDate = now.AddDays(-randomValue * timeSpan.TotalDays);
 
                 lastModifiedData.Add(path, resultDate);
-               
             }
 
             return lastModifiedData[path];
+        }
+
+        public ulong GetFileSize(Guid driveGuid, string path)
+        {
+            // Cache the Dates For the Example Provider, So that They Don't Appear To 
+            // "Flutter" around, this isn't nessecary when you have a persisted 
+            // data source.
+            if (!fileSizeData.ContainsKey(path))
+            {
+                // Create a random number generator
+                Random random = new Random();
+
+                // Define 4MB in bytes = 4 * 1024 * 1024 * 1024
+                ulong fourMG = 4UL * 1024 * 1024;
+
+                // Generate a random size between 0 and 4 GB
+                // We need to use NextDouble() since Random doesn't have a method for ulong
+                double randomFactor = random.NextDouble();
+                ulong fileSize = (ulong)(randomFactor * fourMG);
+
+                fileSizeData.Add(path, fileSize);
+            }
+
+            return fileSizeData[path];
         }
     }
 }
