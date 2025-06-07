@@ -21,6 +21,7 @@ const IID IID_IBigDriveEnumerate = { 0x457ED786, 0x889A, 0x4C16, { 0xA6, 0xE5, 0
 class __declspec(uuid("457ED786-889A-4C16-A6E5-6A25013D0AFA")) IBigDriveEnumerate : public IUnknown
 {
 public:
+
     /// <summary>
     /// Retrieves all the folders of the path.
     /// </summary>
@@ -32,6 +33,18 @@ public:
         /* [in] */ REFGUID driveGuid,
         /* [in] */ LPWSTR path,
         /* [out] */ SAFEARRAY** folders) = 0;
+
+    /// <summary>
+    /// Retrieves all the files of the path.
+    /// </summary>
+    /// <param name="driveGuid">The registered Drive Identifier.</param>
+    /// <param name="path">The path to enumerate.</param>
+    /// <param name="files">A vector to store the folder names.</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+    virtual HRESULT STDMETHODCALLTYPE EnumerateFiles(
+        /* [in] */ REFGUID driveGuid,
+        /* [in] */ LPWSTR path,
+        /* [out] */ SAFEARRAY** files) = 0;
 };
 
 

@@ -14,9 +14,8 @@
 #include "BigDriveShellFolderFactory.h"
 #include "LaunchDebugger.h"
 #include "RegistrationManager.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveTraceLogger.h"
 #include "..\BigDrive.Client\ApplicationManager.h"
-#include "BigDriveShellFolderTraceLogger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -30,7 +29,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 
-        BigDriveShellFolderTraceLogger::Initialize();
+        BigDriveTraceLogger::Initialize();
 
         // Initialize COM
         hr = ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -44,7 +43,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_PROCESS_DETACH:
         
-        BigDriveShellFolderTraceLogger::Uninitialize();
+        BigDriveTraceLogger::Uninitialize();
 
         // Uninitialize COM
         ::CoUninitialize();
@@ -147,7 +146,7 @@ extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID
     DWORD dwSize = 0;
     BigDriveShellFolderFactory* pFactory = nullptr;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, rclsid, riid);
+    BigDriveTraceLogger::LogEnter(__FUNCTION__, rclsid, riid);
 
     if (ppv == nullptr)
     {
@@ -205,7 +204,7 @@ End:
         pclsid = nullptr;
     }
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    BigDriveTraceLogger::LogExit(__FUNCTION__, hr);
 
     return hr;
 }

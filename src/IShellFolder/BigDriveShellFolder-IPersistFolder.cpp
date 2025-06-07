@@ -7,7 +7,7 @@
 
 #include "BigDriveShellFolder.h"
 
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
 #include <objbase.h>
@@ -24,7 +24,7 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, pidl);
+    m_traceLogger.LogEnter(__FUNCTION__, pidl);
 
     if (!pidl)
     {
@@ -51,7 +51,7 @@ HRESULT __stdcall BigDriveShellFolder::Initialize(PCIDLIST_ABSOLUTE pidl)
 
 End:
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }

@@ -10,13 +10,26 @@
 
 #include "pch.h"
 #include "BigDriveShellFolder.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
+
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
+#include "..\BigDrive.Client\DriveConfiguration.h"
+#include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 
 #include <shlobj.h>
 #include <propkey.h>
+#include <oaidl.h>
 
 #ifndef PID_STG_NAME
-	#define PID_STG_NAME 10
+#define PID_STG_NAME 10
+#endif
+
+#ifndef PID_STG_WRITETIME
+#define PID_STG_WRITETIME 14
+#endif
+
+#ifndef PID_STG_SIZE
+#define PID_STG_SIZE 12
 #endif
 
 /// <summary>
@@ -30,9 +43,9 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultSearchGUID(GUID* pguid)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -48,14 +61,14 @@ HRESULT __stdcall BigDriveShellFolder::EnumSearches(IEnumExtraSearch** ppEnum)
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (ppEnum)
 	{
 		*ppEnum = nullptr;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -72,7 +85,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumn(DWORD dwRes, ULONG* pSor
 {
 	HRESULT hr = E_NOTIMPL;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (pSort)
 	{
@@ -84,7 +97,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumn(DWORD dwRes, ULONG* pSor
 		*pDisplay = 0;
 	}
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -101,7 +114,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 {
 	HRESULT hr = S_OK;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__);
 
 	if (!pcsFlags)
 	{
@@ -114,6 +127,14 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 	case 0:
 		*pcsFlags = SHCOLSTATE_TYPE_STR | SHCOLSTATE_ONBYDEFAULT;
 		break;
+	case 1:
+		// Last Modified Date column should be a date type and visible by default
+		*pcsFlags = SHCOLSTATE_TYPE_DATE | SHCOLSTATE_ONBYDEFAULT;
+		break;
+	case 2:
+		// Size column should be numeric and visible by default
+		*pcsFlags = SHCOLSTATE_TYPE_INT | SHCOLSTATE_ONBYDEFAULT;
+		break;
 	default:
 		*pcsFlags = 0;
 		hr = E_NOTIMPL;
@@ -121,7 +142,7 @@ HRESULT __stdcall BigDriveShellFolder::GetDefaultColumnState(UINT iColumn, SHCOL
 	}
 
 End:
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
@@ -166,39 +187,105 @@ End:
 HRESULT __stdcall BigDriveShellFolder::GetDetailsOf(PCUITEMID_CHILD pidl, UINT iColumn, SHELLDETAILS* psd)
 {
 	HRESULT hr = S_OK;
-	const int COLUMN_COUNT = 1; // Adjust as needed for your columns
+	VARIANT vt;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, pidl, iColumn);
 
-	if (!psd)
+	::VariantInit(&vt);
+
+	if (!psd) 
 	{
 		hr = E_INVALIDARG;
 		goto End;
 	}
 
-	if (pidl != nullptr)
+	if (pidl == nullptr) 
 	{
-		hr = E_NOTIMPL;
-		goto End;
+		// Column headers (when pidl is NULL)
+		switch (iColumn)
+		{
+		case 0:
+			psd->fmt = LVCFMT_LEFT;
+			psd->cxChar = 20;
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Name");
+			break;  
+		case 1:
+			// Last Modified column header
+			psd->fmt = LVCFMT_RIGHT;
+			psd->cxChar = 30;
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Date Modified");
+			break;  
+		case 2:
+			// Size column header
+			psd->fmt = LVCFMT_RIGHT;  // Size is typically right-aligned
+			psd->cxChar = 15;         // Width for size display
+			psd->str.uType = STRRET_CSTR;
+			::strcpy_s(psd->str.cStr, "Size");
+			break;
+		default:
+			hr = E_NOTIMPL;
+			break;  
+		}
 	}
-
-	switch (iColumn)
+	else 
 	{
-	case 0:
-		psd->fmt = LVCFMT_LEFT;
-		psd->cxChar = 20;
-		psd->str.uType = STRRET_CSTR;
-		::strcpy_s(psd->str.cStr, "Name");
-		goto End;
-	default:
-		// Unsupported column
-		hr = E_NOTIMPL; 
-		goto End;
+		// Item data (when pidl is not NULL)
+		switch (iColumn) 
+		{
+		case 0:
+			// Get name for the item
+			hr = GetBigDriveItemNameFromPidl(pidl, &psd->str);
+			if(FAILED(hr))
+			{
+				goto End;
+			}
+
+			break;  
+
+		case 1:
+		case 2:  
+		{
+			// Get date modified for the item
+			SHCOLUMNID scid;
+
+			::ZeroMemory(&scid, sizeof(scid));
+
+			// Get property ID for the column
+			hr = MapColumnToSCID(iColumn, &scid);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Get the property value
+			hr = GetDetailsEx(pidl, &scid, &vt);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Convert the value to display string
+			hr = VariantToStrRet(vt, &psd->str);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			break;
+		}
+		default:
+			hr = E_NOTIMPL;
+			break;
+		}
 	}
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	::VariantClear(&vt);
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }
 
@@ -235,11 +322,18 @@ End:
 ///   <item>The shell may call this method frequently for each item and property displayed in Explorer.</item>
 /// </list>
 /// </summary>
-HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
+HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
 {
 	HRESULT hr = E_NOTIMPL;
+	DriveConfiguration driveConfiguration;
+	BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
+	IBigDriveFileInfo* pBigDriveFileInfo = nullptr;
+	BSTR bstrPath = nullptr;
+	DATE dtLastModifiedTime;
+	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+	ULONGLONG ullFileSize;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, pidl, pscid);
 
 	if (!pv)
 	{
@@ -247,11 +341,143 @@ HRESULT BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID
 		goto End;
 	}
 
+	if (!pscid || !pidl)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
 	::VariantInit(pv);
+
+	// Check if this is the Last Modified Date property
+	if (IsEqualGUID(pscid->fmtid, FMTID_Storage))
+	{
+		// Initialize common components needed for both properties
+		switch (pscid->pid)
+		{
+		case PID_STG_WRITETIME:
+		case PID_STG_SIZE:
+
+			hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+			if (FAILED(hr))
+			{
+				WriteErrorFormatted(L"GetDetailsEx: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+				goto End;
+			}
+
+			pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+			if (pInterfaceProvider == nullptr)
+			{
+				WriteError(L"GetDetailsEx: Failed to create BigDriveInterfaceProvider");
+				hr = E_OUTOFMEMORY;
+				goto End;
+			}
+
+			hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
+			switch (hr)
+			{
+			case S_OK:
+				break;
+			case S_FALSE:
+				// Interface isn't Implemented By The Provider
+				goto End;
+			default:
+				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				break;
+			}
+
+			if (pBigDriveFileInfo == nullptr)
+			{
+				hr = E_FAIL;
+				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+				goto End;
+			}
+
+			pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+
+			hr = GetPathForProviders(pidlAbsolute, bstrPath);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			break;
+		}
+
+		// Speific Code For Each Column
+		switch(pscid->pid)
+		{
+		case  PID_STG_WRITETIME:
+
+			hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Set VARIANT to FILETIME (corrected)
+			pv->vt = VT_DATE;
+			pv->date = dtLastModifiedTime;
+
+			hr = S_OK;
+
+			break;
+
+		case PID_STG_SIZE:
+
+			// Check if this is a folder
+			const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+			if (pItem && pItem->uType == BigDriveItemType_Folder)
+			{
+				// Don't display size for folders
+				pv->vt = VT_EMPTY;
+				hr = S_OK;
+				goto End;
+			}
+
+			// Get the file size from our provider
+			hr = pBigDriveFileInfo->GetFileSize(m_driveGuid, bstrPath, &ullFileSize);
+			if (FAILED(hr))
+			{
+				goto End;
+			}
+
+			// Set VARIANT to 64-bit unsigned integer
+			pv->vt = VT_UI8;
+			pv->ullVal = ullFileSize;
+			hr = S_OK;
+
+			break;
+		}
+	}
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	if (pidlAbsolute)
+	{
+		::ILFree(pidlAbsolute);
+		pidlAbsolute = nullptr;
+	}
+
+	if (bstrPath)
+	{
+		::SysFreeString(bstrPath);
+		bstrPath = nullptr;
+	}
+
+	if (pInterfaceProvider)
+	{
+		delete pInterfaceProvider;
+		pInterfaceProvider = nullptr;
+	}
+
+	if (pBigDriveFileInfo)
+	{
+		pBigDriveFileInfo->Release();
+		pBigDriveFileInfo = nullptr;
+	}
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -267,7 +493,8 @@ End:
 HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID* pscid)
 {
 	HRESULT hr = E_NOTIMPL;
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+
+	m_traceLogger.LogEnter(__FUNCTION__, iColumn);
 
 	if (!pscid)
 	{
@@ -275,11 +502,24 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 		goto End;
 	}
 
-	if (iColumn == 0)
+	switch (iColumn)
 	{
+	case 0:
 		// Map to the standard "Name" column
-		pscid->fmtid = FMTID_Storage;      // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
 		pscid->pid = PID_STG_NAME;       // 10
+		hr = S_OK;
+		goto End;
+	case 1:
+		// For the Last Modified column
+		pscid->fmtid = FMTID_Storage;    // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->pid = PID_STG_WRITETIME;  // 14
+		hr = S_OK;
+		goto End;
+	case 2:
+		// For the Size column
+		pscid->fmtid = FMTID_Storage;   // {B725F130-47EF-101A-A5F1-02608C9EEBAC}
+		pscid->pid = PID_STG_SIZE;      // 12
 		hr = S_OK;
 		goto End;
 	}
@@ -289,6 +529,6 @@ HRESULT __stdcall BigDriveShellFolder::MapColumnToSCID(UINT iColumn, SHCOLUMNID*
 	hr = E_NOTIMPL;
 
 End:
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 	return hr;
 }

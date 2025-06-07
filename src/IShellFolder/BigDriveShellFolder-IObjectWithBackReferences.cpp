@@ -12,7 +12,7 @@
 
 #include "BigDriveShellFolder.h"
 
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
 #include <objbase.h>
@@ -44,7 +44,7 @@ HRESULT __stdcall BigDriveShellFolder::GetBackReferencesCount(ULONG* pcRef)
 {
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    m_traceLogger.LogEnter(__FUNCTION__);
 
     if (!pcRef)
     {
@@ -57,7 +57,7 @@ HRESULT __stdcall BigDriveShellFolder::GetBackReferencesCount(ULONG* pcRef)
 
 End:
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }
@@ -85,12 +85,12 @@ End:
 /// </remarks>
 HRESULT __stdcall BigDriveShellFolder::RemoveBackReferences()
 {
-    BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__);
+    m_traceLogger.LogEnter(__FUNCTION__);
     
     // No back references to remove in this minimal implementation.
     HRESULT hr = S_OK;
 
-    BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }

@@ -15,6 +15,7 @@
 #include "BigDriveClientEventLogger.h"
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "Interfaces/IBigDriveEnumerate.h"
+#include "Interfaces/IBigDriveFileInfo.h"
 
 // Initialize the static EventLogger instance
 BigDriveClientEventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
@@ -116,9 +117,9 @@ End:
 }
 
 /// <summary>
-/// Retrieves the IBigDriveEnumerat interface from the COM+ class instance.
+/// Retrieves the IBigDriveEnumerate interface from the COM+ class instance.
 /// </summary>
-/// <param name="ppBigDriveEnumerate">A pointer to the IBigDriveEnumerat interface pointer to be populated.</param>
+/// <param name="ppBigDriveEnumerate">A pointer to the IBigDriveEnumerate interface pointer to be populated.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
 HRESULT BigDriveInterfaceProvider::GetIBigDriveEnumerate(IBigDriveEnumerate** ppBigDriveEnumerate)
 {
@@ -148,6 +149,42 @@ HRESULT BigDriveInterfaceProvider::GetIBigDriveEnumerate(IBigDriveEnumerate** pp
 End:
     return hr;
 }
+
+/// <summary>
+/// Retrieves the IBigDriveFileInfo interface from the COM+ class instance.
+/// </summary>
+/// <param name="ppBigDriveFileInfo">A pointer to the IBigDriveFileInfo interface pointer to be populated.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT BigDriveInterfaceProvider::GetIBigDriveFileInfo(IBigDriveFileInfo** ppBigDriveFileInfo)
+{
+    HRESULT hr = S_OK;
+
+    if (ppBigDriveFileInfo == nullptr)
+    {
+        return E_POINTER; // Return an appropriate error code
+    }
+
+    // Get the IBigDriveFileInfo interface
+    hr = GetInterface(IID_IBigDriveFileInfo, reinterpret_cast<IUnknown**>(ppBigDriveFileInfo));
+    switch (hr)
+    {
+    case S_OK:
+        // Successfully retrieved the interface
+        break;
+    case S_FALSE:
+        WriteError(L"Doesn't implement IBigDriveFileInfo");
+        hr = E_NOINTERFACE;
+        break;
+    default:
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveFileInfo interface. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+End:
+    return hr;
+}
+
+
 
 /// <summary>
 /// Logs an error message with the CLSID of the provider.

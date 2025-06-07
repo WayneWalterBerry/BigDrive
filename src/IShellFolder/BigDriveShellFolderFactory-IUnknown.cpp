@@ -5,13 +5,13 @@
 #include "pch.h"
 
 #include "BigDriveShellFolderFactory.h"
-#include "BigDriveShellFolderTraceLogger.h"
+#include "Logging\BigDriveTraceLogger.h"
 
 HRESULT __stdcall BigDriveShellFolderFactory::QueryInterface(REFIID riid, void** ppvObject)
 {
 	HRESULT hr = E_NOINTERFACE;
 
-	BigDriveShellFolderTraceLogger::LogEnter(__FUNCTION__, riid);
+	BigDriveTraceLogger::LogEnter(__FUNCTION__, riid);
 
 	if (riid == IID_IUnknown || riid == IID_IClassFactory)
 	{
@@ -25,7 +25,7 @@ HRESULT __stdcall BigDriveShellFolderFactory::QueryInterface(REFIID riid, void**
 
 End:
 
-	BigDriveShellFolderTraceLogger::LogExit(__FUNCTION__, hr);
+	BigDriveTraceLogger::LogExit(__FUNCTION__, hr);
 
 	return hr;
 }

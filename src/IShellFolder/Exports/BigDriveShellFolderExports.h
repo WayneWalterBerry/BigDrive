@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-	__declspec(dllexport) HRESULT AllocateBigDriveItemIdExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl);
+	__declspec(dllexport) HRESULT AllocBigDrivePidlExport(BigDriveItemType nType, BSTR bstrName, LPITEMIDLIST* ppidl);
 
     /// <summary>
     /// Extracts the Unicode name (as a BSTR) from the last BIGDRIVE_ITEMID in the given PIDL chain.
@@ -18,6 +18,7 @@ extern "C" {
     /// </summary>
     __declspec(dllexport) HRESULT GetBigDriveItemNameFromPidlExport(PCUITEMID_CHILD pidl, STRRET* pName);
 
+    __declspec(dllexport) HRESULT GetPathForProvidersExport(LPCITEMIDLIST pidl, BSTR& bstrPath);
 
 #ifdef __cplusplus
 }
