@@ -5,15 +5,23 @@
 #pragma once
 
 #include <shlobj.h>
+
 #include "BigDriveShellFolder.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 class BigDriveDataObject : public IDataObject
 {
 private:
+
     LONG m_cRef;
     BigDriveShellFolder* m_pFolder;
     UINT m_cidl;
     PCUITEMID_CHILD* m_apidl;
+
+    /// <summary>
+    /// Logger that captures trace information for the shell folder.
+    /// </summary>
+    BigDriveShellFolderTraceLogger m_traceLogger;
 
 public:
 

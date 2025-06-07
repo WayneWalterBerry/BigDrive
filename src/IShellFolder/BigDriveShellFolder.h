@@ -187,6 +187,12 @@ public:
 		return hr;
 	}
 
+	/// <summary>
+	/// Retrieves the GUID associated with the drive.
+	/// </summary>
+	/// <returns>The GUID of the drive.</returns>
+	GUID GetDriveGuid() const { return m_driveGuid; }
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// IUnknown methods
 

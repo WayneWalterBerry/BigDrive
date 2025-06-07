@@ -20,7 +20,7 @@
 /// <summary>
 /// Factory method to create an instance of BigDriveShellContextMenu.
 /// </summary>
-HRESULT BigDriveShellContextMenu::CreateInstance(CLSID driveGuid, BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)
+HRESULT BigDriveShellContextMenu::CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)
 {
     if (!ppv)
     {
@@ -29,7 +29,7 @@ HRESULT BigDriveShellContextMenu::CreateInstance(CLSID driveGuid, BigDriveShellF
     
     *ppv = nullptr;
     
-    BigDriveShellContextMenu* pContextMenu = new BigDriveShellContextMenu(driveGuid, pFolder, cidl, apidl);
+    BigDriveShellContextMenu* pContextMenu = new BigDriveShellContextMenu(pFolder, cidl, apidl);
     if (!pContextMenu)
     {
         return E_OUTOFMEMORY;
@@ -56,22 +56,22 @@ End:
 /// <summary>
 /// Private constructor - use CreateInstance to create instances.
 /// </summary>
-BigDriveShellContextMenu::BigDriveShellContextMenu(CLSID driveGuid, BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl) :
+BigDriveShellContextMenu::BigDriveShellContextMenu(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl) :
     m_cRef(1),
     m_pFolder(pFolder),
     m_cidl(cidl),
     m_idCmdFirst(0),
     m_pShellContextMenu(nullptr)
 {
+    m_traceLogger.Initialize(pFolder->GetDriveGuid());
+
     // Keep a reference to the parent folder
     if (m_pFolder)
     {
         m_pFolder->AddRef();
     }
 
-    m_driveGuid = driveGuid;
-
-    m_traceLogger.Initialize(driveGuid);
+    m_traceLogger.Initialize(m_pFolder->GetDriveGuid());
     
     // Make a copy of the item IDs
     if (m_cidl > 0 && apidl)

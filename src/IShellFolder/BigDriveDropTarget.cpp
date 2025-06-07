@@ -18,6 +18,8 @@
 BigDriveDropTarget::BigDriveDropTarget(BigDriveShellFolder* pFolder)
     : m_cRef(1), m_pFolder(pFolder), m_fAllowDrop(FALSE), m_dwEffect(0)
 {
+    m_traceLogger.Initialize(pFolder->GetDriveGuid());
+
     // AddRef the folder object
     if (m_pFolder)
     {

@@ -19,6 +19,8 @@
 BigDriveDataObject::BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl)
     : m_cRef(1), m_pFolder(pFolder), m_cidl(cidl), m_apidl(nullptr)
 {
+    m_traceLogger.Initialize(pFolder->GetDriveGuid());
+
     // AddRef the folder object
     if (m_pFolder)
     {

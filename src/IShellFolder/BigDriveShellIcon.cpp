@@ -8,13 +8,12 @@
 // Header
 #include "BigDriveShellIcon.h"
 
-// For IShellFolder and related interfaces
 #include <shlobj.h> 
 
-BigDriveShellIcon::BigDriveShellIcon(const CLSID& driveGuid, BigDriveShellFolder* pParentFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl)
-	: m_refCount(1), m_driveGuid(driveGuid), m_pParentFolder(pParentFolder), m_cidl(cidl), m_apidl(nullptr)
+BigDriveShellIcon::BigDriveShellIcon(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl)
+	: m_refCount(1), m_pParentFolder(pFolder), m_cidl(cidl), m_apidl(nullptr)
 {
-	m_traceLogger.Initialize(driveGuid);
+	m_traceLogger.Initialize(pFolder->GetDriveGuid());
 
 	if (cidl > 0 && apidl != nullptr) 
 	{
@@ -49,7 +48,6 @@ BigDriveShellIcon::~BigDriveShellIcon()
 /// Factory method to create an instance of BigDriveShellIcon.
 /// </summary>
 HRESULT BigDriveShellIcon::CreateInstance(
-	const CLSID& driveGuid,
 	BigDriveShellFolder* pFolder,
 	UINT cidl,
 	PCUITEMID_CHILD_ARRAY apidl,
@@ -63,12 +61,25 @@ HRESULT BigDriveShellIcon::CreateInstance(
 
 	*ppv = nullptr;
 
-	BigDriveShellIcon* pShellIcon = new(std::nothrow) BigDriveShellIcon(driveGuid, pFolder, cidl, apidl);
+	BigDriveShellIcon* pShellIcon = new BigDriveShellIcon(pFolder, cidl, apidl);
 	if (!pShellIcon)
+	{
 		return E_OUTOFMEMORY;
+	}
 
 	HRESULT hr = pShellIcon->QueryInterface(riid, ppv);
-	pShellIcon->Release();
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	End:
+
+	if (pShellIcon)
+	{
+		pShellIcon->Release();
+		pShellIcon = nullptr;
+	}
 
 	return hr;
 }

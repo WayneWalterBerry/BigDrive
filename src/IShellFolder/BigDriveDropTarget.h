@@ -5,15 +5,23 @@
 #pragma once
 
 #include <shlobj.h>
+
 #include "BigDriveShellFolder.h"
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 class BigDriveDropTarget : public IDropTarget
 {
 private:
+
     LONG m_cRef;
     BigDriveShellFolder* m_pFolder;
     BOOL m_fAllowDrop;
     DWORD m_dwEffect;
+
+    /// <summary>
+    /// Logger that captures trace information for the shell folder.
+    /// </summary>
+    BigDriveShellFolderTraceLogger m_traceLogger;
 
 public:
     BigDriveDropTarget(BigDriveShellFolder* pFolder);

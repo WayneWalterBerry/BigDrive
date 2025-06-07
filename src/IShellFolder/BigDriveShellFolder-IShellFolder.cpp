@@ -956,7 +956,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 
 	if ((riid == IID_IExtractIconW) || (riid == IID_IExtractIconA))
 	{
-		hr = BigDriveShellIcon::CreateInstance(m_driveGuid, this, cidl, apidl, riid, ppv);
+		hr = BigDriveShellIcon::CreateInstance(this, cidl, apidl, riid, ppv);
 		if (FAILED(hr))
 		{
 			goto End;
@@ -964,7 +964,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 	}
 	else if ((riid == IID_IContextMenu) || (riid == IID_IContextMenu2) || (riid == IID_IContextMenu3))
 	{
-		hr = BigDriveShellContextMenu::CreateInstance(m_driveGuid, this, cidl, apidl, ppv);
+		hr = BigDriveShellContextMenu::CreateInstance(this, cidl, apidl, ppv);
 		if (FAILED(hr))
 		{
 			goto End;
