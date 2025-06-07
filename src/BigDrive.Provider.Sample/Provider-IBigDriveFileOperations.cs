@@ -21,6 +21,8 @@ namespace BigDrive.Provider.Sample
         /// <param name="bigDriveTargetPath">The destination path in BigDrive.</param>
         public void CopyFileToBigDrive(Guid driveGuid, string localFilePath, string bigDriveTargetPath)
         {
+            System.Diagnostics.Debugger.Launch();
+
             if (!File.Exists(localFilePath))
             {
                 throw new FileNotFoundException("Local file not found.", localFilePath);
@@ -36,7 +38,8 @@ namespace BigDrive.Provider.Sample
             }
 
             var fileInfo = new FileInfo(localFilePath);
-            var newNode = new FolderNode(fileName)
+
+            var newNode = new FolderNode(fileInfo.Name)
             {
                 Type = NodeType.File,
                 LastModifiedDate = fileInfo.LastWriteTime,
@@ -84,7 +87,7 @@ namespace BigDrive.Provider.Sample
                 throw new DirectoryNotFoundException("Parent directory not found in BigDrive: " + parentPath);
             }
 
-            var node = parentNode.Children.Find(child => child.Value == name);
+            var node = parentNode.Children.Find(child => child.Name == name);
             if (node == null)
             {
                 throw new FileNotFoundException("File or folder not found in BigDrive: " + bigDriveFilePath);
@@ -109,7 +112,7 @@ namespace BigDrive.Provider.Sample
                 throw new DirectoryNotFoundException("Parent directory not found in BigDrive: " + parentPath);
             }
 
-            if (parentNode.Children.Exists(child => child.Value == dirName && child.Type == NodeType.Folder))
+            if (parentNode.Children.Exists(child => child.Name == dirName && child.Type == NodeType.Folder))
             {
                 throw new IOException("Directory already exists: " + bigDriveDirectoryPath);
             }
@@ -146,7 +149,7 @@ namespace BigDrive.Provider.Sample
                 throw new DirectoryNotFoundException("Source parent directory not found: " + srcParentPath);
             }
 
-            var node = srcParentNode.Children.Find(child => child.Value == srcName);
+            var node = srcParentNode.Children.Find(child => child.Name == srcName);
             if (node == null)
             {
                 throw new FileNotFoundException("Source file or folder not found: " + sourcePath);
@@ -161,13 +164,13 @@ namespace BigDrive.Provider.Sample
                 throw new DirectoryNotFoundException("Destination parent directory not found: " + destParentPath);
             }
 
-            if (destParentNode.Children.Exists(child => child.Value == destName))
+            if (destParentNode.Children.Exists(child => child.Name == destName))
             {
                 throw new IOException("Destination already exists: " + destinationPath);
             }
 
             srcParentNode.Children.Remove(node);
-            node.Value = destName;
+            node.Name = destName;
             destParentNode.Children.Add(node);
         }
     }

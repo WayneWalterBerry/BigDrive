@@ -22,9 +22,12 @@ namespace BigDrive.Provider.Sample
     {
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
-        private readonly FolderNode root = new FolderNode("//");
+        private static FolderNode root = new FolderNode("//")
+        {
+            Type = NodeType.Folder
+        };
 
-        public Provider()
+        static Provider()
         {
             InitializeTree();
         }
@@ -48,7 +51,7 @@ namespace BigDrive.Provider.Sample
         /// Sets LastModifiedDate for each file node to a weighted random date within the last 2 years.
         /// Sets Size for each file node to a random value up to 4 MB.
         /// </summary>
-        private void InitializeTree()
+        private static void InitializeTree()
         {
             root.Children.Clear();
 
@@ -91,7 +94,7 @@ namespace BigDrive.Provider.Sample
         /// <param name="random">The random number generator.</param>
         /// <param name="maxSize">The maximum file size in bytes.</param>
         /// <returns>A FolderNode representing a file with a random LastModifiedDate and Size.</returns>
-        private FolderNode CreateFileNodeWithRandomDateAndSize(string fileName, Random random, ulong maxSize)
+        private static FolderNode CreateFileNodeWithRandomDateAndSize(string fileName, Random random, ulong maxSize)
         {
             var node = new FolderNode(fileName) { Type = NodeType.File };
             node.LastModifiedDate = GenerateWeightedRandomDate();
@@ -104,7 +107,7 @@ namespace BigDrive.Provider.Sample
         /// Generates a weighted random DateTime within the last 2 years, biased toward recent dates.
         /// </summary>
         /// <returns>A DateTime value.</returns>
-        private DateTime GenerateWeightedRandomDate()
+        private static DateTime GenerateWeightedRandomDate()
         {
             DateTime now = DateTime.Now;
             DateTime twoYearsAgo = now.AddYears(-2);

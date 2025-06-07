@@ -21,7 +21,7 @@ namespace BigDrive.Provider.Sample
         /// <summary>
         /// The value of this node.
         /// </summary>
-        public string Value { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// The type of this node (File or Folder).
@@ -46,10 +46,10 @@ namespace BigDrive.Provider.Sample
         /// <summary>
         /// Initializes a new instance of the <see cref="FolderNode"/> class.
         /// </summary>
-        /// <param name="value">The string value for this node.</param>
-        public FolderNode(string value)
+        /// <param name="name">The string value for this node.</param>
+        public FolderNode(string name)
         {
-            Value = value;
+            Name = name;
             Children = new List<FolderNode>();
             LastModifiedDate = DateTime.UtcNow;
             Size = 0;

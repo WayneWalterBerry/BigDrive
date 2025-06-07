@@ -29,7 +29,7 @@ namespace BigDrive.Provider.Sample
 
             return node.Children
                 .Where(child => child.Type == NodeType.Folder)
-                .Select(child => child.Value)
+                .Select(child => child.Name)
                 .ToArray();
         }
 
@@ -49,7 +49,7 @@ namespace BigDrive.Provider.Sample
 
             return node.Children
                 .Where(child => child.Type == NodeType.File)
-                .Select(child => child.Value)
+                .Select(child => child.Name)
                 .ToArray();
         }
 
@@ -69,7 +69,7 @@ namespace BigDrive.Provider.Sample
             FolderNode current = root;
             foreach (var segment in segments)
             {
-                current = current.Children.FirstOrDefault(child => child.Value == segment && child.Type == NodeType.Folder);
+                current = current.Children.FirstOrDefault(child => child.Name == segment && child.Type == NodeType.Folder);
                 if (current == null)
                 {
                     return null;

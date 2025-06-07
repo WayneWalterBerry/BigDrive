@@ -6,6 +6,8 @@
 
 #include "BigDriveDropTarget.h"
 
+#include "BigDriveShellFolder.h"
+
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
@@ -186,11 +188,7 @@ HRESULT BigDriveDropTarget::ProcessDrop(IDataObject* pDataObj)
         goto End;
     }
 
-    hr = m_pFolder->GetProviderCLSID(driveGuid);
-    if (FAILED(hr))
-    {
-        goto End;
-    }
+	driveGuid = m_pFolder->GetDriveGuid();
 
     hr = BigDriveConfigurationClient::GetDriveConfiguration(driveGuid, driveConfig);
     if (FAILED(hr))
@@ -198,7 +196,7 @@ HRESULT BigDriveDropTarget::ProcessDrop(IDataObject* pDataObj)
         goto End;
     }
 
-    pProvider = new (std::nothrow) BigDriveInterfaceProvider(driveConfig);
+    pProvider = new BigDriveInterfaceProvider(driveConfig);
     if (pProvider == nullptr)
     {
         hr = E_OUTOFMEMORY;

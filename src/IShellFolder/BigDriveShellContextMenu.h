@@ -20,11 +20,6 @@ class BigDriveShellContextMenu :
 private:
 
     /// <summary>
-    /// Stores the drive GUID
-    /// </summary>
-    CLSID m_driveGuid;
-
-    /// <summary>
     /// Logger that captures trace information for the shell folder.
     /// </summary>
     BigDriveShellFolderTraceLogger m_traceLogger;

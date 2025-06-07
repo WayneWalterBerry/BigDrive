@@ -193,6 +193,18 @@ public:
 	/// <returns>The GUID of the drive.</returns>
 	GUID GetDriveGuid() const { return m_driveGuid; }
 
+	/// <summary>
+	/// Retrieves the absolute PIDL (Pointer to an Item ID List).
+	/// </summary>
+	/// <param name="pidlAbsolute">Reference to a variable that receives the absolute PIDL.</param>
+	/// <returns>Returns S_OK if successful</returns>
+	HRESULT GetPidlAbsolute(PIDLIST_ABSOLUTE&pidlAbsolute) const
+	{
+		pidlAbsolute = ::ILClone(m_pidlAbsolute);
+
+		return S_OK;
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// IUnknown methods
 

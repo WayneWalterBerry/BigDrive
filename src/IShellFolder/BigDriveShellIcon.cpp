@@ -11,9 +11,13 @@
 #include <shlobj.h> 
 
 BigDriveShellIcon::BigDriveShellIcon(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl)
-	: m_refCount(1), m_pParentFolder(pFolder), m_cidl(cidl), m_apidl(nullptr)
+	: m_refCount(1), m_pFolder(pFolder), m_cidl(cidl), m_apidl(nullptr)
 {
-	m_traceLogger.Initialize(pFolder->GetDriveGuid());
+	if (pFolder)
+	{
+		pFolder->AddRef();
+		m_traceLogger.Initialize(pFolder->GetDriveGuid());
+	}
 
 	if (cidl > 0 && apidl != nullptr) 
 	{
@@ -39,6 +43,12 @@ BigDriveShellIcon::~BigDriveShellIcon()
 	{
 		delete[] m_apidl;
 		m_apidl = nullptr;
+	}
+
+	if (m_pFolder)
+	{
+		m_pFolder->Release();
+		m_pFolder = nullptr;
 	}
 
 	m_traceLogger.Uninitialize();

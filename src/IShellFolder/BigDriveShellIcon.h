@@ -21,14 +21,9 @@ private:
 	LONG m_refCount;
 
 	/// <summary>
-	/// Stores the drive GUID
+	/// Pointer to the shell folder
 	/// </summary>
-	CLSID m_driveGuid;
-
-	/// <summary>
-	/// Pointer to the parent shell folder
-	/// </summary>
-	BigDriveShellFolder* m_pParentFolder;
+	BigDriveShellFolder* m_pFolder;
 
 	/// <summary>
 	/// Count of items (number of PIDLs)

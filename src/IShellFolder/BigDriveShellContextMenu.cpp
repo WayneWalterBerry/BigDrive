@@ -18,42 +18,6 @@
 #endif
 
 /// <summary>
-/// Factory method to create an instance of BigDriveShellContextMenu.
-/// </summary>
-HRESULT BigDriveShellContextMenu::CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)
-{
-    if (!ppv)
-    {
-        return E_POINTER;
-    }
-    
-    *ppv = nullptr;
-    
-    BigDriveShellContextMenu* pContextMenu = new BigDriveShellContextMenu(pFolder, cidl, apidl);
-    if (!pContextMenu)
-    {
-        return E_OUTOFMEMORY;
-    }
-    
-    HRESULT hr = pContextMenu->QueryInterface(IID_IContextMenu, ppv);
-    if (FAILED(hr))
-    {
-        goto End;
-    }
-
-
-End:
-
-    if (pContextMenu)
-    {
-        pContextMenu->Release();
-        pContextMenu = nullptr;
-    }
-       
-    return hr;
-}
-
-/// <summary>
 /// Private constructor - use CreateInstance to create instances.
 /// </summary>
 BigDriveShellContextMenu::BigDriveShellContextMenu(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl) :
@@ -69,9 +33,8 @@ BigDriveShellContextMenu::BigDriveShellContextMenu(BigDriveShellFolder* pFolder,
     if (m_pFolder)
     {
         m_pFolder->AddRef();
+        m_traceLogger.Initialize(m_pFolder->GetDriveGuid());
     }
-
-    m_traceLogger.Initialize(m_pFolder->GetDriveGuid());
     
     // Make a copy of the item IDs
     if (m_cidl > 0 && apidl)
@@ -129,6 +92,42 @@ BigDriveShellContextMenu::~BigDriveShellContextMenu()
         m_pFolder->Release();
         m_pFolder = nullptr;
     }
+}
+
+/// <summary>
+/// Factory method to create an instance of BigDriveShellContextMenu.
+/// </summary>
+HRESULT BigDriveShellContextMenu::CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)
+{
+    if (!ppv)
+    {
+        return E_POINTER;
+    }
+
+    *ppv = nullptr;
+
+    BigDriveShellContextMenu* pContextMenu = new BigDriveShellContextMenu(pFolder, cidl, apidl);
+    if (!pContextMenu)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    HRESULT hr = pContextMenu->QueryInterface(IID_IContextMenu, ppv);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+
+End:
+
+    if (pContextMenu)
+    {
+        pContextMenu->Release();
+        pContextMenu = nullptr;
+    }
+
+    return hr;
 }
 
 /// <summary>
