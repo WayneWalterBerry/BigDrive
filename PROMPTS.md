@@ -9,8 +9,9 @@
   - Use `{}` with every `if`, with `{` on a new line.
   - CR/LF line endings.
 - Comments:
-  - `<summary>` in `.h` declarations.
+  - `<summary>` in `.h` declarations, including `<params>` and `<returns>`.
   - `/// <inheritdoc>` in `.cpp` implementations.
+  - For methods implementing shell folder extensions interface methods, detailed comments on inputs, outputs, and implementation reasoning.
 - Global Calls: Prefix all global method calls with `::`.
 - Precompiled Header: Include `#include "pch.h"` in `.cpp`.
 - File Generation: Create Both .h and .cpp files.
@@ -27,3 +28,4 @@
   // <copyright file="FileName.cpp" company="Wayne Walter Berry">
   // Copyright (c) Wayne Walter Berry. All rights reserved.
   // </copyright>
+- ```
