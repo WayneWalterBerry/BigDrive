@@ -158,6 +158,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BigDriveDataObject.h" />
+    <ClInclude Include="BigDriveDropTarget.h" />
     <ClInclude Include="BigDriveShellContextMenu.h" />
     <ClInclude Include="BigDriveEnumIDList.h" />
     <ClInclude Include="BigDriveItemType.h" />
@@ -183,6 +185,12 @@
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BigDriveDataObject-IDataObject.cpp" />
+    <ClCompile Include="BigDriveDataObject-IUnknown.cpp" />
+    <ClCompile Include="BigDriveDataObject.cpp" />
+    <ClCompile Include="BigDriveDropTarget-IDropTarget.cpp" />
+    <ClCompile Include="BigDriveDropTarget-IUnknown.cpp" />
+    <ClCompile Include="BigDriveDropTarget.cpp" />
     <ClCompile Include="BigDriveEnumIDList-IEnumIDList.cpp" />
     <ClCompile Include="BigDriveEnumIDList-IUnknown.cpp" />
     <ClCompile Include="BigDriveEnumIDList.cpp" />

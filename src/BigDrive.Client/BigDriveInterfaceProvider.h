@@ -13,6 +13,7 @@
 #include "Interfaces/IBigDriveEnumerate.h"
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "Interfaces/IBigDriveFileInfo.h"
+#include "Interfaces/IBigDriveFileOperations.h"
 
 #include "DriveConfiguration.h"
 
@@ -23,85 +24,86 @@ class BigDriveInterfaceProvider
 {
 private:
 
-    /// <summary>
-    /// Static instance of EventLogger for logging events.
-    /// </summary>
-    static BigDriveClientEventLogger s_eventLogger;
+	/// <summary>
+	/// Static instance of EventLogger for logging events.
+	/// </summary>
+	static BigDriveClientEventLogger s_eventLogger;
 
-    /// <summary>
-    /// The CLSID of the COM+ class.
-    /// </summary>
-    CLSID m_clsid;
+	/// <summary>
+	/// The CLSID of the COM+ class.
+	/// </summary>
+	CLSID m_clsid;
 
 public:
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified CLSID.
-    /// </summary>
-    /// <param name="clsid">The CLSID of the COM+ class.</param>
-    BigDriveInterfaceProvider(const CLSID& clsid);
+	/// <summary>
+	/// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified CLSID.
+	/// </summary>
+	/// <param name="clsid">The CLSID of the COM+ class.</param>
+	BigDriveInterfaceProvider(const CLSID& clsid);
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified DriveConfiguration.
-    /// </summary>
-    /// <param name="driveConfiguration">Drive Configuration</param>
-    BigDriveInterfaceProvider(DriveConfiguration& driveConfiguration);
+	/// <summary>
+	/// Initializes a new instance of the <see cref="BigDriveInterfaceProvider"/> class with the specified DriveConfiguration.
+	/// </summary>
+	/// <param name="driveConfiguration">Drive Configuration</param>
+	BigDriveInterfaceProvider(DriveConfiguration& driveConfiguration);
 
-    /// <summary>
-    /// Retrieves the requested interface from the COM+ class associated with this provider.
-    /// </summary>
-    /// <param name="iid">The interface ID (IID) of the interface to retrieve.</param>
-    /// <param name="ppv">Address of a pointer that receives the interface pointer on success. Set to nullptr on failure.</param>
-    /// <returns>
-    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT GetInterface(const IID& iid, IUnknown** ppv);
+	/// <summary>
+	/// Retrieves the requested interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="iid">The interface ID (IID) of the interface to retrieve.</param>
+	/// <param name="ppv">Address of a pointer that receives the interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>
+	/// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
+	/// </returns>
+	HRESULT GetInterface(const IID& iid, IUnknown** ppv);
 
-    /// <summary>
-    /// Retrieves the IBigDriveConfiguration interface from the COM+ class associated with this provider.
-    /// </summary>
-    /// <param name="ppBigDriveConfiguration">Address of a pointer that receives the IBigDriveConfiguration interface pointer on success. Set to nullptr on failure.</param>
-    /// <returns>
-    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration);
+	/// <summary>
+	/// Retrieves the IBigDriveConfiguration interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="ppBigDriveConfiguration">Address of a pointer that receives the IBigDriveConfiguration interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
+	HRESULT GetIBigDriveConfiguration(IBigDriveConfiguration** ppBigDriveConfiguration);
 
-    /// <summary>
-    /// Retrieves the IBigDriveEnumerate interface from the COM+ class associated with this provider.
-    /// </summary>
-    /// <param name="ppBigDriveEnumerate">Address of a pointer that receives the IBigDriveEnumerate interface pointer on success. Set to nullptr on failure.</param>
-    /// <returns>
-    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT GetIBigDriveEnumerate(IBigDriveEnumerate** ppBigDriveEnumerate);
+	/// <summary>
+	/// Retrieves the IBigDriveEnumerate interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="ppBigDriveEnumerate">Address of a pointer that receives the IBigDriveEnumerate interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
+	HRESULT GetIBigDriveEnumerate(IBigDriveEnumerate** ppBigDriveEnumerate);
 
-    /// <summary>
-    /// Retrieves the IBigDriveFileInfo interface from the COM+ class associated with this provider.
-    /// </summary>
-    /// <param name="ppBigDriveFileInfo">Address of a pointer that receives the IBigDriveFileInfo interface pointer on success. Set to nullptr on failure.</param>
-    /// <returns>
-    /// S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT GetIBigDriveFileInfo(IBigDriveFileInfo** ppBigDriveFileInfo);
+	/// <summary>
+	/// Retrieves the IBigDriveFileInfo interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="ppBigDriveFileInfo">Address of a pointer that receives the IBigDriveFileInfo interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
+	HRESULT GetIBigDriveFileInfo(IBigDriveFileInfo** ppBigDriveFileInfo);
+
+	/// <summary>
+	/// Retrieves the IBigDriveFileOperations interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="ppBigDriveFileOperations">Address of a pointer that receives the IBigDriveFileOperations interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
+	HRESULT GetIBigDriveFileOperations(IBigDriveFileOperations** ppBigDriveFileOperations);
 
 private:
 
-    /// <summary>
-    /// Writes an error message to the event log.
-    /// </summary>
-    /// <param name="message">The error message to log.</param>
-    /// <returns>
-    /// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT WriteError(LPCWSTR message);
+	/// <summary>
+	/// Writes an error message to the event log.
+	/// </summary>
+	/// <param name="message">The error message to log.</param>
+	/// <returns>
+	/// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
+	/// </returns>
+	HRESULT WriteError(LPCWSTR message);
 
-    /// <summary>
-    /// Writes a formatted error message to the event log.
-    /// </summary>
-    /// <param name="formatter">The format string for the error message.</param>
-    /// <param name="...">Additional arguments for formatting.</param>
-    /// <returns>
-    /// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
-    /// </returns>
-    HRESULT WriteErrorFormmated(LPCWSTR formatter, ...);
+	/// <summary>
+	/// Writes a formatted error message to the event log.
+	/// </summary>
+	/// <param name="formatter">The format string for the error message.</param>
+	/// <param name="...">Additional arguments for formatting.</param>
+	/// <returns>
+	/// S_OK if the message was successfully logged; otherwise, an HRESULT error code.
+	/// </returns>
+	HRESULT WriteErrorFormmated(LPCWSTR formatter, ...);
 };

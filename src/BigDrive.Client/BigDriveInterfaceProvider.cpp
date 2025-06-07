@@ -16,6 +16,7 @@
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "Interfaces/IBigDriveEnumerate.h"
 #include "Interfaces/IBigDriveFileInfo.h"
+#include "Interfaces/IBigDriveFileOperations.h"
 
 // Initialize the static EventLogger instance
 BigDriveClientEventLogger BigDriveInterfaceProvider::s_eventLogger(L"BigDrive.Client");
@@ -184,7 +185,10 @@ End:
     return hr;
 }
 
-
+HRESULT BigDriveInterfaceProvider::GetIBigDriveFileOperations(IBigDriveFileOperations** ppBigDriveFileOperations)
+{
+    return GetInterface(IID_IBigDriveFileOperations, reinterpret_cast<IUnknown**>(ppBigDriveFileOperations));
+}
 
 /// <summary>
 /// Logs an error message with the CLSID of the provider.
