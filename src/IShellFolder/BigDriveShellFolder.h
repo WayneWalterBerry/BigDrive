@@ -655,4 +655,8 @@ public:
 	static HRESULT GetBigDriveItemNameFromPidl(PCUITEMID_CHILD pidl, STRRET* pName);
 
 	static HRESULT VariantToStrRet(VARIANT& var, STRRET* pStrRet);
+
+public:
+
+	friend class BigDriveDropTarget;
 };

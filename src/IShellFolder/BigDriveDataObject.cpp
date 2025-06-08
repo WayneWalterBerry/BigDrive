@@ -70,6 +70,8 @@ BigDriveDataObject::~BigDriveDataObject()
 		m_pFolder->Release();
 		m_pFolder = nullptr;
 	}
+
+	m_traceLogger.Uninitialize();
 }
 
 HRESULT BigDriveDataObject::CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)

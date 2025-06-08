@@ -181,7 +181,9 @@ HRESULT BigDriveTraceLogger::GetShellIIDName(REFIID riid, BSTR& bstrIIDName)
 		bstrIIDName = ::SysAllocString(L"IID_ITransferSource");
 	else if (IsEqualIID(riid, IID_ICallFactory))
 		bstrIIDName = ::SysAllocString(L"IID_ICallFactory");
-	
+	else if (IsEqualIID(riid, IID_IDropSource))
+		bstrIIDName = ::SysAllocString(L"IID_IDropSource");
+
 	if (bstrIIDName != nullptr)
 		return S_OK;
 

@@ -26,11 +26,12 @@
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* pmedium)
 {
-	/// <inheritdoc />
 	HRESULT hr = S_OK;
 	BSTR bstrTargetFolder = nullptr;
 	BYTE* pData = nullptr;
 	SIZE_T dataSize = 0;
+
+	m_traceLogger.LogEnter(__FUNCTION__, *pformatetc);
 
 	if (pformatetc == nullptr || pmedium == nullptr)
 	{
@@ -102,6 +103,8 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 		hr = DV_E_FORMATETC;
 		goto End;
 	}
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 End:
 
@@ -177,6 +180,8 @@ HRESULT __stdcall BigDriveDataObject::GetCanonicalFormatEtc(FORMATETC* pformatec
 {
 	HRESULT hr = S_OK;
 
+	m_traceLogger.LogEnter(__FUNCTION__);
+
 	if (pformatetcOut == nullptr)
 	{
 		hr = E_INVALIDARG;
@@ -188,14 +193,20 @@ HRESULT __stdcall BigDriveDataObject::GetCanonicalFormatEtc(FORMATETC* pformatec
 
 End:
 
+	m_traceLogger.LogExit(__FUNCTION__, hr);
+
 	return hr;
 }
 
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease)
 {
-	/// <inheritdoc />
+
 	HRESULT hr = E_NOTIMPL;
+
+	m_traceLogger.LogEnter(__FUNCTION__);
+	m_traceLogger.LogExit(__FUNCTION__, hr);
+
 	return hr;
 }
 
