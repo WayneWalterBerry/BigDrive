@@ -328,6 +328,45 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, UINT cidl, PC
 }
 
 /// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFIID riid, PCUITEMID_CHILD_ARRAY apidl, UINT cidl)
+{
+	HRESULT hr = S_OK;
+	BSTR bstrIIDName = nullptr;
+	BSTR bstrPath = nullptr;
+
+	BigDriveTraceLogger::GetShellIIDName(riid, bstrIIDName);
+
+	for (UINT i = 0; i < cidl; ++i)
+	{
+		PCUITEMID_CHILD pidl = apidl[i];
+
+		hr = BigDriveShellFolder::GetPathForLogging(m_driveGuid, apidl[i], bstrPath);
+		if (SUCCEEDED(hr))
+		{
+			TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrIIDName, "IID"), TraceLoggingWideString(bstrPath, "Path"));
+		}
+		else
+		{
+			TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrIIDName, "IID"));
+		}
+
+		if (bstrPath != nullptr)
+		{
+			::SysFreeString(bstrPath);
+			bstrPath = nullptr;
+		}
+	}
+
+	if (bstrIIDName != nullptr)
+	{
+		::SysFreeString(bstrIIDName);
+		bstrIIDName = nullptr;
+	}
+
+	return;
+}
+
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, CLSID* pClassID)
 {
 	BigDriveTraceLogger::StoreCurrentTimeForDurationTracking();
@@ -357,12 +396,12 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFCLSID clsi
 }
 
 /// <inheritdoc />
-void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFIID refiid)
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFIID riid)
 {
 	BSTR bstrIIDName = nullptr;
 
 	BigDriveTraceLogger::StoreCurrentTimeForDurationTracking();
-	BigDriveTraceLogger::GetShellIIDName(refiid, bstrIIDName);
+	BigDriveTraceLogger::GetShellIIDName(riid, bstrIIDName);
 
 	TraceLoggingWrite(g_hBigDriveTraceProvider, "Enter", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(bstrIIDName, "IID"));
 
@@ -373,6 +412,45 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, REFIID refiid
 	}
 
 	return;
+}
+
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, const FORMATETC& formatetc)
+{
+	char buf[256] = { 0 };
+	WCHAR formatName[128] = { 0 };
+
+	// Try to get the clipboard format name if possible
+	if (::GetClipboardFormatNameW(formatetc.cfFormat, formatName, ARRAYSIZE(formatName)))
+	{
+		_snprintf_s(
+			buf, sizeof(buf),
+			"cfFormat: 0x%04X (%ws), tymed: 0x%08lX, dwAspect: 0x%08lX, lindex: %ld",
+			(unsigned int)formatetc.cfFormat,
+			formatName,
+			(unsigned long)formatetc.tymed,
+			(unsigned long)formatetc.dwAspect,
+			(long)formatetc.lindex
+		);
+	}
+	else 
+	{
+		_snprintf_s(
+			buf, sizeof(buf),
+			"cfFormat: 0x%04X, tymed: 0x%08lX, dwAspect: 0x%08lX, lindex: %ld",
+			(unsigned int)formatetc.cfFormat,
+			(unsigned long)formatetc.tymed,
+			(unsigned long)formatetc.dwAspect,
+			(long)formatetc.lindex
+		);
+	}
+
+	TraceLoggingWrite(
+		g_hBigDriveTraceProvider,
+		"Enter",
+		TraceLoggingString(functionName, "FunctionName"),
+		TraceLoggingString(buf, "FORMATETC")
+	);
 }
 
 /// <inheritdoc />
@@ -397,6 +475,7 @@ void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, HRESULT hr)
 		TraceLoggingHexUInt32(hr, "HRESULT"));
 }
 
+/// <inheritdoc />
 void BigDriveShellFolderTraceLogger::LogExit(LPCSTR functionName, LPCITEMIDLIST pidl, HRESULT hr)
 {
 	BSTR bstrPath = nullptr;
@@ -432,4 +511,10 @@ End:
 	}
 
 	return;
+}
+
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogInfo(const char* message)
+{
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "Info", TraceLoggingValue(message, "Message"));
 }

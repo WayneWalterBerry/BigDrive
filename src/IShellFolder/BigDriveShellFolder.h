@@ -198,7 +198,7 @@ public:
 	/// </summary>
 	/// <param name="pidlAbsolute">Reference to a variable that receives the absolute PIDL.</param>
 	/// <returns>Returns S_OK if successful</returns>
-	HRESULT GetPidlAbsolute(PIDLIST_ABSOLUTE&pidlAbsolute) const
+	HRESULT GetPidlAbsolute(PIDLIST_ABSOLUTE& pidlAbsolute) const
 	{
 		pidlAbsolute = ::ILClone(m_pidlAbsolute);
 

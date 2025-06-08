@@ -14,6 +14,7 @@
 #include "Interfaces/IBigDriveConfiguration.h"
 #include "Interfaces/IBigDriveFileInfo.h"
 #include "Interfaces/IBigDriveFileOperations.h"
+#include "Interfaces/IBigDriveFileData.h"
 
 #include "DriveConfiguration.h"
 
@@ -85,6 +86,13 @@ public:
 	/// <param name="ppBigDriveFileOperations">Address of a pointer that receives the IBigDriveFileOperations interface pointer on success. Set to nullptr on failure.</param>
 	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
 	HRESULT GetIBigDriveFileOperations(IBigDriveFileOperations** ppBigDriveFileOperations);
+
+	/// <summary>
+	/// Retrieves the IBigDriveFileData interface from the COM+ class associated with this provider.
+	/// </summary>
+	/// <param name="ppIBigDriveFileData">Address of a pointer that receives the IBigDriveFileData interface pointer on success. Set to nullptr on failure.</param>
+	/// <returns>S_OK if the interface was successfully retrieved; otherwise, an HRESULT error code.</returns>
+	HRESULT GetIBigDriveFileData(IBigDriveFileData** ppBigDriveFileData);
 
 private:
 

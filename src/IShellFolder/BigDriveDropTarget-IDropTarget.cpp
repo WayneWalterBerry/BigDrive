@@ -40,6 +40,8 @@ HRESULT __stdcall BigDriveDropTarget::DragEnter(IDataObject* pDataObj, DWORD grf
 
     if (m_fAllowDrop)
     {
+		m_traceLogger.LogInfo("Data object format is supported for drop.");
+
         m_dwEffect = DROPEFFECT_COPY;
 
         if ((grfKeyState & MK_CONTROL) != 0)
@@ -56,6 +58,10 @@ HRESULT __stdcall BigDriveDropTarget::DragEnter(IDataObject* pDataObj, DWORD grf
         {
             *pdwEffect = m_dwEffect;
         }
+    }
+    else
+    {
+		m_traceLogger.LogInfo("Data object format is NOT supported for drop.");
     }
 
 End:

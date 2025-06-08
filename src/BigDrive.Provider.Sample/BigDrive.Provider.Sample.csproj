@@ -50,18 +50,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BigDriveTraceSource.cs" />
+    <Compile Include="DataStreamWrapper.cs" />
     <Compile Include="Provider-IBigDriveFileInfo.cs" />
     <Compile Include="Provider-IBigDriveFileOperations.cs" />
     <Compile Include="Provider-IBigDriveRegistration.cs" />
     <Compile Include="Provider.IBigDriveEnumerate.cs" />
     <Compile Include="Provider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Provider.IBigDriveFileData.cs" />
     <Compile Include="Provider.IProcessInitializer.cs" />
     <Compile Include="ProviderConfigurationFactory.cs" />
     <Compile Include="FolderNode.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\BigDrive.snk" />
+    <EmbeddedResource Include="Resources\Compact.zip" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
@@ -72,6 +75,13 @@
       <Project>{28e4adaf-11b9-4afb-920e-f8384426e8d1}</Project>
       <Name>BigDrive.Interfaces</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\A File.txt" />
+    <EmbeddedResource Include="Resources\Photo.png" />
+    <EmbeddedResource Include="Resources\Root File 2.txt" />
+    <EmbeddedResource Include="Resources\test.txt" />
+    <EmbeddedResource Include="Resources\Z File.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

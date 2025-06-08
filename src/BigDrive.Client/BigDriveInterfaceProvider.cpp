@@ -185,6 +185,41 @@ End:
     return hr;
 }
 
+/// <summary>
+/// Retrieves the IBigDriveFileData interface from the COM+ class instance.
+/// </summary>
+/// <param name="ppBigDriveFileInfo">A pointer to the IBigDriveFileData interface pointer to be populated.</param>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT BigDriveInterfaceProvider::GetIBigDriveFileData(IBigDriveFileData** ppBigDriveFileData)
+{
+    HRESULT hr = S_OK;
+
+    if (ppBigDriveFileData == nullptr)
+    {
+        return E_POINTER; // Return an appropriate error code
+    }
+
+    // Get the IBigDriveFileData interface
+    hr = GetInterface(IID_IBigDriveFileData, reinterpret_cast<IUnknown**>(ppBigDriveFileData));
+    switch (hr)
+    {
+    case S_OK:
+        // Successfully retrieved the interface
+        break;
+    case S_FALSE:
+        WriteError(L"Doesn't implement IBigDriveFileData");
+        hr = E_NOINTERFACE;
+        break;
+    default:
+        s_eventLogger.WriteErrorFormmated(L"Failed to get IBigDriveFileData interface. HRESULT: 0x%08X", hr);
+        goto End;
+    }
+
+End:
+    return hr;
+}
+
+
 HRESULT BigDriveInterfaceProvider::GetIBigDriveFileOperations(IBigDriveFileOperations** ppBigDriveFileOperations)
 {
     return GetInterface(IID_IBigDriveFileOperations, reinterpret_cast<IUnknown**>(ppBigDriveFileOperations));

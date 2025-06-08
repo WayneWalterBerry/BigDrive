@@ -335,7 +335,7 @@ HRESULT BigDriveShellFolder::AllocBigDrivePidl(BigDriveItemType nType, BSTR bstr
 }
 
 /// <inheritdoc />
-HRESULT BigDriveShellFolder::GetBigDriveItemNameFromPidl(PCUIDLIST_RELATIVE pidl, STRRET* pName)
+HRESULT BigDriveShellFolder::GetBigDriveItemNameFromPidl(PCUITEMID_CHILD pidl, STRRET* pName)
 {
     if (!pidl || !pName)
     {

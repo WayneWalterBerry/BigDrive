@@ -14,8 +14,14 @@
 /// <returns>S_OK if successful, E_NOINTERFACE if the interface is not supported.</returns>
 HRESULT __stdcall BigDriveDataObject::QueryInterface(REFIID riid, void** ppv)
 {
+    HRESULT hr = E_NOINTERFACE;
+
+    m_traceLogger.LogEnter(__FUNCTION__, riid, m_apidl, m_cidl);
+
     if (!ppv)
+    {
         return E_POINTER;
+    }
 
     *ppv = nullptr;
 
@@ -23,10 +29,12 @@ HRESULT __stdcall BigDriveDataObject::QueryInterface(REFIID riid, void** ppv)
     {
         *ppv = static_cast<IDataObject*>(this);
         AddRef();
-        return S_OK;
+        hr = S_OK;
     }
 
-    return E_NOINTERFACE;
+    m_traceLogger.LogExit(__FUNCTION__, hr);
+
+    return hr;
 }
 
 /// <summary>

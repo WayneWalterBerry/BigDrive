@@ -6,6 +6,7 @@ namespace BigDrive.Provider.Sample
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     public enum NodeType
     {
@@ -42,6 +43,41 @@ namespace BigDrive.Provider.Sample
         /// The size of this node, in bytes.
         /// </summary>
         public ulong Size { get; set; }
+
+        /// <summary>
+        /// Gets the file data for this node from the embedded resources, if available.
+        /// </summary>
+        public byte[] Data
+        {
+            get
+            {
+                System.Diagnostics.Debugger.Launch();
+
+                if (Type != NodeType.File || string.IsNullOrEmpty(Name))
+                {
+                    return null;
+                }
+
+                // Get the current assembly
+                var assembly = typeof(FolderNode).Assembly;
+
+                // Build the resource name (adjust namespace and folder as needed)
+                // Example: "BigDrive.Provider.Sample.Resources.A File.txt"
+                string resourceName = $"BigDrive.Provider.Sample.Resources.{Name}";
+
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null)
+                        return null;
+
+                    using (var ms = new System.IO.MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        return ms.ToArray();
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FolderNode"/> class.

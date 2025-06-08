@@ -52,6 +52,7 @@
     <Compile Include="IBigDriveFileOperations.cs" />
     <Compile Include="IBigDriveRegistration.cs" />
     <Compile Include="IBigDriveEnumerate.cs" />
+    <Compile Include="IBigDriveFileData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

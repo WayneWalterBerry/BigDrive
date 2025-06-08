@@ -4,9 +4,10 @@
 
 #pragma once
 
-#include <shlobj.h>
 #include "BigDriveShellFolder.h"
 #include "Logging\BigDriveShellFolderTraceLogger.h"
+
+#include <shlobj.h>
 
 /// <summary>
 /// Implements the IDataObject interface for BigDrive shell folder extensions.
@@ -41,6 +42,8 @@ private:
     /// </summary>
     BigDriveShellFolderTraceLogger m_traceLogger;
 
+	GUID m_driveGuid;
+
 public:
 
     /// <summary>
@@ -55,6 +58,8 @@ public:
     /// Destroys an instance of the <see cref="BigDriveDataObject"/> class.
     /// </summary>
     ~BigDriveDataObject();
+
+    static HRESULT CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv);
 
     /// <summary>
     /// Queries for a pointer to a supported interface.
@@ -163,4 +168,6 @@ private:
     /// <param name="pmedium">Pointer to the STGMEDIUM structure to receive the file descriptor.</param>
     /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT CreateFileDescriptor(STGMEDIUM* pmedium);
+
+    HRESULT GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize);
 };

@@ -65,6 +65,8 @@ public:
 
 	void LogEnter(LPCSTR functionName, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
 
+	void LogEnter(LPCSTR functionName, REFIID riid, PCUITEMID_CHILD_ARRAY apidl, UINT cidl);
+
 	void LogEnter(LPCSTR functionName, REFIID riid, LPCITEMIDLIST pidl);
 
 	void LogEnter(LPCSTR functionName, REFIID riid, LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2);
@@ -87,6 +89,13 @@ public:
 	void LogEnter(LPCSTR functionName, REFIID refiid);
 
 	/// <summary>
+	/// Logs entry into a function, including the FORMATETC structure.
+	/// </summary>
+	/// <param name="functionName">The name of the function being entered.</param>
+	/// <param name="pformatetc">Reference to the FORMATETC structure.</param>
+	void LogEnter(LPCSTR functionName, const FORMATETC& pformatetc);
+
+	/// <summary>
 	/// Logs entry into ParseDisplayName, including the display name parameter.
 	/// </summary>
 	/// <param name="functionName">The function name (typically __FUNCTION__).</param>
@@ -103,4 +112,10 @@ public:
 	void LogExit(LPCSTR functionName, LPCITEMIDLIST pidl, HRESULT hr);
 
 	void LogResults(LPCSTR functionName, IEnumIDList* pEnumIdList);
+
+	/// <summary>
+	/// Logs an informational message for diagnostics.
+	/// </summary>
+	/// <param name="message">The informational message to log.</param>
+	void LogInfo(const char* message);
 };

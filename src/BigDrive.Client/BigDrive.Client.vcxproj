@@ -195,6 +195,7 @@
     <ClInclude Include="Interfaces\ICatalogCollection.h" />
     <ClInclude Include="Interfaces\ICOMAdminCatalog.h" />
     <ClInclude Include="Interfaces\ICOMAdminCatalog2.h" />
+    <ClInclude Include="Interfaces\IBigDriveFileData.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ProviderConfiguration.h" />
     <ClInclude Include="VariantUtil.h" />
