@@ -11,16 +11,28 @@
 - Comments:
   - `<summary>` in `.h` declarations, including `<params>` and `<returns>`.
   - `/// <inheritdoc>` in `.cpp` implementations.
-  - For methods implementing shell folder extensions interface methods, detailed comments on inputs, outputs, and implementation reasoning.
-- Global Calls: Prefix all global method calls with `::`.
+  - For methods implementing interface methods (i.e. override), detailed comments on inputs, outputs, and implementation reasoning in the .h file only.
+- Global Calls: Prefix all free (non-member) global function calls with ::. Do not use the :: prefix for static class method calls (e.g., use BigDriveTraceLogger::LogEnter(...)).
 - Precompiled Header: Include `#include "pch.h"` in `.cpp`.
 - File Generation: Create Both .h and .cpp files.
+- Don't use Standard Library functions or Standard Template Library (STL) functions
+- Declare HRESULT variables as `HRESULT hr = S_OK;`
+- private class members should be prefixed with m_ 
+- Put all private member variables at the top of the class in a private: section, before any methods, and prefix them with m_.
+- private methods should be at the bottom of the class declaration
+- All method parameters should be passed by reference if possible (using `&` for C++).
+- When writing a new method return HRESULT unless there is a specific reason not to, pass the return value back through a method parameter passed by reference.
+- put an extra CR/LF at the after `End:`
+- member variables of a class should have summary comments in the header file.
+- after `private:` and `public:` put an extra CR/LF
 
 #### C# Code
 - Comments:
   - `<summary>` for each method, including `<params>` and `<returns>`.
-  - For shell folder extensions, detailed comments on inputs, outputs, and implementation reasoning.
+  - `<summary>` for each class and interface.
+  - standard `<summary>` constructors.
 - Namespace Usage: Place `using` statements inside the namespace.
+- Learn how to use partial classes and recognize that they might need additional file references.
 
 #### General Preferences
 - File Header:
@@ -28,4 +40,4 @@
   // <copyright file="FileName.cpp" company="Wayne Walter Berry">
   // Copyright (c) Wayne Walter Berry. All rights reserved.
   // </copyright>
-- ```
+  ```

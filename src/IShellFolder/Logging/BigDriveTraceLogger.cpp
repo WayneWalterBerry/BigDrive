@@ -163,7 +163,25 @@ HRESULT BigDriveTraceLogger::GetShellIIDName(REFIID riid, BSTR& bstrIIDName)
 		bstrIIDName = ::SysAllocString(L"IID_IClassFactory");
 	else if (IsEqualIID(riid, IID_IObjectWithBackReferences))
 		bstrIIDName = ::SysAllocString(L"IID_IObjectWithBackReferences");
-
+	else if (IsEqualIID(riid, IID_IMarshal))
+		bstrIIDName = ::SysAllocString(L"IID_IMarshal");
+	else if (IsEqualIID(riid, IID_IMarshal2))
+		bstrIIDName = ::SysAllocString(L"IID_IMarshal2");
+	else if (IsEqualIID(riid, IID_IStdMarshalInfo))
+		bstrIIDName = ::SysAllocString(L"IID_IStdMarshalInfo");
+	else if (IsEqualIID(riid, IID_IExternalConnection))
+		bstrIIDName = ::SysAllocString(L"IID_IExternalConnection");
+	else if (IsEqualIID(riid, IID_IProvideClassInfo))
+		bstrIIDName = ::SysAllocString(L"IID_IProvideClassInfo");
+	else if (IsEqualIID(riid, IID_IShellFolder2))
+		bstrIIDName = ::SysAllocString(L"IID_IShellFolder2");
+	else if (IsEqualIID(riid, IID_IStream))
+		bstrIIDName = ::SysAllocString(L"IID_IStream");
+	else if (IsEqualIID(riid, IID_ITransferSource))
+		bstrIIDName = ::SysAllocString(L"IID_ITransferSource");
+	else if (IsEqualIID(riid, IID_ICallFactory))
+		bstrIIDName = ::SysAllocString(L"IID_ICallFactory");
+	
 	if (bstrIIDName != nullptr)
 		return S_OK;
 

@@ -4,6 +4,7 @@
 
 #include "pch.h"
 
+#include "BigDriveShellFolder.h"
 #include "BigDriveDropTarget.h"
 #include "Logging\BigDriveShellFolderTraceLogger.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
@@ -15,124 +16,170 @@
 #define CFSTR_SHELLIDLIST      TEXT("Shell IDList Array")
 #define CFSTR_FILECONTENTS     TEXT("FileContents")
 
-/// <summary>
-/// Handles the beginning of a drag operation over this drop target.
-/// </summary>
-/// <param name="pDataObj">Pointer to the IDataObject containing the dragged data.</param>
-/// <param name="grfKeyState">Current keyboard and mouse button state.</param>
-/// <param name="pt">Current mouse position in screen coordinates.</param>
-/// <param name="pdwEffect">Pointer to the effect of the drag operation.</param>
-/// <returns>S_OK if successful; otherwise, an error code.</returns>
+/// <inheritdoc />
 HRESULT __stdcall BigDriveDropTarget::DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
 {
-    if (!pDataObj || !pdwEffect)
-        return E_INVALIDARG;
+    /// <inheritdoc />
+    HRESULT hr = S_OK;
+    BOOL fFormatSupported = FALSE;
 
-    // Default behavior - don't allow drop
+    m_traceLogger.LogEnter(__FUNCTION__);
+
+    if (pDataObj == nullptr || pdwEffect == nullptr)
+    {
+        hr = E_INVALIDARG;
+        goto End;
+    }
+
     m_fAllowDrop = FALSE;
     m_dwEffect = DROPEFFECT_NONE;
     *pdwEffect = DROPEFFECT_NONE;
 
-    // Check if the data format is supported
-    m_fAllowDrop = IsFormatSupported(pDataObj);
+    fFormatSupported = IsFormatSupported(pDataObj);
+    m_fAllowDrop = fFormatSupported;
 
-    // If the format is supported, determine the allowed effect
     if (m_fAllowDrop)
     {
-        // Default to copy for BigDrive targets
+		m_traceLogger.LogInfo("Data object format is supported for drop.");
+
         m_dwEffect = DROPEFFECT_COPY;
 
-        // Update the effect based on keyboard modifiers
-        if (grfKeyState & MK_CONTROL)
+        if ((grfKeyState & MK_CONTROL) != 0)
+        {
             m_dwEffect = DROPEFFECT_COPY;
-        else if (grfKeyState & MK_SHIFT)
+        }
+        else if ((grfKeyState & MK_SHIFT) != 0)
+        {
             m_dwEffect = DROPEFFECT_MOVE;
+        }
 
-        // Limit to what's allowed by the source
         *pdwEffect = *pdwEffect & m_dwEffect;
         if (*pdwEffect == 0)
+        {
             *pdwEffect = m_dwEffect;
+        }
+    }
+    else
+    {
+		m_traceLogger.LogInfo("Data object format is NOT supported for drop.");
     }
 
-    return S_OK;
+End:
+
+    m_traceLogger.LogExit(__FUNCTION__, hr);
+
+    return hr;
 }
 
-/// <summary>
-/// Handles continued dragging over this drop target.
-/// </summary>
-/// <param name="grfKeyState">Current keyboard and mouse button state.</param>
-/// <param name="pt">Current mouse position in screen coordinates.</param>
-/// <param name="pdwEffect">Pointer to the effect of the drag operation.</param>
-/// <returns>S_OK if successful; otherwise, an error code.</returns>
+/// <inheritdoc />
 HRESULT __stdcall BigDriveDropTarget::DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
 {
-    if (!pdwEffect)
-        return E_INVALIDARG;
-
-    *pdwEffect = DROPEFFECT_NONE;
-
-    // If drop isn't allowed, stop here
-    if (!m_fAllowDrop)
-        return S_OK;
-
-    // Default to copy for BigDrive targets
-    m_dwEffect = DROPEFFECT_COPY;
-
-    // Update the effect based on keyboard modifiers
-    if (grfKeyState & MK_CONTROL)
-        m_dwEffect = DROPEFFECT_COPY;
-    else if (grfKeyState & MK_SHIFT)
-        m_dwEffect = DROPEFFECT_MOVE;
-
-    // Limit to what's allowed by the source
-    *pdwEffect = *pdwEffect & m_dwEffect;
-    if (*pdwEffect == 0)
-        *pdwEffect = m_dwEffect;
-
-    return S_OK;
-}
-
-/// <summary>
-/// Handles the drag pointer leaving the drop target.
-/// </summary>
-/// <returns>S_OK if successful; otherwise, an error code.</returns>
-HRESULT __stdcall BigDriveDropTarget::DragLeave()
-{
-    // Reset drag state
-    m_fAllowDrop = FALSE;
-    m_dwEffect = DROPEFFECT_NONE;
-
-    return S_OK;
-}
-
-/// <summary>
-/// Handles the drop operation when items are dropped on this target.
-/// </summary>
-/// <param name="pDataObj">Pointer to the IDataObject containing the dropped data.</param>
-/// <param name="grfKeyState">Current keyboard and mouse button state.</param>
-/// <param name="pt">Drop position in screen coordinates.</param>
-/// <param name="pdwEffect">Pointer to the effect of the drop operation.</param>
-/// <returns>S_OK if successful; otherwise, an error code.</returns>
-HRESULT __stdcall BigDriveDropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-{
+    /// <inheritdoc />
     HRESULT hr = S_OK;
 
-    if (!pDataObj || !pdwEffect)
-        return E_INVALIDARG;
+    m_traceLogger.LogEnter(__FUNCTION__, hr);
 
-    // Default to no effect
+    if (pdwEffect == nullptr)
+    {
+        hr = E_INVALIDARG;
+        goto End;
+    }
+
     *pdwEffect = DROPEFFECT_NONE;
 
-    // Check if drop is allowed
     if (!m_fAllowDrop)
-        return S_OK;
+    {
+        goto End;
+    }
 
-    // Process the drop
-    hr = ProcessDrop(pDataObj);
-    if (SUCCEEDED(hr))
+    m_dwEffect = DROPEFFECT_COPY;
+
+    if ((grfKeyState & MK_CONTROL) != 0)
+    {
+        m_dwEffect = DROPEFFECT_COPY;
+    }
+    else if ((grfKeyState & MK_SHIFT) != 0)
+    {
+        m_dwEffect = DROPEFFECT_MOVE;
+    }
+
+    *pdwEffect = *pdwEffect & m_dwEffect;
+    if (*pdwEffect == 0)
     {
         *pdwEffect = m_dwEffect;
     }
+
+End:
+
+    m_traceLogger.LogExit(__FUNCTION__, hr);
+
+    return hr;
+}
+
+/// <inheritdoc />
+HRESULT __stdcall BigDriveDropTarget::DragLeave()
+{
+    /// <inheritdoc />
+    HRESULT hr = S_OK;
+
+    m_traceLogger.LogEnter(__FUNCTION__);
+
+    m_fAllowDrop = FALSE;
+    m_dwEffect = DROPEFFECT_NONE;
+
+    m_traceLogger.LogExit(__FUNCTION__, hr);
+
+    return hr;
+}
+
+/// <inheritdoc />
+HRESULT __stdcall BigDriveDropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+{
+    /// <inheritdoc />
+    HRESULT hr = S_OK;
+	PIDLIST_ABSOLUTE pidlTargetFolder = nullptr;
+
+    m_traceLogger.LogEnter(__FUNCTION__);
+
+    if (pDataObj == nullptr || pdwEffect == nullptr)
+    {
+        hr = E_INVALIDARG;
+        goto End;
+    }
+
+    *pdwEffect = DROPEFFECT_NONE;
+
+    if (!m_fAllowDrop)
+    {
+        goto End;
+    }
+
+    hr = ProcessDrop(pDataObj);
+    if (FAILED(hr))
+    {
+        goto End;
+    }
+
+    *pdwEffect = m_dwEffect;
+
+	hr = m_pFolder->GetPidlAbsolute(pidlTargetFolder);
+    if (FAILED(hr))
+    {
+        goto End;
+	}   
+
+    // Notify the shell that the folder contents have changed
+    ::SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_IDLIST, pidlTargetFolder, nullptr);
+
+End:
+
+    if (pidlTargetFolder != nullptr)
+    {
+        ::ILFree(pidlTargetFolder);
+        pidlTargetFolder = nullptr;
+	}
+
+    m_traceLogger.LogExit(__FUNCTION__, hr);
 
     return hr;
 }

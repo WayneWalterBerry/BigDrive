@@ -19,6 +19,7 @@
 #include "ILExtensions.h"
 #include "BigDriveShellContextMenu.h"
 #include "BigDriveDropTarget.h"
+#include "BigDriveDataObject.h"
 
 // {8279FEB8-5CA4-45C4-BE27-770DCDEA1DEB} // Can't find any information on this one, found name in registry
 static const GUID SDefined_ITopViewAwareItem = 
@@ -956,7 +957,7 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 
 	if ((riid == IID_IExtractIconW) || (riid == IID_IExtractIconA))
 	{
-		hr = BigDriveShellIcon::CreateInstance(m_driveGuid, this, cidl, apidl, riid, ppv);
+		hr = BigDriveShellIcon::CreateInstance(this, cidl, apidl, riid, ppv);
 		if (FAILED(hr))
 		{
 			goto End;
@@ -964,7 +965,15 @@ HRESULT __stdcall BigDriveShellFolder::GetUIObjectOf(HWND hwndOwner, UINT cidl, 
 	}
 	else if ((riid == IID_IContextMenu) || (riid == IID_IContextMenu2) || (riid == IID_IContextMenu3))
 	{
-		hr = BigDriveShellContextMenu::CreateInstance(m_driveGuid, this, cidl, apidl, ppv);
+		hr = BigDriveShellContextMenu::CreateInstance(this, cidl, apidl, ppv);
+		if (FAILED(hr))
+		{
+			goto End;
+		}
+	}
+	else if (riid == IID_IDataObject)
+	{
+		hr = BigDriveDataObject::CreateInstance(this, cidl, apidl, ppv);
 		if (FAILED(hr))
 		{
 			goto End;

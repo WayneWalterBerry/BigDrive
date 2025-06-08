@@ -6,10 +6,14 @@
 
 #include "BigDriveDropTarget.h"
 
+#include "BigDriveShellFolder.h"
+
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 #include "..\BigDrive.Client\Interfaces\IBigDriveFileOperations.h"
+
+#include "Logging\BigDriveShellFolderTraceLogger.h"
 
 /// <summary>
 /// Constructor for BigDriveDropTarget.
@@ -22,6 +26,7 @@ BigDriveDropTarget::BigDriveDropTarget(BigDriveShellFolder* pFolder)
     if (m_pFolder)
     {
         m_pFolder->AddRef();
+        m_traceLogger.Initialize(pFolder->GetDriveGuid());
     }
 }
 
@@ -38,7 +43,6 @@ BigDriveDropTarget::~BigDriveDropTarget()
     }
 }
 
-
 /// <summary>
 /// Checks if the data object contains data in a format supported by this drop target.
 /// </summary>
@@ -47,7 +51,6 @@ BigDriveDropTarget::~BigDriveDropTarget()
 BOOL BigDriveDropTarget::IsFormatSupported(IDataObject* pDataObj)
 {
     BOOL bSupported = FALSE;
-    FORMATETC* pfmte = nullptr;
     HRESULT hr = E_FAIL;
     CLIPFORMAT cfShellIdList = 0;
     CLIPFORMAT cfFileDescriptor = 0;
@@ -58,61 +61,56 @@ BOOL BigDriveDropTarget::IsFormatSupported(IDataObject* pDataObj)
         goto End;
     }
 
-    pfmte = new (std::nothrow) FORMATETC;
-    if (pfmte == nullptr)
-    {
-        goto End;
-    }
-
-    pfmte->cfFormat = 0;
-    pfmte->ptd = nullptr;
-    pfmte->dwAspect = DVASPECT_CONTENT;
-    pfmte->lindex = -1;
-    pfmte->tymed = TYMED_HGLOBAL;
+    FORMATETC fmte;
+		
+    fmte.cfFormat = 0;
+    fmte.ptd = nullptr;
+    fmte.dwAspect = DVASPECT_CONTENT;
+    fmte.lindex = -1;
+    fmte.tymed = TYMED_HGLOBAL;
 
     // Check for Shell IDList Array format
     cfShellIdList = (CLIPFORMAT)RegisterClipboardFormat(CFSTR_SHELLIDLIST);
-    pfmte->cfFormat = cfShellIdList;
-    hr = pDataObj->QueryGetData(pfmte);
+    fmte.cfFormat = cfShellIdList;
+
+    hr = pDataObj->QueryGetData(&fmte);
     if (SUCCEEDED(hr))
     {
+		m_traceLogger.LogInfo("Data object supports CFSTR_SHELLIDLIST format.");
         bSupported = TRUE;
         goto End;
     }
 
     // Check for standard file drop format (HDROP)
-    pfmte->cfFormat = CF_HDROP;
-    hr = pDataObj->QueryGetData(pfmte);
+    fmte.cfFormat = CF_HDROP;
+    hr = pDataObj->QueryGetData(&fmte);
     if (SUCCEEDED(hr))
     {
+		m_traceLogger.LogInfo("Data object supports CF_HDROP format.");
         bSupported = TRUE;
         goto End;
     }
 
     // Check for FileGroupDescriptor format (used by virtual files)
     cfFileDescriptor = (CLIPFORMAT)RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
-    pfmte->cfFormat = cfFileDescriptor;
-    hr = pDataObj->QueryGetData(pfmte);
+    fmte.cfFormat = cfFileDescriptor;
+
+    hr = pDataObj->QueryGetData(&fmte);
     if (SUCCEEDED(hr))
     {
         // Also need FileContents
         cfFileContents = (CLIPFORMAT)RegisterClipboardFormat(CFSTR_FILECONTENTS);
-        pfmte->cfFormat = cfFileContents;
-        hr = pDataObj->QueryGetData(pfmte);
+        fmte.cfFormat = cfFileContents;
+        hr = pDataObj->QueryGetData(&fmte);
         if (SUCCEEDED(hr))
         {
+			m_traceLogger.LogInfo("Data object supports virtual file formats (CFSTR_FILEDESCRIPTOR and CFSTR_FILECONTENTS).");
             bSupported = TRUE;
             goto End;
         }
     }
 
 End:
-
-    if (pfmte != nullptr)
-    {
-        delete pfmte;
-        pfmte = nullptr;
-    }
 
     return bSupported;
 }
@@ -184,11 +182,7 @@ HRESULT BigDriveDropTarget::ProcessDrop(IDataObject* pDataObj)
         goto End;
     }
 
-    hr = m_pFolder->GetProviderCLSID(driveGuid);
-    if (FAILED(hr))
-    {
-        goto End;
-    }
+	driveGuid = m_pFolder->GetDriveGuid();
 
     hr = BigDriveConfigurationClient::GetDriveConfiguration(driveGuid, driveConfig);
     if (FAILED(hr))
@@ -196,7 +190,7 @@ HRESULT BigDriveDropTarget::ProcessDrop(IDataObject* pDataObj)
         goto End;
     }
 
-    pProvider = new (std::nothrow) BigDriveInterfaceProvider(driveConfig);
+    pProvider = new BigDriveInterfaceProvider(driveConfig);
     if (pProvider == nullptr)
     {
         hr = E_OUTOFMEMORY;
@@ -240,13 +234,13 @@ End:
 
     if (bstrTargetFolder)
     {
-        SysFreeString(bstrTargetFolder);
+        ::SysFreeString(bstrTargetFolder);
         bstrTargetFolder = nullptr;
     }
 
     if (pidlFolder)
     {
-        ILFree(pidlFolder);
+        ::ILFree(pidlFolder);
         pidlFolder = nullptr;
     }
 

@@ -20,11 +20,6 @@ class BigDriveShellContextMenu :
 private:
 
     /// <summary>
-    /// Stores the drive GUID
-    /// </summary>
-    CLSID m_driveGuid;
-
-    /// <summary>
     /// Logger that captures trace information for the shell folder.
     /// </summary>
     BigDriveShellFolderTraceLogger m_traceLogger;
@@ -39,16 +34,17 @@ public:
     /// <param name="apidl">Array of item IDs for which to create the context menu.</param>
     /// <param name="ppv">On success, receives the IContextMenu interface pointer.</param>
     /// <returns>S_OK if successful, or an error code.</returns>
-    static HRESULT CreateInstance(CLSID driveGuid, BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv);
+    static HRESULT CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv);
 
 private:
+
     /// <summary>
     /// Private constructor - use CreateInstance to create instances.
     /// </summary>
     /// <param name="pFolder">The parent BigDriveShellFolder object.</param>
     /// <param name="cidl">Count of item IDs in the array.</param>
     /// <param name="apidl">Array of item IDs for which to create the context menu.</param>
-    BigDriveShellContextMenu(CLSID driveGuid, BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
+    BigDriveShellContextMenu(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
     
     /// <summary>
     /// Destructor.
