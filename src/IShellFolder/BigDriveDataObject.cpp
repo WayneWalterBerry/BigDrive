@@ -44,7 +44,7 @@ BigDriveDataObject::BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, 
 		}
 	}
 
-	m_driveGuid = pFolder->GetDriveGuid();
+	m_driveGuid = m_pFolder->GetDriveGuid();
 }
 
 /// <summary>
@@ -269,6 +269,103 @@ HRESULT BigDriveDataObject::CreateFileDescriptor(STGMEDIUM* pmedium)
 	pmedium->pUnkForRelease = nullptr;
 
 	return S_OK;
+}
+
+HRESULT BigDriveDataObject::CreateDropDescription(STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	DROPDESCRIPTION* pDropDesc = nullptr;
+
+	// Create and populate a DROPDESCRIPTION structure
+	HGLOBAL hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DROPDESCRIPTION));
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	pDropDesc = (DROPDESCRIPTION*)::GlobalLock(hGlobal);
+	if (!pDropDesc)
+	{
+		::GlobalFree(hGlobal);
+		hGlobal = nullptr;
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Set the drop description type
+	pDropDesc->type = DROPIMAGE_COPY; // or DROPIMAGE_MOVE, etc. depending on your needs
+
+	// Set the message (max 63 chars)
+	::wcscpy_s(pDropDesc->szMessage, 64, L"Copy to %1");
+
+	// You can also set a custom insert string if needed
+	::wcscpy_s(pDropDesc->szInsert, 260, L"Big Drive");
+
+	::GlobalUnlock(hGlobal);
+
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	return hr;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveDataObject::CreateFileContents(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	BYTE* pData = nullptr;
+	SIZE_T dataSize = 0;
+	HGLOBAL hGlobal = nullptr;
+	void* pDest = nullptr;
+
+	LONG fileIndex = pformatetc->lindex;
+	if (fileIndex < 0 || (UINT)fileIndex >= m_cidl)
+	{
+		hr = DV_E_LINDEX;
+		goto End;
+	}
+
+	hr = GetFileDataFromPidl(m_apidl[fileIndex], &pData, dataSize);
+	if (FAILED(hr) || pData == nullptr)
+	{
+		goto End;
+	}
+
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, dataSize);
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	pDest = ::GlobalLock(hGlobal);
+	if (!pDest)
+	{
+		::GlobalFree(hGlobal);
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	::memcpy(pDest, pData, dataSize);
+	::GlobalUnlock(hGlobal);
+
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	if (pData != nullptr)
+	{
+		::CoTaskMemFree(pData);
+		pData = nullptr;
+	}
+
+	return hr;
 }
 
 /// <inheritdoc />

@@ -5,7 +5,9 @@
 namespace BigDrive.Provider.Sample
 {
     using System;
+    using System.Diagnostics;
     using System.IO;
+    using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.ComTypes;
 
     /// <summary>
@@ -21,15 +23,22 @@ namespace BigDrive.Provider.Sample
         /// <returns>
         /// An <see cref="IStream"/> containing the file data, or <c>null</c> if not found.
         /// </returns>
-        public IStream GetFileData(Guid driveGuid, string path)
+        public int GetFileData(Guid driveGuid, string path, [MarshalAs(UnmanagedType.Interface)] out IStream stream)
         {
+            System.Diagnostics.Debugger.Launch();
+
+            stream = default(IStream);
+
             var node = FindNodeByPath(path);
             if (node != null && node.Type == NodeType.File && node.Data != null)
             {
                 // Wrap the file's byte[] data in a COM IStream
-                return new DataStreamWrapper(new MemoryStream(node.Data));
+                stream = new DataStreamWrapper(new MemoryStream(node.Data));
+                return 0;
             }
-            return null;
+
+            // E_FILENOTFOUND
+            return unchecked((int)0x80070002); 
         }
     }
 }

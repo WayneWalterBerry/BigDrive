@@ -31,7 +31,7 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     virtual HRESULT STDMETHODCALLTYPE EnumerateFolders(
         /* [in] */ REFGUID driveGuid,
-        /* [in] */ LPWSTR path,
+        /* [in] */ BSTR path,
         /* [out] */ SAFEARRAY** folders) = 0;
 
     /// <summary>
@@ -43,7 +43,7 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     virtual HRESULT STDMETHODCALLTYPE EnumerateFiles(
         /* [in] */ REFGUID driveGuid,
-        /* [in] */ LPWSTR path,
+        /* [in] */ BSTR path,
         /* [out] */ SAFEARRAY** files) = 0;
 };
 

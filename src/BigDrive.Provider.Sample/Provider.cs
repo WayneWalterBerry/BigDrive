@@ -9,6 +9,7 @@ namespace BigDrive.Provider.Sample
     using System.EnterpriseServices;
     using System.Runtime.InteropServices;
     using System.Collections.Generic;
+    using System.Runtime.InteropServices.ComTypes;
 
     [Guid("F8FE2E5A-E8B8-4207-BC04-EA4BCD4C4361")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
@@ -18,7 +19,8 @@ namespace BigDrive.Provider.Sample
         IBigDriveRegistration,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
-        IBigDriveFileOperations
+        IBigDriveFileOperations,
+        IBigDriveFileData
     {
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
@@ -29,6 +31,8 @@ namespace BigDrive.Provider.Sample
 
         static Provider()
         {
+            System.Diagnostics.Debugger.Launch();
+
             InitializeTree();
         }
 

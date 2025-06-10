@@ -44,7 +44,7 @@ private:
 
 	GUID m_driveGuid;
 
-public:
+private:
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BigDriveDataObject"/> class.
@@ -53,6 +53,8 @@ public:
     /// <param name="cidl">Number of item IDs.</param>
     /// <param name="apidl">Array of item IDs.</param>
     BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl);
+
+public:
 
     /// <summary>
     /// Destroys an instance of the <see cref="BigDriveDataObject"/> class.
@@ -168,6 +170,21 @@ private:
     /// <param name="pmedium">Pointer to the STGMEDIUM structure to receive the file descriptor.</param>
     /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT CreateFileDescriptor(STGMEDIUM* pmedium);
+
+    /// <summary>
+    /// Initializes a drop description for a data object using the specified storage medium.
+    /// </summary>
+    /// <param name="pmedium">A pointer to a STGMEDIUM structure that receives the drop description.</param>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
+    HRESULT CreateDropDescription(STGMEDIUM* pmedium);
+
+    /// <summary>
+    /// Creates file contents in the specified storage medium according to the given format descriptor.
+    /// </summary>
+    /// <param name="pformatetc">A pointer to a FORMATETC structure that defines the format, medium, and target device for the data.</param>
+    /// <param name="pmedium">A pointer to a STGMEDIUM structure that, on successful return, receives the created file contents.</param>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
+    HRESULT CreateFileContents(FORMATETC* pformatetc, STGMEDIUM* pmedium);
 
     HRESULT GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize);
 };

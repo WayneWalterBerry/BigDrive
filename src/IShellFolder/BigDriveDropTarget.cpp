@@ -27,13 +27,14 @@ CLIPFORMAT g_cfHDrop = CF_HDROP;
 /// </summary>
 /// <param name="pFolder">Pointer to the parent shell folder.</param>
 BigDriveDropTarget::BigDriveDropTarget(BigDriveShellFolder* pFolder)
-	: m_cRef(1), m_pFolder(pFolder), m_fAllowDrop(FALSE), m_dwEffect(0)
+	: m_cRef(1), m_pFolder(pFolder), m_fAllowDrop(FALSE), m_dwEffect(0), m_traceLogger()
 {
+	m_traceLogger.Initialize(pFolder->GetDriveGuid());
+
 	// AddRef the folder object
 	if (m_pFolder)
 	{
 		m_pFolder->AddRef();
-		m_traceLogger.Initialize(pFolder->GetDriveGuid());
 	}
 }
 
@@ -318,7 +319,7 @@ HRESULT BigDriveDropTarget::ProcessShellIdListDrop(IDataObject* pIDataObject)
 	CLSID driveGuid = GUID_NULL;
 	LPCITEMIDLIST pidlParent = nullptr;
 	BOOL bGlobalLocked = FALSE;
-	ITEMIDLIST* pidlFull = nullptr;
+	LPITEMIDLIST pidlFull = nullptr;
 
 	hr = pIDataObject->GetData(&fmtec, &stgmed);
 	if (FAILED(hr))
@@ -405,7 +406,6 @@ HRESULT BigDriveDropTarget::ProcessShellIdListDrop(IDataObject* pIDataObject)
 			continue;
 		}
 
-		// Convert PIDL to file path
 		pidlFull = ::ILCombine(pidlParent, pidlItem);
 		if (!pidlFull)
 		{
@@ -414,6 +414,7 @@ HRESULT BigDriveDropTarget::ProcessShellIdListDrop(IDataObject* pIDataObject)
 			goto End;
 		}
 
+		// Convert PIDL to file path
 		if (!::SHGetPathFromIDList(pidlFull, filePath))
 		{
 			WriteErrorFormatted(L"Failed to get file path from PIDL for item %d", i);

@@ -23,12 +23,12 @@ public:
 
     virtual HRESULT STDMETHODCALLTYPE LastModifiedTime(
         /* [in] */ REFGUID driveGuid,
-        /* [in] */ LPWSTR path,
+        /* [in] */ BSTR path,
         /* [out] */ DATE* pDATE) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetFileSize(
         /* [in] */ REFGUID driveGuid,
-        /* [in] */ LPWSTR path,
+        /* [in] */ BSTR path,
         /* [out] */ ULONGLONG* pSize) = 0;
 };
 

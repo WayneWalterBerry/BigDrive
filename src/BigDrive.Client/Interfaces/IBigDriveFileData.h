@@ -28,6 +28,6 @@ public:
     /// <returns>HRESULT indicating success or failure.</returns>
     virtual HRESULT STDMETHODCALLTYPE GetFileData(
         /* [in] */ REFGUID driveGuid,
-        /* [in] */ LPWSTR path,
+        /* [in] */ BSTR path,
         /* [out] */ IStream** ppStream) = 0;
 };

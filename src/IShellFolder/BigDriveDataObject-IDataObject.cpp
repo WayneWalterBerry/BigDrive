@@ -23,6 +23,8 @@
 #define CFSTR_FILEDESCRIPTOR TEXT("FileGroupDescriptor")
 #endif
 
+CLIPFORMAT g_cfDropDescription = ::RegisterClipboardFormat(TEXT("DropDescription"));
+
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* pmedium)
 {
@@ -51,6 +53,11 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 		hr = CreateFileDescriptor(pmedium);
 		goto End;
 	}
+	else if (pformatetc->cfFormat == g_cfDropDescription && (pformatetc->tymed & TYMED_HGLOBAL))
+	{
+		hr = CreateDropDescription(pmedium);
+		goto End;
+	}
 	else if (pformatetc->cfFormat == CF_HDROP && (pformatetc->tymed & TYMED_HGLOBAL))
 	{
 		hr = DV_E_FORMATETC;
@@ -58,44 +65,7 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 	}
 	else if (pformatetc->cfFormat == ::RegisterClipboardFormat(CFSTR_FILECONTENTS) && (pformatetc->tymed & TYMED_HGLOBAL))
 	{
-		LONG fileIndex = pformatetc->lindex;
-		if (fileIndex < 0 || (UINT)fileIndex >= m_cidl)
-		{
-			hr = DV_E_LINDEX;
-			goto End;
-		}
-
-		hr = GetFileDataFromPidl(m_apidl[fileIndex], &pData, dataSize);
-		if (FAILED(hr) || pData == nullptr)
-		{
-			goto End;
-		}
-
-		HGLOBAL hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, dataSize);
-		if (!hGlobal)
-		{
-			hr = E_OUTOFMEMORY;
-			goto End;
-		}
-
-		void* pDest = ::GlobalLock(hGlobal);
-		if (!pDest)
-		{
-			::GlobalFree(hGlobal);
-			hr = E_OUTOFMEMORY;
-			goto End;
-		}
-
-		::memcpy(pDest, pData, dataSize);
-		::GlobalUnlock(hGlobal);
-
-
-
-		pmedium->tymed = TYMED_HGLOBAL;
-		pmedium->hGlobal = hGlobal;
-		pmedium->pUnkForRelease = nullptr;
-
-		hr = S_OK;
+		hr = CreateFileContents(pformatetc, pmedium);
 		goto End;
 	}
 	else
@@ -104,9 +74,9 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 		goto End;
 	}
 
-	m_traceLogger.LogExit(__FUNCTION__, hr);
-
 End:
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	if (pData != nullptr)
 	{
@@ -160,7 +130,8 @@ HRESULT __stdcall BigDriveDataObject::QueryGetData(FORMATETC* pformatetc)
 
 	if ((cf == ::RegisterClipboardFormat(CFSTR_SHELLIDLIST) && (pformatetc->tymed & TYMED_HGLOBAL)) ||
 		(cf == ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR) && (pformatetc->tymed & TYMED_HGLOBAL)) ||
-		(cf == ::RegisterClipboardFormat(CFSTR_FILECONTENTS) && (pformatetc->tymed & TYMED_HGLOBAL)))
+		(cf == ::RegisterClipboardFormat(CFSTR_FILECONTENTS) && (pformatetc->tymed & TYMED_HGLOBAL)) ||
+		(cf == ::g_cfDropDescription))
 	{
 		hr = S_OK;
 		goto End;
@@ -249,6 +220,13 @@ HRESULT __stdcall BigDriveDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORM
 		},
 		{
 			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILECONTENTS),
+			nullptr,
+			DVASPECT_CONTENT,
+			-1,
+			TYMED_HGLOBAL
+		},
+		{
+			g_cfDropDescription,
 			nullptr,
 			DVASPECT_CONTENT,
 			-1,
