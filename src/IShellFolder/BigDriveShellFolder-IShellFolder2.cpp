@@ -325,14 +325,7 @@ End:
 HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
 {
 	HRESULT hr = E_NOTIMPL;
-	DriveConfiguration driveConfiguration;
-	BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
-	IBigDriveFileInfo* pBigDriveFileInfo = nullptr;
-	BSTR bstrPath = nullptr;
-	DATE dtLastModifiedTime;
-	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
-	ULONGLONG ullFileSize;
-
+	
 	m_traceLogger.LogEnter(__FUNCTION__, pidl, pscid);
 
 	if (!pv)
@@ -349,133 +342,24 @@ HRESULT __stdcall BigDriveShellFolder::GetDetailsEx(PCUITEMID_CHILD pidl, const 
 
 	::VariantInit(pv);
 
-	// Check if this is the Last Modified Date property
 	if (IsEqualGUID(pscid->fmtid, FMTID_Storage))
 	{
-		// Initialize common components needed for both properties
-		switch (pscid->pid)
+		hr = GetStorageProperty(pidl, pscid, pv);
+		if (FAILED(hr))
 		{
-		case PID_STG_WRITETIME:
-		case PID_STG_SIZE:
-
-			hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
-			if (FAILED(hr))
-			{
-				WriteErrorFormatted(L"GetDetailsEx: Failed to get drive configuration. HRESULT: 0x%08X", hr);
-				goto End;
-			}
-
-			pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
-			if (pInterfaceProvider == nullptr)
-			{
-				WriteError(L"GetDetailsEx: Failed to create BigDriveInterfaceProvider");
-				hr = E_OUTOFMEMORY;
-				goto End;
-			}
-
-			hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
-			switch (hr)
-			{
-			case S_OK:
-				break;
-			case S_FALSE:
-				// Interface isn't Implemented By The Provider
-				goto End;
-			default:
-				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
-				break;
-			}
-
-			if (pBigDriveFileInfo == nullptr)
-			{
-				hr = E_FAIL;
-				WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
-				goto End;
-			}
-
-			pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
-
-			hr = GetPathForProviders(pidlAbsolute, bstrPath);
-			if (FAILED(hr))
-			{
-				goto End;
-			}
-
-			break;
+			goto End;
 		}
-
-		// Speific Code For Each Column
-		switch(pscid->pid)
+	}
+	else if (IsEqualGUID(pscid->fmtid, FMTID_ShellDetails))
+	{
+		hr = GetShellDetailsProperty(pidl, pscid, pv);
+		if (FAILED(hr))
 		{
-		case  PID_STG_WRITETIME:
-
-			hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
-			if (FAILED(hr))
-			{
-				goto End;
-			}
-
-			// Set VARIANT to FILETIME (corrected)
-			pv->vt = VT_DATE;
-			pv->date = dtLastModifiedTime;
-
-			hr = S_OK;
-
-			break;
-
-		case PID_STG_SIZE:
-
-			// Check if this is a folder
-			const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
-			if (pItem && pItem->uType == BigDriveItemType_Folder)
-			{
-				// Don't display size for folders
-				pv->vt = VT_EMPTY;
-				hr = S_OK;
-				goto End;
-			}
-
-			// Get the file size from our provider
-			hr = pBigDriveFileInfo->GetFileSize(m_driveGuid, bstrPath, &ullFileSize);
-			if (FAILED(hr))
-			{
-				goto End;
-			}
-
-			// Set VARIANT to 64-bit unsigned integer
-			pv->vt = VT_UI8;
-			pv->ullVal = ullFileSize;
-			hr = S_OK;
-
-			break;
+			goto End;
 		}
 	}
 
 End:
-
-	if (pidlAbsolute)
-	{
-		::ILFree(pidlAbsolute);
-		pidlAbsolute = nullptr;
-	}
-
-	if (bstrPath)
-	{
-		::SysFreeString(bstrPath);
-		bstrPath = nullptr;
-	}
-
-	if (pInterfaceProvider)
-	{
-		delete pInterfaceProvider;
-		pInterfaceProvider = nullptr;
-	}
-
-	if (pBigDriveFileInfo)
-	{
-		pBigDriveFileInfo->Release();
-		pBigDriveFileInfo = nullptr;
-	}
 
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 

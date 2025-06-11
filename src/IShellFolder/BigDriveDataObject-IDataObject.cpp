@@ -131,21 +131,8 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 	}
 	else if (pformatetc->cfFormat == g_cfHDrop)
 	{
-		// Verify the medium type is supported
-		if ((pformatetc->tymed & TYMED_HGLOBAL) == 0)
-		{
-			hr = DV_E_TYMED;
-			goto End;
-		}
-
-		// Verify the aspect is content
-		if (pformatetc->dwAspect != DVASPECT_CONTENT)
-		{
-			hr = DV_E_DVASPECT;
-			goto End;
-		}
-
-		hr = CreateHDrop(pformatetc, pmedium);
+		// This is not suported in BigDrive, since all the files are virtualized.
+		hr = DV_E_FORMATETC;
 		goto End;
 	}
 	else
@@ -393,21 +380,21 @@ HRESULT __stdcall BigDriveDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORM
 	// Define the supported formats
 	static const FORMATETC formats[] = {
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_SHELLIDLIST), // cfFormat
+			g_cfShellIdList, // cfFormat
 			nullptr,                                                  // ptd
 			DVASPECT_CONTENT,                                         // dwAspect
 			-1,                                                       // lindex
 			TYMED_HGLOBAL                                             // tymed
 		},
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR),
+			g_cfFileDescriptor,
 			nullptr,
 			DVASPECT_CONTENT,
 			-1,
 			TYMED_HGLOBAL
 		},
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILECONTENTS),
+			g_cfFileContents,
 			nullptr,
 			DVASPECT_CONTENT,
 			-1,

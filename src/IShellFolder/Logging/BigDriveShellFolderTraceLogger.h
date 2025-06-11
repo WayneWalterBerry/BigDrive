@@ -118,4 +118,12 @@ public:
 	/// </summary>
 	/// <param name="message">The informational message to log.</param>
 	void LogInfo(const char* message);
+
+	/// <summary>
+	/// Logs an informational message with function name and formatted text.
+	/// </summary>
+	/// <param name="functionName">Name of the function logging the message.</param>
+	/// <param name="format">Format string (wide character).</param>
+	/// <param name="...">Variable arguments for the format string.</param>
+	void LogInfo(LPCSTR functionName, LPCWSTR format, ...);
 };

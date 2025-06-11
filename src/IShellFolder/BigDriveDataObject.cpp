@@ -1,4 +1,3 @@
-// <copyright file="BigDriveDataObject.cpp" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -221,7 +220,7 @@ HRESULT BigDriveDataObject::CreateFileDescriptor(STGMEDIUM* pmedium)
 	LPVOID lpMem = GlobalLock(hMem);
 	if (!lpMem)
 	{
-		GlobalFree(hMem);
+		::GlobalFree(hMem);
 		return E_OUTOFMEMORY;
 	}
 
@@ -246,10 +245,11 @@ HRESULT BigDriveDataObject::CreateFileDescriptor(STGMEDIUM* pmedium)
 		{
 			// Convert STRRET to a wide string
 			WCHAR szName[MAX_PATH];
-			hr = StrRetToBufW(&strret, m_apidl[i], szName, ARRAYSIZE(szName));
+			hr = ::StrRetToBufW(&strret, m_apidl[i], szName, ARRAYSIZE(szName));
 			if (SUCCEEDED(hr))
 			{
 				// Copy the name to the FILEDESCRIPTOR
+				m_traceLogger.LogInfo(__FUNCTION__, L"Adding file path: %s", szName);
 				wcsncpy_s(pfd->cFileName, szName, ARRAYSIZE(pfd->cFileName) - 1);
 			}
 		}
@@ -328,6 +328,8 @@ HRESULT BigDriveDataObject::CreateFileContents(FORMATETC* pformatetc, STGMEDIUM*
 	HGLOBAL hGlobal = nullptr;
 	void* pDest = nullptr;
 
+	m_traceLogger.LogEnter(__FUNCTION__, *pformatetc);
+
 	LONG fileIndex = pformatetc->lindex;
 	if (fileIndex < 0 || (UINT)fileIndex >= m_cidl)
 	{
@@ -364,6 +366,8 @@ HRESULT BigDriveDataObject::CreateFileContents(FORMATETC* pformatetc, STGMEDIUM*
 	pmedium->pUnkForRelease = nullptr;
 
 End:
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	if (pData != nullptr)
 	{
@@ -528,6 +532,8 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 			hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
 			if (SUCCEEDED(hr))
 			{
+				m_traceLogger.LogInfo(__FUNCTION__, L"Adding file path: %s", szPath);
+
 				SIZE_T cchPath = ::wcslen(szPath);
 				::wcscpy_s(pszFilePath, cchPath + 1, szPath);
 
@@ -594,6 +600,8 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	PIDLIST_ABSOLUTE pidlFolder = nullptr;
 	IStream* pValidatedStream = nullptr;
 
+	m_traceLogger.LogEnter(__FUNCTION__, pidl);
+
 	if (m_pFolder == nullptr || pidl == nullptr)
 	{
 		hr = E_INVALIDARG;
@@ -656,6 +664,8 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 		goto End;
 	}
 
+	m_traceLogger.LogInfo(__FUNCTION__, L"Call IBigDriveFileData::GetFileData() for  %s", bstrPath);
+
 	hr = pBigDriveFileData->GetFileData(m_driveGuid, bstrPath, &pStream);
 	if (FAILED(hr) || !pStream)
 	{
@@ -699,6 +709,8 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 		goto End;
 	}
 
+	m_traceLogger.LogInfo(__FUNCTION__, L"IStream from IBigDriveFileData::GetFileData() returned %zu bytes.", dataSize);
+
 	*ppData = (BYTE*)::CoTaskMemAlloc(dataSize);
 	if (!*ppData)
 	{
@@ -720,6 +732,8 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	}
 
 End:
+
+	m_traceLogger.LogEnter(__FUNCTION__, pidl);
 
 	if (pValidatedStream)
 	{
