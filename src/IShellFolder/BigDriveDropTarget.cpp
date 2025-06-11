@@ -7,20 +7,14 @@
 #include "BigDriveDropTarget.h"
 
 #include "BigDriveShellFolder.h"
-
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 #include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
 #include "..\BigDrive.Client\Interfaces\IBigDriveFileOperations.h"
-
+#include "RegisterClipboardFormats.h"
 #include "Logging\BigDriveShellFolderTraceLogger.h"
 
 #include <shlobj.h>
-
-CLIPFORMAT g_cfShellIdList = (CLIPFORMAT)::RegisterClipboardFormat(CFSTR_SHELLIDLIST);
-CLIPFORMAT g_cfFileDescriptor = (CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
-CLIPFORMAT g_cfFileContents = (CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILECONTENTS);
-CLIPFORMAT g_cfHDrop = CF_HDROP;
 
 /// <summary>
 /// Constructor for BigDriveDropTarget.

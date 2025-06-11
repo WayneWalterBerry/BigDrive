@@ -369,6 +369,72 @@ End:
 }
 
 /// <inheritdoc />
+HRESULT BigDriveDataObject::CreateFileNameW(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	STRRET strret = { 0 };
+	WCHAR szName[MAX_PATH] = { 0 };
+	size_t filenameLen = 0;
+	size_t totalSize = 0;
+	HGLOBAL hGlobal = nullptr;
+	LPWSTR pDest = nullptr;
+
+	// We currently only support one file at a time for simplicity
+	if (m_cidl != 1)
+	{
+		hr = E_NOTIMPL;
+		goto End;
+	}
+
+	// Get the display name of the first item
+	hr = m_pFolder->GetDisplayNameOf(m_apidl[0], SHGDN_FORPARSING, &strret);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	// Convert STRRET to a wide string
+	hr = ::StrRetToBufW(&strret, m_apidl[0], szName, ARRAYSIZE(szName));
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	// Calculate required memory size
+	filenameLen = ::wcslen(szName);
+	totalSize = (filenameLen + 1) * sizeof(WCHAR); // +1 for null terminator
+
+	// Allocate global memory for the filename
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, totalSize);
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Lock the memory and copy the filename
+	pDest = static_cast<LPWSTR>(::GlobalLock(hGlobal));
+	if (!pDest)
+	{
+		::GlobalFree(hGlobal);
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	::wcscpy_s(pDest, filenameLen + 1, szName);
+	::GlobalUnlock(hGlobal);
+
+	// Set up the storage medium
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	return hr;
+}
+
+/// <inheritdoc />
 HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize)
 {
 	HRESULT hr = S_OK;
@@ -379,10 +445,11 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	BSTR bstrPath = nullptr;
 	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 	IStream* pStream = nullptr;
-	LARGE_INTEGER liZero = {};
+	LARGE_INTEGER liZero = {0};
 	ULARGE_INTEGER uliSize = {};
 	ULONG bytesRead = 0;
 	PIDLIST_ABSOLUTE pidlFolder = nullptr;
+	IStream* pValidatedStream = nullptr;
 
 	if (m_pFolder == nullptr || pidl == nullptr)
 	{
@@ -452,19 +519,32 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 		goto End;
 	}
 
+	// Verify pStream is a valid COM object by querying for IStream
+	hr = pStream->QueryInterface(IID_IStream, (void**)&pValidatedStream);
+	if (FAILED(hr) || !pValidatedStream)
+	{
+		// Invalid stream object
+		if (pStream)
+		{
+			pStream->Release();
+			pStream = nullptr;
+		}
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+
 	// Seek to the end to get the size
-	hr = pStream->Seek({}, STREAM_SEEK_END, &uliSize);
+	hr = pValidatedStream->Seek(liZero, STREAM_SEEK_END, &uliSize);
 	if (FAILED(hr))
 	{
-		pStream->Release();
 		goto End;
 	}
 
 	// Seek back to the beginning
-	hr = pStream->Seek(liZero, STREAM_SEEK_SET, nullptr);
+	hr = pValidatedStream->Seek(liZero, STREAM_SEEK_SET, nullptr);
 	if (FAILED(hr))
 	{
-		pStream->Release();
 		goto End;
 	}
 
@@ -472,7 +552,6 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	dataSize = static_cast<SIZE_T>(uliSize.QuadPart);
 	if (dataSize == 0)
 	{
-		pStream->Release();
 		hr = S_FALSE;
 		goto End;
 	}
@@ -480,23 +559,30 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	*ppData = (BYTE*)::CoTaskMemAlloc(dataSize);
 	if (!*ppData)
 	{
-		pStream->Release();
 		hr = E_OUTOFMEMORY;
 		goto End;
 	}
 
-	hr = pStream->Read(*ppData, static_cast<ULONG>(dataSize), &bytesRead);
-	pStream->Release();
-
+	hr = pValidatedStream->Read(*ppData, static_cast<ULONG>(dataSize), &bytesRead);
 	if (FAILED(hr) || bytesRead != dataSize)
 	{
+		// Read failed or didn't read the expected amount of data
+		// Clean up the outputs so we don't leak memory
+
 		::CoTaskMemFree(*ppData);
 		*ppData = nullptr;
 		dataSize = 0;
+
 		goto End;
 	}
 
 End:
+
+	if (pValidatedStream)
+	{
+		pValidatedStream->Release();
+		pValidatedStream = nullptr;
+	}
 
 	if (pidlFolder)
 	{
@@ -504,6 +590,11 @@ End:
 		pidlFolder = nullptr;
 	}
 
+	if (pStream)
+	{
+		pStream->Release();
+		pStream = nullptr;
+	}
 
 	if (pidlAbsolute)
 	{

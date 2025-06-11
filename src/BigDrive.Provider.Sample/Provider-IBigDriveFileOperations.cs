@@ -21,8 +21,6 @@ namespace BigDrive.Provider.Sample
         /// <param name="bigDriveTargetPath">The destination path in BigDrive.</param>
         public void CopyFileToBigDrive(Guid driveGuid, string localFilePath, string bigDriveTargetPath)
         {
-            System.Diagnostics.Debugger.Launch();
-
             if (!File.Exists(localFilePath))
             {
                 throw new FileNotFoundException("Local file not found.", localFilePath);
@@ -39,7 +37,7 @@ namespace BigDrive.Provider.Sample
 
             var fileInfo = new FileInfo(localFilePath);
 
-            var newNode = new FolderNode(fileInfo.Name)
+            var newNode = new Node(fileInfo.Name)
             {
                 Type = NodeType.File,
                 LastModifiedDate = fileInfo.LastWriteTime,
@@ -117,7 +115,7 @@ namespace BigDrive.Provider.Sample
                 throw new IOException("Directory already exists: " + bigDriveDirectoryPath);
             }
 
-            parentNode.Children.Add(new FolderNode(dirName) { Type = NodeType.Folder });
+            parentNode.Children.Add(new Node(dirName) { Type = NodeType.Folder });
         }
 
         /// <summary>

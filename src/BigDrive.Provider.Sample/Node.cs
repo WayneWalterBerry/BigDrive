@@ -17,7 +17,7 @@ namespace BigDrive.Provider.Sample
     /// <summary>
     /// Represents a node in the sample provider's folder structure, supporting files and folders.
     /// </summary>
-    public class FolderNode
+    public class Node
     {
         /// <summary>
         /// The value of this node.
@@ -32,7 +32,7 @@ namespace BigDrive.Provider.Sample
         /// <summary>
         /// The child nodes nested under this node.
         /// </summary>
-        public List<FolderNode> Children { get; set; }
+        public List<Node> Children { get; set; }
 
         /// <summary>
         /// The last modified date of this node.
@@ -51,15 +51,13 @@ namespace BigDrive.Provider.Sample
         {
             get
             {
-                System.Diagnostics.Debugger.Launch();
-
                 if (Type != NodeType.File || string.IsNullOrEmpty(Name))
                 {
                     return null;
                 }
 
                 // Get the current assembly
-                var assembly = typeof(FolderNode).Assembly;
+                var assembly = typeof(Node).Assembly;
 
                 // Build the resource name (adjust namespace and folder as needed)
                 // Example: "BigDrive.Provider.Sample.Resources.A File.txt"
@@ -80,13 +78,13 @@ namespace BigDrive.Provider.Sample
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FolderNode"/> class.
+        /// Initializes a new instance of the <see cref="Node"/> class.
         /// </summary>
         /// <param name="name">The string value for this node.</param>
-        public FolderNode(string name)
+        public Node(string name)
         {
             Name = name;
-            Children = new List<FolderNode>();
+            Children = new List<Node>();
             LastModifiedDate = DateTime.UtcNow;
             Size = 0;
         }

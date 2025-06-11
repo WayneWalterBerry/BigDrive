@@ -186,5 +186,13 @@ private:
     /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
     HRESULT CreateFileContents(FORMATETC* pformatetc, STGMEDIUM* pmedium);
 
+    /// <summary>
+    /// Creates filename data in wide character format for drag-and-drop operations.
+    /// </summary>
+    /// <param name="pformatetc">Format specification for the data.</param>
+    /// <param name="pmedium">Storage medium to receive the data.</param>
+    /// <returns>S_OK if successful; otherwise, an error code.</returns>
+    HRESULT CreateFileNameW(FORMATETC* pformatetc, STGMEDIUM* pmedium);
+
     HRESULT GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize);
 };

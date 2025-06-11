@@ -11,10 +11,7 @@
 #include "..\BigDrive.Client\DriveConfiguration.h"
 #include "..\BigDrive.Client\Interfaces\IBigDriveFileOperations.h"
 #include "..\BigDrive.Client\BigDriveConfigurationClient.h"
-
-// Clipboard format names
-#define CFSTR_SHELLIDLIST      TEXT("Shell IDList Array")
-#define CFSTR_FILECONTENTS     TEXT("FileContents")
+#include "RegisterClipboardFormats.h"
 
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDropTarget::DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)

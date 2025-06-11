@@ -14,21 +14,69 @@ namespace BigDrive.Provider.Sample
     /// <summary>
     /// Wraps a .NET Stream as a COM IStream.
     /// </summary>
-    public class DataStreamWrapper : IStream
+    public class ComStream : IStream, IDisposable
     {
         private readonly Stream _stream;
+        private bool _disposed = false;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DataStreamWrapper"/> class.
+        /// Initializes a new instance of the <see cref="ComStream"/> class.
         /// </summary>
         /// <param name="stream">The stream to wrap.</param>
-        public DataStreamWrapper(Stream stream)
+        public ComStream(Stream stream)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="ComStream"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="ComStream"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _stream.Dispose();
+                }
+
+                // Set large fields to null to help the garbage collector
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Finalizer to ensure resources are cleaned up if not disposed properly.
+        /// </summary>
+        ~ComStream()
+        {
+            Dispose(false);
+        }
+
+        // Add this check to methods that access the stream
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(ComStream));
+            }
+        }
+
         public void Read(byte[] pv, int cb, IntPtr pcbRead)
         {
+            ThrowIfDisposed();
+
             int bytesRead = _stream.Read(pv, 0, cb);
             if (pcbRead != IntPtr.Zero)
             {
@@ -38,6 +86,8 @@ namespace BigDrive.Provider.Sample
 
         public void Write(byte[] pv, int cb, IntPtr pcbWritten)
         {
+            ThrowIfDisposed();
+
             _stream.Write(pv, 0, cb);
             if (pcbWritten != IntPtr.Zero)
             {
@@ -47,6 +97,8 @@ namespace BigDrive.Provider.Sample
 
         public void Seek(long dlibMove, int dwOrigin, IntPtr plibNewPosition)
         {
+            ThrowIfDisposed();
+
             long pos = _stream.Seek(dlibMove, (SeekOrigin)dwOrigin);
             if (plibNewPosition != IntPtr.Zero)
             {
@@ -56,11 +108,15 @@ namespace BigDrive.Provider.Sample
 
         public void SetSize(long libNewSize)
         {
+            ThrowIfDisposed();
+
             _stream.SetLength(libNewSize);
         }
 
         public void CopyTo(IStream pstm, long cb, IntPtr pcbRead, IntPtr pcbWritten)
         {
+            ThrowIfDisposed();
+
             const int bufferSize = 4096;
             byte[] buffer = new byte[bufferSize];
             long remaining = cb;
@@ -94,6 +150,8 @@ namespace BigDrive.Provider.Sample
 
         public void Commit(int grfCommitFlags)
         {
+            ThrowIfDisposed();
+
             _stream.Flush();
         }
 
@@ -114,6 +172,8 @@ namespace BigDrive.Provider.Sample
 
         public void Stat(out ComStatStg pstatstg, int grfStatFlag)
         {
+            ThrowIfDisposed();
+
             pstatstg = new ComStatStg
             {
                 cbSize = _stream.CanSeek ? _stream.Length : 0,
