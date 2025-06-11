@@ -1,6 +1,16 @@
-# Dragging Virtual Files from BigDrive to Notepad
+# Dragging Virtual Files 
 
-When a user drags virtual files from BigDrive's shell namespace extension to an application like Notepad, several steps occur behind the scenes:
+When a user drags virtual files from BigDrive's shell namespace extension to an application, several steps occur behind the scenes:
+
+## Application Compatibility
+
+- Windows Notepad (notepad.exe) does not support the "virtual file" drag-and-drop protocol using CFSTR_FILEDESCRIPTOR and CFSTR_FILECONTENTS. 
+Notepad only accepts drag-and-drop operations that provide real file system paths via the CF_HDROP format.
+
+- Visual Studio does not support custom URI schemes (such as xyz://something/file.txt) in a CF_HDROP drop.
+The CF_HDROP clipboard format is strictly for file system paths—specifically, fully qualified paths 
+to files or directories that exist on a local or network file system (e.g., C:\folder\file.txt or \\server\share\file.txt). 
+Visual Studio, like most Windows applications, expects these to be real, accessible files.
 
 ## Step 1: Initial Drag Operation
 
@@ -15,7 +25,7 @@ When a user drags virtual files from BigDrive's shell namespace extension to an 
 
 ## Step 3: Format Preparation
 
-BigDrive's `IDataObject` offers data in formats Notepad can understand:
+BigDrive's `IDataObject` offers data in formats that application can understand:
 
 
 ``` C#
