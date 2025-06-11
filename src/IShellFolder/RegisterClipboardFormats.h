@@ -5,6 +5,7 @@
 #pragma once
 
 #include <windows.h>
+#include <shlobj.h>
 
 // Clipboard format names
 #define CFSTR_SHELLIDLIST      TEXT("Shell IDList Array")
@@ -21,3 +22,4 @@ extern CLIPFORMAT g_cfFileNameW;
 extern CLIPFORMAT g_cfShellIdList;
 extern CLIPFORMAT g_cfFileDescriptor;
 extern CLIPFORMAT g_cfHDrop;
+extern CLIPFORMAT g_cfPreferredDropEffect;

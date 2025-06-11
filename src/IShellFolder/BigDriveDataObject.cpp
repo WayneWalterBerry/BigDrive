@@ -21,7 +21,9 @@
 /// <param name="cidl">Count of items.</param>
 /// <param name="apidl">Array of item IDs.</param>
 BigDriveDataObject::BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl)
-	: m_cRef(1), m_pFolder(pFolder), m_cidl(cidl), m_apidl(nullptr)
+	: m_cRef(1), m_pFolder(pFolder), m_cidl(cidl), m_apidl(nullptr),
+	m_dwPreferredEffect(DROPEFFECT_COPY), m_dwPerformedEffect(DROPEFFECT_NONE),
+	m_dwPasteSucceeded(0), m_bUseDefaultDragImage(TRUE)
 {
 	m_traceLogger.Initialize(pFolder->GetDriveGuid());
 
@@ -45,6 +47,10 @@ BigDriveDataObject::BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, 
 	}
 
 	m_driveGuid = m_pFolder->GetDriveGuid();
+
+	// Initialize drop description
+	::ZeroMemory(&m_dropDescription, sizeof(DROPDESCRIPTION));
+	m_dropDescription.type = DROPIMAGE_INVALID;
 }
 
 /// <summary>
@@ -447,7 +453,6 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 	STRRET strret = { 0 };
 	WCHAR szPath[MAX_PATH] = { 0 };
 	PIDLIST_ABSOLUTE pidlFolder = nullptr;
-	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 
 	m_traceLogger.LogEnter(__FUNCTION__);
 
@@ -471,22 +476,15 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 	for (UINT i = 0; i < m_cidl; i++)
 	{
 		// Get the absolute path for each item
-		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
-		if (pidlAbsolute)
+		hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+		if (SUCCEEDED(hr))
 		{
-			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
 			if (SUCCEEDED(hr))
 			{
-				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
-				if (SUCCEEDED(hr))
-				{
-					// Add space for path plus null terminator
-					cbRequired += (::wcslen(szPath) + 1) * sizeof(WCHAR);
-				}
+				// Add space for path plus null terminator
+				cbRequired += (::wcslen(szPath) + 1) * sizeof(WCHAR);
 			}
-
-			::ILFree(pidlAbsolute);
-			pidlAbsolute = nullptr;
 		}
 	}
 
@@ -524,25 +522,18 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 	for (UINT i = 0; i < m_cidl; i++)
 	{
 		// Get the absolute path for each item
-		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
-		if (pidlAbsolute)
+		hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+		if (SUCCEEDED(hr))
 		{
-			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
 			if (SUCCEEDED(hr))
 			{
-				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
-				if (SUCCEEDED(hr))
-				{
-					SIZE_T cchPath = ::wcslen(szPath);
-					::wcscpy_s(pszFilePath, cchPath + 1, szPath);
+				SIZE_T cchPath = ::wcslen(szPath);
+				::wcscpy_s(pszFilePath, cchPath + 1, szPath);
 
-					// Move to the next position after this string and its null terminator
-					pszFilePath += cchPath + 1;
-				}
+				// Move to the next position after this string and its null terminator
+				pszFilePath += cchPath + 1;
 			}
-
-			::ILFree(pidlAbsolute);
-			pidlAbsolute = nullptr;
 		}
 	}
 
@@ -551,6 +542,7 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 
 	// Unlock the memory
 	::GlobalUnlock(hGlobal);
+	pDropFiles = nullptr;
 
 	// Set up the STGMEDIUM
 	pmedium->tymed = TYMED_HGLOBAL;
@@ -561,12 +553,6 @@ HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmediu
 	hGlobal = NULL;
 
 End:
-
-	if (pidlAbsolute != nullptr)
-	{
-		::ILFree(pidlAbsolute);
-		pidlAbsolute = nullptr;
-	}
 
 	if (pidlFolder != nullptr)
 	{
@@ -602,7 +588,7 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	BSTR bstrPath = nullptr;
 	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 	IStream* pStream = nullptr;
-	LARGE_INTEGER liZero = {0};
+	LARGE_INTEGER liZero = { 0 };
 	ULARGE_INTEGER uliSize = {};
 	ULONG bytesRead = 0;
 	PIDLIST_ABSOLUTE pidlFolder = nullptr;

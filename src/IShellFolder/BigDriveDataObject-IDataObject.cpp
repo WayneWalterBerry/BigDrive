@@ -260,10 +260,110 @@ End:
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease)
 {
-
 	HRESULT hr = E_NOTIMPL;
 
-	m_traceLogger.LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, *pformatetc);
+	
+	if (pmedium == nullptr || pformatetc == nullptr)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	if (pmedium->tymed != TYMED_HGLOBAL || !pmedium->hGlobal)
+	{
+		hr = DV_E_TYMED;
+		goto End;
+	}
+
+	// Handle known formats that might be set during drag-drop
+	if (pformatetc->cfFormat == g_cfPreferredDropEffect ||
+		pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT) ||
+		pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+	{
+		DWORD *pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store the value in member variables if needed
+		if (pformatetc->cfFormat == g_cfPreferredDropEffect)
+		{
+			m_dwPreferredEffect = *pdwEffect;
+		}
+		else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT))
+		{
+			m_dwPerformedEffect = *pdwEffect;
+		}
+		else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+		{
+			m_dwPasteSucceeded = *pdwEffect;
+		}
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_DROPDESCRIPTION))
+	{
+		DROPDESCRIPTION* pDropDesc = static_cast<DROPDESCRIPTION*>(::GlobalLock(pmedium->hGlobal));
+		if (!pDropDesc)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store the drop description
+		::memcpy(&m_dropDescription, pDropDesc, sizeof(DROPDESCRIPTION));
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(L"UsingDefaultDragImage"))
+	{
+		BOOL* pbUseDefaultDragImage = static_cast<BOOL*>(::GlobalLock(pmedium->hGlobal));
+		if (!pbUseDefaultDragImage)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store whether to use the default drag image
+		m_bUseDefaultDragImage = *pbUseDefaultDragImage;
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else
+	{
+		// For formats we don't handle, return E_NOTIMPL
+		hr = E_NOTIMPL;
+	}
+
+End:
+
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
