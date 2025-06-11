@@ -96,15 +96,15 @@ BOOL BigDriveDropTarget::IsFormatSupported(IDataObject* pDataObj)
 	}
 
 	// Check for FileGroupDescriptor format (used by virtual files)
-	cfFileDescriptor = (CLIPFORMAT)RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
-	fmte.cfFormat = cfFileDescriptor;
+	fmte.cfFormat = g_cfFileDescriptor;
 
 	hr = pDataObj->QueryGetData(&fmte);
 	if (SUCCEEDED(hr))
 	{
 		// Also need FileContents
-		cfFileContents = (CLIPFORMAT)RegisterClipboardFormat(CFSTR_FILECONTENTS);
+		cfFileContents = g_cfFileContents;
 		fmte.cfFormat = cfFileContents;
+
 		hr = pDataObj->QueryGetData(&fmte);
 		if (SUCCEEDED(hr))
 		{

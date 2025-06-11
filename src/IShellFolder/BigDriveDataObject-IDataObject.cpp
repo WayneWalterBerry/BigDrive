@@ -118,6 +118,7 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 			hr = DV_E_TYMED;
 			goto End;
 		}
+
 		// Verify the aspect is content
 		if (pformatetc->dwAspect != DVASPECT_CONTENT)
 		{
@@ -126,6 +127,25 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 		}
 
 		hr = CreateFileNameW(pformatetc, pmedium);
+		goto End;
+	}
+	else if (pformatetc->cfFormat == g_cfHDrop)
+	{
+		// Verify the medium type is supported
+		if ((pformatetc->tymed & TYMED_HGLOBAL) == 0)
+		{
+			hr = DV_E_TYMED;
+			goto End;
+		}
+
+		// Verify the aspect is content
+		if (pformatetc->dwAspect != DVASPECT_CONTENT)
+		{
+			hr = DV_E_DVASPECT;
+			goto End;
+		}
+
+		hr = CreateHDrop(pformatetc, pmedium);
 		goto End;
 	}
 	else
@@ -186,13 +206,20 @@ HRESULT __stdcall BigDriveDataObject::QueryGetData(FORMATETC* pformatetc)
 		goto End;
 	}
 
+	if ((pformatetc->tymed & TYMED_HGLOBAL) == 0)
+	{
+		hr = DV_E_TYMED;
+		goto End;
+	}
+
 	cf = pformatetc->cfFormat;
 
-	if ((cf == ::RegisterClipboardFormat(CFSTR_SHELLIDLIST) && (pformatetc->tymed & TYMED_HGLOBAL)) ||
-		(cf == ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR) && (pformatetc->tymed & TYMED_HGLOBAL)) ||
-		(cf == ::g_cfFileContents && (pformatetc->tymed & TYMED_HGLOBAL)) ||
-		(cf == ::g_cfDropDescription) ||
-		(cf == ::g_cfFileNameW) && (pformatetc->tymed & TYMED_HGLOBAL))
+	if ((cf == g_cfShellIdList) ||
+		(cf == g_cfFileDescriptor) ||
+		(cf == g_cfFileContents) ||
+		(cf == g_cfDropDescription) ||
+		(cf == g_cfFileNameW) ||
+		(cf == g_cfHDrop))
 	{
 		hr = S_OK;
 		goto End;

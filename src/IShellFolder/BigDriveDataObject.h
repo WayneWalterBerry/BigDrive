@@ -194,5 +194,13 @@ private:
     /// <returns>S_OK if successful; otherwise, an error code.</returns>
     HRESULT CreateFileNameW(FORMATETC* pformatetc, STGMEDIUM* pmedium);
 
+    /// <summary>
+    /// Creates an HDROP storage medium for the shell's standard drag and drop operations.
+    /// </summary>
+    /// <param name="pformatetc">Format specification</param>
+    /// <param name="pmedium">The medium to initialize</param>
+    /// <returns>S_OK if successful, appropriate error code otherwise</returns>
+    HRESULT CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmedium);
+
     HRESULT GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize);
 };

@@ -435,6 +435,163 @@ End:
 }
 
 /// <inheritdoc />
+HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	UINT cItems = 0;
+	SIZE_T cbRequired = 0;
+	HGLOBAL hGlobal = NULL;
+	DROPFILES* pDropFiles = nullptr;
+	WCHAR* pszFilePath = nullptr;
+	SIZE_T cbOffset = 0;
+	STRRET strret = { 0 };
+	WCHAR szPath[MAX_PATH] = { 0 };
+	PIDLIST_ABSOLUTE pidlFolder = nullptr;
+	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+
+	m_traceLogger.LogEnter(__FUNCTION__);
+
+	if (!m_apidl || m_cidl == 0 || !pmedium || !m_pFolder)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	// Get the parent folder's absolute PIDL
+	hr = m_pFolder->GetCurFolder(&pidlFolder);
+	if (FAILED(hr) || !pidlFolder)
+	{
+		goto End;
+	}
+
+	// Calculate the size required: DROPFILES structure + paths + double null termination
+	cbRequired = sizeof(DROPFILES);
+
+	// First, calculate how much space we need for all paths
+	for (UINT i = 0; i < m_cidl; i++)
+	{
+		// Get the absolute path for each item
+		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
+		if (pidlAbsolute)
+		{
+			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			if (SUCCEEDED(hr))
+			{
+				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
+				if (SUCCEEDED(hr))
+				{
+					// Add space for path plus null terminator
+					cbRequired += (::wcslen(szPath) + 1) * sizeof(WCHAR);
+				}
+			}
+
+			::ILFree(pidlAbsolute);
+			pidlAbsolute = nullptr;
+		}
+	}
+
+	// Add extra null terminator at the end
+	cbRequired += sizeof(WCHAR);
+
+	// Allocate global memory for the DROPFILES structure plus all paths
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, cbRequired);
+	if (hGlobal == NULL)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Lock the memory to get a pointer
+	pDropFiles = static_cast<DROPFILES*>(::GlobalLock(hGlobal));
+	if (pDropFiles == nullptr)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Initialize the DROPFILES structure
+	pDropFiles->pFiles = sizeof(DROPFILES);  // Offset to file list
+	pDropFiles->pt.x = 0;
+	pDropFiles->pt.y = 0;
+	pDropFiles->fNC = FALSE;
+	pDropFiles->fWide = TRUE;  // We're using Unicode paths
+
+	// Calculate starting position for file paths
+	cbOffset = sizeof(DROPFILES);
+	pszFilePath = reinterpret_cast<WCHAR*>(reinterpret_cast<BYTE*>(pDropFiles) + cbOffset);
+
+	// Copy each file path into the buffer
+	for (UINT i = 0; i < m_cidl; i++)
+	{
+		// Get the absolute path for each item
+		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
+		if (pidlAbsolute)
+		{
+			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			if (SUCCEEDED(hr))
+			{
+				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
+				if (SUCCEEDED(hr))
+				{
+					SIZE_T cchPath = ::wcslen(szPath);
+					::wcscpy_s(pszFilePath, cchPath + 1, szPath);
+
+					// Move to the next position after this string and its null terminator
+					pszFilePath += cchPath + 1;
+				}
+			}
+
+			::ILFree(pidlAbsolute);
+			pidlAbsolute = nullptr;
+		}
+	}
+
+	// Add final null terminator
+	*pszFilePath = L'\0';
+
+	// Unlock the memory
+	::GlobalUnlock(hGlobal);
+
+	// Set up the STGMEDIUM
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+	// Success - prevent cleanup from freeing memory
+	hGlobal = NULL;
+
+End:
+
+	if (pidlAbsolute != nullptr)
+	{
+		::ILFree(pidlAbsolute);
+		pidlAbsolute = nullptr;
+	}
+
+	if (pidlFolder != nullptr)
+	{
+		::ILFree(pidlFolder);
+		pidlFolder = nullptr;
+	}
+
+	if (pDropFiles != nullptr)
+	{
+		::GlobalUnlock(hGlobal);
+		pDropFiles = nullptr;
+	}
+
+	if (hGlobal != NULL)
+	{
+		::GlobalFree(hGlobal);
+		hGlobal = NULL;
+	}
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
+
+	return hr;
+}
+
+/// <inheritdoc />
 HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize)
 {
 	HRESULT hr = S_OK;
@@ -623,4 +780,5 @@ End:
 	return hr;
 
 }
+
 

@@ -433,6 +433,39 @@ void BigDriveShellFolderTraceLogger::LogEnter(LPCSTR functionName, const FORMATE
 			(long)formatetc.lindex
 		);
 	}
+	else if (formatetc.cfFormat == 0x0001)
+	{
+		_snprintf_s(
+			buf, sizeof(buf),
+			"cfFormat: 0x%04X (CF_TEXT), tymed: 0x%08lX, dwAspect: 0x%08lX, lindex: %ld",
+			(unsigned int)formatetc.cfFormat,
+			(unsigned long)formatetc.tymed,
+			(unsigned long)formatetc.dwAspect,
+			(long)formatetc.lindex
+		);
+	}
+	else if (formatetc.cfFormat == 0x000D)
+	{
+		_snprintf_s(
+			buf, sizeof(buf),
+			"cfFormat: 0x%04X (CF_UNICODETEXT), tymed: 0x%08lX, dwAspect: 0x%08lX, lindex: %ld",
+			(unsigned int)formatetc.cfFormat,
+			(unsigned long)formatetc.tymed,
+			(unsigned long)formatetc.dwAspect,
+			(long)formatetc.lindex
+		);
+	}
+	else if (formatetc.cfFormat == 0x000F)
+	{
+		_snprintf_s(
+			buf, sizeof(buf),
+			"cfFormat: 0x%04X (CF_HDROP), tymed: 0x%08lX, dwAspect: 0x%08lX, lindex: %ld",
+			(unsigned int)formatetc.cfFormat,
+			(unsigned long)formatetc.tymed,
+			(unsigned long)formatetc.dwAspect,
+			(long)formatetc.lindex
+		);
+	}
 	else 
 	{
 		_snprintf_s(

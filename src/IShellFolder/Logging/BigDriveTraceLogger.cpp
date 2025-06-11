@@ -185,6 +185,10 @@ HRESULT BigDriveTraceLogger::GetShellIIDName(REFIID riid, BSTR& bstrIIDName)
 		bstrIIDName = ::SysAllocString(L"IID_IDropSource");
 	else if (IsEqualIID(riid, IID_IThumbnailHandlerFactory))
 		bstrIIDName = ::SysAllocString(L"IID_IThumbnailHandlerFactory");
+	else if (IsEqualIID(riid, IID_IExplorerPaneVisibility))
+		bstrIIDName = ::SysAllocString(L"IID_IExplorerPaneVisibility");
+	else if (IsEqualIID(riid, IID_IPreviewItem))
+		bstrIIDName = ::SysAllocString(L"IID_IPreviewItem");
 
 
 	if (bstrIIDName != nullptr)
