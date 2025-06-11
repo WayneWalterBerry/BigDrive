@@ -135,6 +135,101 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 		hr = DV_E_FORMATETC;
 		goto End;
 	}
+	else if (pformatetc->cfFormat == g_cfPreferredDropEffect)
+	{
+		// Verify the medium type is supported
+		if ((pformatetc->tymed & TYMED_HGLOBAL) == 0)
+		{
+			hr = DV_E_TYMED;
+			goto End;
+		}
+
+		// Verify the aspect is content
+		if (pformatetc->dwAspect != DVASPECT_CONTENT)
+		{
+			hr = DV_E_DVASPECT;
+			goto End;
+		}
+
+		pmedium->tymed = TYMED_HGLOBAL;
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+		if (!pmedium->hGlobal)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Use the member variable for the preferred effect
+		*pdwEffect = m_dwPreferredEffect; 
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr; 
+
+		::GlobalUnlock(pmedium->hGlobal);
+		
+		goto End;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT))
+	{
+		pmedium->tymed = TYMED_HGLOBAL;
+		
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+		
+		if (!pmedium->hGlobal)
+		{
+			return E_OUTOFMEMORY;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			return E_UNEXPECTED;
+		}
+
+		// Use the member variable for the performed effect
+		*pdwEffect = m_dwPerformedEffect; 
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr; 
+
+		::GlobalUnlock(pmedium->hGlobal);
+		
+		goto End;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+	{
+		pmedium->tymed = TYMED_HGLOBAL;
+
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+
+		if (!pmedium->hGlobal)
+		{
+			return E_OUTOFMEMORY;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			return E_UNEXPECTED;
+		}
+
+		// Use the member variable for the performed effect
+		*pdwEffect = m_dwPasteSucceeded;
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr;
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		goto End;
+	}
 	else
 	{
 		hr = DV_E_FORMATETC;
@@ -205,8 +300,7 @@ HRESULT __stdcall BigDriveDataObject::QueryGetData(FORMATETC* pformatetc)
 		(cf == g_cfFileDescriptor) ||
 		(cf == g_cfFileContents) ||
 		(cf == g_cfDropDescription) ||
-		(cf == g_cfFileNameW) ||
-		(cf == g_cfHDrop))
+		(cf == g_cfFileNameW))
 	{
 		hr = S_OK;
 		goto End;
