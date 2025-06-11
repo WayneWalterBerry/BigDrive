@@ -9,6 +9,7 @@ namespace BigDrive.Provider.Sample
     using System.EnterpriseServices;
     using System.Runtime.InteropServices;
     using System.Collections.Generic;
+    using System.Runtime.InteropServices.ComTypes;
 
     [Guid("F8FE2E5A-E8B8-4207-BC04-EA4BCD4C4361")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
@@ -18,11 +19,12 @@ namespace BigDrive.Provider.Sample
         IBigDriveRegistration,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
-        IBigDriveFileOperations
+        IBigDriveFileOperations,
+        IBigDriveFileData
     {
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
-        private static FolderNode root = new FolderNode("//")
+        private static Node root = new Node("//")
         {
             Type = NodeType.Folder
         };
@@ -62,21 +64,21 @@ namespace BigDrive.Provider.Sample
             ulong fourMB = 4UL * 1024 * 1024;
 
             // Add root folders
-            var rootFolder1 = new FolderNode("RootFolder1") { Type = NodeType.Folder };
-            var rootFolder2 = new FolderNode("RootFolder2") { Type = NodeType.Folder };
-            var rootFolder3 = new FolderNode("RootFolder3") { Type = NodeType.Folder };
+            var rootFolder1 = new Node("RootFolder1") { Type = NodeType.Folder };
+            var rootFolder2 = new Node("RootFolder2") { Type = NodeType.Folder };
+            var rootFolder3 = new Node("RootFolder3") { Type = NodeType.Folder };
             root.Children.Add(rootFolder1);
             root.Children.Add(rootFolder2);
             root.Children.Add(rootFolder3);
 
             // Add subfolders
-            var subFolder1 = new FolderNode("SubFolder1") { Type = NodeType.Folder };
+            var subFolder1 = new Node("SubFolder1") { Type = NodeType.Folder };
             rootFolder1.Children.Add(subFolder1);
 
-            var subFolder2 = new FolderNode("SubFolder2") { Type = NodeType.Folder };
+            var subFolder2 = new Node("SubFolder2") { Type = NodeType.Folder };
             rootFolder2.Children.Add(subFolder2);
 
-            var folder2 = new FolderNode("Folder2") { Type = NodeType.Folder };
+            var folder2 = new Node("Folder2") { Type = NodeType.Folder };
             rootFolder2.Children.Add(folder2);
 
             // Add root files with random LastModifiedDate and random Size
@@ -94,9 +96,9 @@ namespace BigDrive.Provider.Sample
         /// <param name="random">The random number generator.</param>
         /// <param name="maxSize">The maximum file size in bytes.</param>
         /// <returns>A FolderNode representing a file with a random LastModifiedDate and Size.</returns>
-        private static FolderNode CreateFileNodeWithRandomDateAndSize(string fileName, Random random, ulong maxSize)
+        private static Node CreateFileNodeWithRandomDateAndSize(string fileName, Random random, ulong maxSize)
         {
-            var node = new FolderNode(fileName) { Type = NodeType.File };
+            var node = new Node(fileName) { Type = NodeType.File };
             node.LastModifiedDate = GenerateWeightedRandomDate();
             double randomFactor = random.NextDouble();
             node.Size = (ulong)(randomFactor * maxSize);

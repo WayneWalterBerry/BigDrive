@@ -2,12 +2,12 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-using System;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
-
 namespace BigDrive.Interfaces
 {
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Runtime.InteropServices.ComTypes;
+
     /// <summary>
     /// Interface for retrieving file data as a COM stream.
     /// </summary>
@@ -23,6 +23,7 @@ namespace BigDrive.Interfaces
         /// <param name="path">Path to Enumerate</param> 
         /// <param name="stream">When this method returns, contains the IStream with the file data.</param>
         /// <returns>HRESULT indicating success or failure.</returns>
-        int GetBlob(Guid driveGuid, string path, out IStream stream);
+        [PreserveSig]
+        int GetFileData(Guid driveGuid, string path, [MarshalAs(UnmanagedType.Interface)] out IStream stream);
     }
 }

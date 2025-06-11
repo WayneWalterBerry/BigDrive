@@ -44,7 +44,7 @@ BigDriveDataObject::BigDriveDataObject(BigDriveShellFolder* pFolder, UINT cidl, 
 		}
 	}
 
-	m_driveGuid = pFolder->GetDriveGuid();
+	m_driveGuid = m_pFolder->GetDriveGuid();
 }
 
 /// <summary>
@@ -70,6 +70,8 @@ BigDriveDataObject::~BigDriveDataObject()
 		m_pFolder->Release();
 		m_pFolder = nullptr;
 	}
+
+	m_traceLogger.Uninitialize();
 }
 
 HRESULT BigDriveDataObject::CreateInstance(BigDriveShellFolder* pFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, void** ppv)
@@ -269,6 +271,326 @@ HRESULT BigDriveDataObject::CreateFileDescriptor(STGMEDIUM* pmedium)
 	return S_OK;
 }
 
+HRESULT BigDriveDataObject::CreateDropDescription(STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	DROPDESCRIPTION* pDropDesc = nullptr;
+
+	// Create and populate a DROPDESCRIPTION structure
+	HGLOBAL hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DROPDESCRIPTION));
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	pDropDesc = (DROPDESCRIPTION*)::GlobalLock(hGlobal);
+	if (!pDropDesc)
+	{
+		::GlobalFree(hGlobal);
+		hGlobal = nullptr;
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Set the drop description type
+	pDropDesc->type = DROPIMAGE_COPY; // or DROPIMAGE_MOVE, etc. depending on your needs
+
+	// Set the message (max 63 chars)
+	::wcscpy_s(pDropDesc->szMessage, 64, L"Copy to %1");
+
+	// You can also set a custom insert string if needed
+	::wcscpy_s(pDropDesc->szInsert, 260, L"Big Drive");
+
+	::GlobalUnlock(hGlobal);
+
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	return hr;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveDataObject::CreateFileContents(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	BYTE* pData = nullptr;
+	SIZE_T dataSize = 0;
+	HGLOBAL hGlobal = nullptr;
+	void* pDest = nullptr;
+
+	LONG fileIndex = pformatetc->lindex;
+	if (fileIndex < 0 || (UINT)fileIndex >= m_cidl)
+	{
+		hr = DV_E_LINDEX;
+		goto End;
+	}
+
+	hr = GetFileDataFromPidl(m_apidl[fileIndex], &pData, dataSize);
+	if (FAILED(hr) || pData == nullptr)
+	{
+		goto End;
+	}
+
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, dataSize);
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	pDest = ::GlobalLock(hGlobal);
+	if (!pDest)
+	{
+		::GlobalFree(hGlobal);
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	::memcpy(pDest, pData, dataSize);
+	::GlobalUnlock(hGlobal);
+
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	if (pData != nullptr)
+	{
+		::CoTaskMemFree(pData);
+		pData = nullptr;
+	}
+
+	return hr;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveDataObject::CreateFileNameW(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	STRRET strret = { 0 };
+	WCHAR szName[MAX_PATH] = { 0 };
+	size_t filenameLen = 0;
+	size_t totalSize = 0;
+	HGLOBAL hGlobal = nullptr;
+	LPWSTR pDest = nullptr;
+
+	// We currently only support one file at a time for simplicity
+	if (m_cidl != 1)
+	{
+		hr = E_NOTIMPL;
+		goto End;
+	}
+
+	// Get the display name of the first item
+	hr = m_pFolder->GetDisplayNameOf(m_apidl[0], SHGDN_FORPARSING, &strret);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	// Convert STRRET to a wide string
+	hr = ::StrRetToBufW(&strret, m_apidl[0], szName, ARRAYSIZE(szName));
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
+	// Calculate required memory size
+	filenameLen = ::wcslen(szName);
+	totalSize = (filenameLen + 1) * sizeof(WCHAR); // +1 for null terminator
+
+	// Allocate global memory for the filename
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, totalSize);
+	if (!hGlobal)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Lock the memory and copy the filename
+	pDest = static_cast<LPWSTR>(::GlobalLock(hGlobal));
+	if (!pDest)
+	{
+		::GlobalFree(hGlobal);
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	::wcscpy_s(pDest, filenameLen + 1, szName);
+	::GlobalUnlock(hGlobal);
+
+	// Set up the storage medium
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+End:
+
+	return hr;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveDataObject::CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmedium)
+{
+	HRESULT hr = S_OK;
+	UINT cItems = 0;
+	SIZE_T cbRequired = 0;
+	HGLOBAL hGlobal = NULL;
+	DROPFILES* pDropFiles = nullptr;
+	WCHAR* pszFilePath = nullptr;
+	SIZE_T cbOffset = 0;
+	STRRET strret = { 0 };
+	WCHAR szPath[MAX_PATH] = { 0 };
+	PIDLIST_ABSOLUTE pidlFolder = nullptr;
+	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+
+	m_traceLogger.LogEnter(__FUNCTION__);
+
+	if (!m_apidl || m_cidl == 0 || !pmedium || !m_pFolder)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	// Get the parent folder's absolute PIDL
+	hr = m_pFolder->GetCurFolder(&pidlFolder);
+	if (FAILED(hr) || !pidlFolder)
+	{
+		goto End;
+	}
+
+	// Calculate the size required: DROPFILES structure + paths + double null termination
+	cbRequired = sizeof(DROPFILES);
+
+	// First, calculate how much space we need for all paths
+	for (UINT i = 0; i < m_cidl; i++)
+	{
+		// Get the absolute path for each item
+		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
+		if (pidlAbsolute)
+		{
+			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			if (SUCCEEDED(hr))
+			{
+				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
+				if (SUCCEEDED(hr))
+				{
+					// Add space for path plus null terminator
+					cbRequired += (::wcslen(szPath) + 1) * sizeof(WCHAR);
+				}
+			}
+
+			::ILFree(pidlAbsolute);
+			pidlAbsolute = nullptr;
+		}
+	}
+
+	// Add extra null terminator at the end
+	cbRequired += sizeof(WCHAR);
+
+	// Allocate global memory for the DROPFILES structure plus all paths
+	hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, cbRequired);
+	if (hGlobal == NULL)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Lock the memory to get a pointer
+	pDropFiles = static_cast<DROPFILES*>(::GlobalLock(hGlobal));
+	if (pDropFiles == nullptr)
+	{
+		hr = E_OUTOFMEMORY;
+		goto End;
+	}
+
+	// Initialize the DROPFILES structure
+	pDropFiles->pFiles = sizeof(DROPFILES);  // Offset to file list
+	pDropFiles->pt.x = 0;
+	pDropFiles->pt.y = 0;
+	pDropFiles->fNC = FALSE;
+	pDropFiles->fWide = TRUE;  // We're using Unicode paths
+
+	// Calculate starting position for file paths
+	cbOffset = sizeof(DROPFILES);
+	pszFilePath = reinterpret_cast<WCHAR*>(reinterpret_cast<BYTE*>(pDropFiles) + cbOffset);
+
+	// Copy each file path into the buffer
+	for (UINT i = 0; i < m_cidl; i++)
+	{
+		// Get the absolute path for each item
+		pidlAbsolute = ::ILCombine(pidlFolder, m_apidl[i]);
+		if (pidlAbsolute)
+		{
+			hr = m_pFolder->GetDisplayNameOf(m_apidl[i], SHGDN_FORPARSING, &strret);
+			if (SUCCEEDED(hr))
+			{
+				hr = ::StrRetToBufW(&strret, m_apidl[i], szPath, ARRAYSIZE(szPath));
+				if (SUCCEEDED(hr))
+				{
+					SIZE_T cchPath = ::wcslen(szPath);
+					::wcscpy_s(pszFilePath, cchPath + 1, szPath);
+
+					// Move to the next position after this string and its null terminator
+					pszFilePath += cchPath + 1;
+				}
+			}
+
+			::ILFree(pidlAbsolute);
+			pidlAbsolute = nullptr;
+		}
+	}
+
+	// Add final null terminator
+	*pszFilePath = L'\0';
+
+	// Unlock the memory
+	::GlobalUnlock(hGlobal);
+
+	// Set up the STGMEDIUM
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->hGlobal = hGlobal;
+	pmedium->pUnkForRelease = nullptr;
+
+	// Success - prevent cleanup from freeing memory
+	hGlobal = NULL;
+
+End:
+
+	if (pidlAbsolute != nullptr)
+	{
+		::ILFree(pidlAbsolute);
+		pidlAbsolute = nullptr;
+	}
+
+	if (pidlFolder != nullptr)
+	{
+		::ILFree(pidlFolder);
+		pidlFolder = nullptr;
+	}
+
+	if (pDropFiles != nullptr)
+	{
+		::GlobalUnlock(hGlobal);
+		pDropFiles = nullptr;
+	}
+
+	if (hGlobal != NULL)
+	{
+		::GlobalFree(hGlobal);
+		hGlobal = NULL;
+	}
+
+	m_traceLogger.LogExit(__FUNCTION__, hr);
+
+	return hr;
+}
+
 /// <inheritdoc />
 HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize)
 {
@@ -280,10 +602,11 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	BSTR bstrPath = nullptr;
 	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 	IStream* pStream = nullptr;
-	LARGE_INTEGER liZero = {};
+	LARGE_INTEGER liZero = {0};
 	ULARGE_INTEGER uliSize = {};
 	ULONG bytesRead = 0;
 	PIDLIST_ABSOLUTE pidlFolder = nullptr;
+	IStream* pValidatedStream = nullptr;
 
 	if (m_pFolder == nullptr || pidl == nullptr)
 	{
@@ -353,19 +676,32 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 		goto End;
 	}
 
+	// Verify pStream is a valid COM object by querying for IStream
+	hr = pStream->QueryInterface(IID_IStream, (void**)&pValidatedStream);
+	if (FAILED(hr) || !pValidatedStream)
+	{
+		// Invalid stream object
+		if (pStream)
+		{
+			pStream->Release();
+			pStream = nullptr;
+		}
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+
 	// Seek to the end to get the size
-	hr = pStream->Seek({}, STREAM_SEEK_END, &uliSize);
+	hr = pValidatedStream->Seek(liZero, STREAM_SEEK_END, &uliSize);
 	if (FAILED(hr))
 	{
-		pStream->Release();
 		goto End;
 	}
 
 	// Seek back to the beginning
-	hr = pStream->Seek(liZero, STREAM_SEEK_SET, nullptr);
+	hr = pValidatedStream->Seek(liZero, STREAM_SEEK_SET, nullptr);
 	if (FAILED(hr))
 	{
-		pStream->Release();
 		goto End;
 	}
 
@@ -373,7 +709,6 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	dataSize = static_cast<SIZE_T>(uliSize.QuadPart);
 	if (dataSize == 0)
 	{
-		pStream->Release();
 		hr = S_FALSE;
 		goto End;
 	}
@@ -381,23 +716,30 @@ HRESULT BigDriveDataObject::GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppD
 	*ppData = (BYTE*)::CoTaskMemAlloc(dataSize);
 	if (!*ppData)
 	{
-		pStream->Release();
 		hr = E_OUTOFMEMORY;
 		goto End;
 	}
 
-	hr = pStream->Read(*ppData, static_cast<ULONG>(dataSize), &bytesRead);
-	pStream->Release();
-
+	hr = pValidatedStream->Read(*ppData, static_cast<ULONG>(dataSize), &bytesRead);
 	if (FAILED(hr) || bytesRead != dataSize)
 	{
+		// Read failed or didn't read the expected amount of data
+		// Clean up the outputs so we don't leak memory
+
 		::CoTaskMemFree(*ppData);
 		*ppData = nullptr;
 		dataSize = 0;
+
 		goto End;
 	}
 
 End:
+
+	if (pValidatedStream)
+	{
+		pValidatedStream->Release();
+		pValidatedStream = nullptr;
+	}
 
 	if (pidlFolder)
 	{
@@ -405,6 +747,11 @@ End:
 		pidlFolder = nullptr;
 	}
 
+	if (pStream)
+	{
+		pStream->Release();
+		pStream = nullptr;
+	}
 
 	if (pidlAbsolute)
 	{
@@ -433,4 +780,5 @@ End:
 	return hr;
 
 }
+
 

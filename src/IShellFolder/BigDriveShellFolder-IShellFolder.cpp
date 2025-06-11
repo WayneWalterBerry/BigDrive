@@ -20,14 +20,15 @@
 #include "BigDriveShellContextMenu.h"
 #include "BigDriveDropTarget.h"
 #include "BigDriveDataObject.h"
+#include "BigDriveTransferSource.h"
 
 // {8279FEB8-5CA4-45C4-BE27-770DCDEA1DEB} // Can't find any information on this one, found name in registry
-static const GUID SDefined_ITopViewAwareItem = 
-	{ 0x8279FEB8, 0x5CA4, 0x45C4, {0xBE, 0x27, 0x77, 0x0D, 0xCD, 0xEA, 0x1D, 0xEB} };
+static const GUID SDefined_ITopViewAwareItem =
+{ 0x8279FEB8, 0x5CA4, 0x45C4, {0xBE, 0x27, 0x77, 0x0D, 0xCD, 0xEA, 0x1D, 0xEB} };
 
 // {86187C37-E662-4D1E-A122-7478676D7E6E} // Can't find any information on this one, found name in registry
-static const GUID SDefined_ILibraryDescription = 
-	{ 0x86187C37, 0xE662, 0x4D1E, {0xA1, 0x22, 0x74, 0x78, 0x67, 0x6D, 0x7E, 0x6E} };
+static const GUID SDefined_ILibraryDescription =
+{ 0x86187C37, 0xE662, 0x4D1E, {0xA1, 0x22, 0x74, 0x78, 0x67, 0x6D, 0x7E, 0x6E} };
 
 /// <summary>
 /// Parses a display name and returns a PIDL (Pointer to an Item ID List) that uniquely identifies an item
@@ -649,7 +650,7 @@ HRESULT __stdcall BigDriveShellFolder::CompareIDs(LPARAM lParam, PCUIDLIST_RELAT
 		s_eventLogger.WriteErrorFormmated(L"Invalid PIDL or item name in CompareIDs");
 
 		// Treat as equal if invalid
-		return 0; 
+		return 0;
 	}
 
 	// Compare szName (case-insensitive)
@@ -715,7 +716,7 @@ End:
 /// </summary>
 HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID riid, void** ppv)
 {
-	HRESULT hr = E_NOINTERFACE; 
+	HRESULT hr = E_NOINTERFACE;
 	BigDriveDropTarget* pDropTarget = nullptr;
 
 	if (IsEqualIID(riid, SDefined_ITopViewAwareItem) ||
@@ -769,6 +770,26 @@ HRESULT __stdcall BigDriveShellFolder::CreateViewObject(HWND hwndOwner, REFIID r
 		}
 
 		goto End;
+	}
+	else if (IsEqualIID(riid, IID_ITransferSource))
+	{
+		/*
+		BigDriveTransferSource* pTransferSource = new BigDriveTransferSource(this);
+		if (!pTransferSource)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		hr = pTransferSource->QueryInterface(riid, ppv);
+		if (FAILED(hr))
+		{
+			s_eventLogger.WriteErrorFormmated(L"CreateViewObject: Failed to Create ITransferSource. HRESULT: 0x%08X", hr);
+			goto End;
+		}
+
+		goto End;
+		*/
 	}
 
 End:
@@ -836,7 +857,7 @@ HRESULT __stdcall BigDriveShellFolder::GetAttributesOf(UINT cidl, PCUITEMID_CHIL
 	HRESULT hr = S_OK;
 
 	// Start with all bits set for intersection
-	SFGAOF resultFlags = ~0ULL; 
+	SFGAOF resultFlags = ~0ULL;
 
 	m_traceLogger.LogEnter(__FUNCTION__, cidl, apidl);
 

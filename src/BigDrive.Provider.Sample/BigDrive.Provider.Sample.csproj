@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BigDriveTraceSource.cs" />
-    <Compile Include="DataStreamWrapper.cs" />
+    <Compile Include="ComStream.cs" />
     <Compile Include="Provider-IBigDriveFileInfo.cs" />
     <Compile Include="Provider-IBigDriveFileOperations.cs" />
     <Compile Include="Provider-IBigDriveRegistration.cs" />
@@ -60,7 +60,7 @@
     <Compile Include="Provider.IBigDriveFileData.cs" />
     <Compile Include="Provider.IProcessInitializer.cs" />
     <Compile Include="ProviderConfigurationFactory.cs" />
-    <Compile Include="FolderNode.cs" />
+    <Compile Include="Node.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\BigDrive.snk" />

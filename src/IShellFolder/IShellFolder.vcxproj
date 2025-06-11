@@ -166,6 +166,7 @@
     <ClInclude Include="BigDriveShellFolderFactory.h" />
     <ClInclude Include="BigDriveShellFolder.h" />
     <ClInclude Include="BigDriveShellFolderStatic.h" />
+    <ClInclude Include="BigDriveTransferSource.h" />
     <ClInclude Include="Logging\BigDriveShellFolderTraceLogger.h" />
     <ClInclude Include="BigDriveShellIcon.h" />
     <ClInclude Include="dllmain.h" />
@@ -182,6 +183,7 @@
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="Logging\BigDriveTraceLogger.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="RegisterClipboardFormats.h" />
     <ClInclude Include="RegistrationManager.h" />
   </ItemGroup>
   <ItemGroup>
@@ -211,6 +213,8 @@
     <ClCompile Include="BigDriveShellFolderFactory-IClassFactory.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellFolderFactory.cpp" />
+    <ClCompile Include="BigDriveTransferSource-ITransferSource.cpp" />
+    <ClCompile Include="BigDriveTransferSource.cpp" />
     <ClCompile Include="Logging\BigDriveShellFolderTraceLogger.cpp" />
     <ClCompile Include="BigDriveShellIcon-IUnknown.cpp" />
     <ClCompile Include="BigDriveShellIcon.cpp" />
@@ -221,12 +225,14 @@
     <ClCompile Include="Exports\RegistrationManagerExports.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="Logging\BigDriveTraceLogger.cpp" />
+    <ClCompile Include="BigDriveTransferSource-IUnknown.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="RegisterClipboardFormats.cpp" />
     <ClCompile Include="RegistrationManager.cpp" />
   </ItemGroup>
   <ItemGroup>

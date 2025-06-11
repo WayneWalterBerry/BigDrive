@@ -5,8 +5,11 @@
 namespace BigDrive.Provider.Sample
 {
     using System;
+    using System.Diagnostics;
     using System.IO;
+    using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.ComTypes;
+    using System.Xml.Linq;
 
     /// <summary>
     /// Provides file data using the in-memory root structure.
@@ -21,15 +24,24 @@ namespace BigDrive.Provider.Sample
         /// <returns>
         /// An <see cref="IStream"/> containing the file data, or <c>null</c> if not found.
         /// </returns>
-        public IStream GetFileData(Guid driveGuid, string path)
+        public int GetFileData(Guid driveGuid, string path, [MarshalAs(UnmanagedType.Interface)] out IStream stream)
         {
-            var node = FindNodeByPath(path);
+            stream = default(IStream);
+
+            var node = FindFileByPath(path);
             if (node != null && node.Type == NodeType.File && node.Data != null)
             {
-                // Wrap the file's byte[] data in a COM IStream
-                return new DataStreamWrapper(new MemoryStream(node.Data));
+                var data = node.Data;
+                if (data != null)
+                {
+                    // Wrap the file's byte[] data in a COM IStream
+                    stream = new ComStream(new MemoryStream(data));
+                    return 0;
+                }
             }
-            return null;
+
+            // E_FILENOTFOUND
+            return unchecked((int)0x80070002); 
         }
     }
 }

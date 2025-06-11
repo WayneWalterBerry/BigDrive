@@ -16,6 +16,7 @@
 class BigDriveDropTarget : public IDropTarget
 {
 private:
+
     /// <summary>
     /// Reference count for COM lifetime management.
     /// </summary>
@@ -54,6 +55,9 @@ public:
     /// </summary>
     ~BigDriveDropTarget();
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IUnknown methods
+
     /// <summary>
     /// Queries for a pointer to a supported interface.
     /// </summary>
@@ -73,6 +77,9 @@ public:
     /// </summary>
     /// <returns>The new reference count.</returns>
     STDMETHODIMP_(ULONG) Release() override;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // IDropTarget methods
 
     /// <summary>
     /// Handles the beginning of a drag operation over this drop target.
@@ -124,4 +131,22 @@ private:
     /// <param name="pDataObj">Pointer to the IDataObject.</param>
     /// <returns>HRESULT indicating success or failure.</returns>
     HRESULT ProcessDrop(IDataObject* pDataObj);
+
+    /// <summary>
+    /// Processes a data object containing file drop (HDROP) information.
+    /// </summary>
+    /// <param name="pDataObj">A pointer to an IDataObject that contains the HDROP data to be processed.</param>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
+    HRESULT ProcessHDrop(IDataObject* pDataObj);
+
+    /// <summary>
+    /// Processes a shell ID list drop operation using the provided data object.
+    /// </summary>
+    /// <param name="pIDataObject">A pointer to an IDataObject that contains the shell ID list data to process.</param>
+    /// <returns>Returns an HRESULT indicating success or failure of the operation.</returns>
+    HRESULT ProcessShellIdListDrop(IDataObject* pIDataObject);
+
+    HRESULT WriteError(LPCWSTR szMessage);
+
+    HRESULT WriteErrorFormatted(LPCWSTR formatter, ...);
 };
