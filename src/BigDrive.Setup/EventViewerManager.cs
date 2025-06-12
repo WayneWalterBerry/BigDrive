@@ -4,20 +4,21 @@
 
 namespace BigDrive.Setup
 {
-    using Polly.Retry;
+    using Microsoft.Win32;
     using Polly;
+    using Polly.Retry;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
+    using System.Security.AccessControl;
+    using System.Security.Principal;
+    using System.ServiceProcess;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.ServiceProcess;
-    using System.IO;
-    using Microsoft.Win32;
-    using System.Security.AccessControl;
-    using System.Security.Principal;
+    using static System.Net.Mime.MediaTypeNames;
 
     internal class EventViewerManager
     {
@@ -40,24 +41,6 @@ namespace BigDrive.Setup
         {
             this.eventSource = eventSource;
             this.logName = logName;
-        }
-
-        private void ClearLogs()
-        {
-            ConsoleExtensions.WriteIndented($"Clearing all logs for event source: {eventSource}...");
-            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
-            {
-                eventLog.Clear();
-            }
-        }
-
-        private void DeleteEventSource()
-        {
-            if (EventLog.SourceExists(this.eventSource))
-            {
-                ConsoleExtensions.WriteIndented($"Deleting Event Source: {eventSource}...");
-                EventLog.DeleteEventSource(eventSource);
-            }
         }
 
         public void CreateEventSource()
@@ -111,8 +94,65 @@ namespace BigDrive.Setup
                     throw;
                 }
 
-                VerifyLogging();
+                VerifyLogging(activityId: Guid.NewGuid());
             });
+        }
+
+        public static EventViewerManager CreateEventViewerManager(string application)
+        {
+            string eventSource = $"BigDrive.{application}";
+            string logName = $@"BigDrive";
+
+            return new EventViewerManager(eventSource, logName);
+        }
+
+        public void VerifyLogging(Guid activityId, Action<Guid> loggingAction)
+        {
+            if (!EventLog.SourceExists(this.eventSource))
+            {
+                throw new Exception(message: $"Event Source '{eventSource}' does not exist.");
+            }
+
+            ClearLogs();
+
+            ConsoleExtensions.WriteIndented($"Writing To Event Source: {eventSource}...");
+
+            // Execute The Logging Action
+            loggingAction(activityId);
+
+            ConsoleExtensions.WriteIndented($"Verifying Event Source: {eventSource}...");
+
+            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
+            {
+                foreach (EventLogEntry entry in eventLog.Entries)
+                {
+                    if (entry.Message.Contains(activityId.ToString()))
+                    {
+                        ConsoleExtensions.WriteIndented("Log entry successfully written to the custom Event Log.");
+                        return;
+                    }
+                }
+            }
+
+            throw new Exception(message: $"Log entry not found in the custom event source {eventSource}.");
+        }
+
+        private void ClearLogs()
+        {
+            ConsoleExtensions.WriteIndented($"Clearing all logs for event source: {eventSource}...");
+            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
+            {
+                eventLog.Clear();
+            }
+        }
+
+        private void DeleteEventSource()
+        {
+            if (EventLog.SourceExists(this.eventSource))
+            {
+                ConsoleExtensions.WriteIndented($"Deleting Event Source: {eventSource}...");
+                EventLog.DeleteEventSource(eventSource);
+            }
         }
 
         /// <summary>
@@ -146,58 +186,37 @@ namespace BigDrive.Setup
             });
         }
 
-        private void VerifyLogging()
+        private void VerifyLogging(Guid activityId)
         {
-            if (!EventLog.SourceExists(this.eventSource))
+            VerifyLogging(activityId, (id) =>
             {
-                throw new Exception(message: $"Event Source '{eventSource}' does not exist.");
-            }
+                ConsoleExtensions.WriteIndented($"Writing To Event Source: {eventSource}...");
 
-            ClearLogs();
-
-            ConsoleExtensions.WriteIndented($"Writing To Event Source: {eventSource}...");
-
-            Guid activityId = Guid.NewGuid();
-
-            using (EventLogTraceListener eventLogListener = new EventLogTraceListener(source: this.eventSource))
-            {
-                Trace.Listeners.Add(eventLogListener);
-
-                Trace.CorrelationManager.ActivityId = activityId;
-
-                // Ensure that the trace is flushed after each write
-                Trace.AutoFlush = true; 
-                Trace.TraceInformation($"Activity ID: {activityId} - Test Message.");
-                Trace.Flush();
-                Trace.Close();
-
-                eventLogListener.Flush();
-            }
-
-            ConsoleExtensions.WriteIndented($"Verifying Event Source: {eventSource}...");
-
-            using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
-            {
-                foreach (EventLogEntry entry in eventLog.Entries)
+                using (EventLogTraceListener eventLogListener = new EventLogTraceListener(source: this.eventSource))
                 {
-                    if (entry.Message.Contains(activityId.ToString()))
-                    {
-                        ConsoleExtensions.WriteIndented("Log entry successfully written to the custom Event Log.");
-                        return;
-                    }
-                }
-            }
+                    Trace.Listeners.Add(eventLogListener);
 
-            throw new Exception(message: $"Log entry not found in the custom event source {eventSource}.");
+                    Trace.CorrelationManager.ActivityId = id;
+
+                    // Ensure that the trace is flushed after each write
+                    Trace.AutoFlush = true;
+                    Trace.TraceInformation($"Activity ID: {id} - Test Message.");
+                    Trace.Flush();
+                    Trace.Close();
+
+                    eventLogListener.Flush();
+                }
+            });
         }
+
+
 
         /// <summary>
         /// Checks if the Windows Event Log service is running.
         /// </summary>
         /// <param name="serviceControllerStatus">Service Controller Status</param>
         /// <returns>True if running otherwise false.</returns>
-        private bool IsEventLogService(
-            ServiceControllerStatus serviceControllerStatus = ServiceControllerStatus.Running)
+        private bool IsEventLogService(ServiceControllerStatus serviceControllerStatus = ServiceControllerStatus.Running)
         {
             string serviceName = "EventLog"; // The name of the Windows Event Log service
 

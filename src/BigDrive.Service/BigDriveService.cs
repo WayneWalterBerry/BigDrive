@@ -16,7 +16,7 @@ namespace BigDrive.Service
     [Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
     [ComVisible(true)] // Make the class visible to COM
-    public class BigDriveService : 
+    public partial class BigDriveService : 
         ServicedComponent, 
         IBigDriveConfiguration,
         IBigDriveSetup
@@ -59,12 +59,6 @@ namespace BigDrive.Service
 
                 return json;
             }
-        }
-
-        /// <inheritdoc/>
-        public void Validate()
-        {
-            string currentUser = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
         }
     }
 }

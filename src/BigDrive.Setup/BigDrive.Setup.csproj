@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComRegistrationManager.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="EventViewerManager.cs" />
     <Compile Include="Extensions\ConsoleExtensions.cs" />
     <Compile Include="Program.cs" />
