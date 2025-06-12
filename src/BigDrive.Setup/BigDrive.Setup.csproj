@@ -59,13 +59,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Service\BigDrive.Service.csproj">
+      <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
+      <Name>BigDrive.Service</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
       <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
       <Name>BigDrive.ConfigProvider</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\DTC\BigDrive.Service.csproj">
-      <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
-      <Name>BigDrive.Service</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
