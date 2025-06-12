@@ -47,7 +47,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IBigDriveConfiguration.cs" />
     <Compile Include="IBigDriveFileInfo.cs" />
     <Compile Include="IBigDriveFileOperations.cs" />
     <Compile Include="IBigDriveRegistration.cs" />

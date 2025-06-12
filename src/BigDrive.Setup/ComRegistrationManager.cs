@@ -4,10 +4,10 @@
 
 namespace BigDrive.Setup
 {
+    using BigDrive.Service.Interfaces;
     using System;
     using System.Diagnostics;
     using System.Runtime.InteropServices;
-    using System.Security.Principal;
 
     public static class ComRegistrationManager
     {
@@ -143,6 +143,27 @@ namespace BigDrive.Setup
                     Marshal.ReleaseComObject(comAdmin);
                 }
             }
+        }
+
+        /// <summary>
+        /// Calls the IBigDriveSetup.Validate() method on the COM+ Application specified by ComPlusServiceName.
+        /// </summary>
+        public static void CallServiceValidate()
+        {
+            ConsoleExtensions.WriteIndented("Calling IBigDriveSetup.Validate() on the COM+ service...");
+
+            // CLSID for BigDriveService (from your BigDriveService.cs)
+            var clsid = new Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F");
+
+            // Get the COM type
+            Type comType = Type.GetTypeFromCLSID(clsid, throwOnError: true);
+
+            // Create an instance of the COM+ service
+            object comObject = Activator.CreateInstance(comType);
+
+            // Cast to IBigDriveSetup and call Validate
+            IBigDriveSetup setup = (IBigDriveSetup)comObject;
+            setup.Validate();
         }
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

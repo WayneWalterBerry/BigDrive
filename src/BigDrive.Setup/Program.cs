@@ -49,6 +49,8 @@ namespace BigDrive.Setup
                 applicationName: ComRegistrationManager.ComPlusServiceName,
                 username: UserManager.BigDriveTrustedInstallerUserName,
                 password: password.ToString());
+
+            ComRegistrationManager.CallServiceValidate();
         }
 
         private static bool IsRunningElevated()
