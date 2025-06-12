@@ -24,8 +24,29 @@ namespace BigDrive.Setup
         {
             // Initialize the pairs with the root keys and their respective paths
             _pairs.Add((Registry.ClassesRoot, @"Component Categories\{00021493-0000-0000-C000-000000000046}"));
-            _pairs.Add((Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace"));
+            _pairs.Add((Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace"));
             _pairs.Add((Registry.ClassesRoot, @"CLSID"));
+            _pairs.Add((Registry.LocalMachine, @"SOFTWARE\BigDrive"));
+        }
+
+        /// <summary>
+        /// Ensures that the registry key 'Software\BigDrive' exists under HKEY_LOCAL_MACHINE.
+        /// Creates the key if it does not exist.
+        /// </summary>
+        public static void EnsureBigDriveRegistryKeyExists()
+        {
+            const string keyPath = @"Software\BigDrive";
+            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(keyPath, writable: false))
+            {
+                if (key == null)
+                {
+                    // Key does not exist, create it
+                    using (Microsoft.Win32.Registry.LocalMachine.CreateSubKey(keyPath, Microsoft.Win32.RegistryKeyPermissionCheck.ReadWriteSubTree))
+                    {
+                        // Key created, nothing else to do
+                    }
+                }
+            }
         }
 
         /// <summary>

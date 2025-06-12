@@ -29,6 +29,8 @@ namespace BigDrive.Setup
                 throw new InvalidOperationException($"regsvcs.exe not found at {regsvcsPath}");
             }
 
+            ConsoleExtensions.WriteIndented($"Registering COM+ assembly: {assemblyPath} using {regsvcsPath}");
+
             var psi = new ProcessStartInfo
             {
                 FileName = regsvcsPath,

@@ -19,7 +19,8 @@ namespace BigDrive.Service
     public partial class BigDriveService : 
         ServicedComponent, 
         IBigDriveConfiguration,
-        IBigDriveSetup
+        IBigDriveSetup,
+        IBigDriveProvision
     {
         private static readonly AssemblyResolver asssemblyResolver;
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
@@ -28,6 +29,7 @@ namespace BigDrive.Service
         {
             asssemblyResolver = AssemblyResolver.Instance;
         }
+
 
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)

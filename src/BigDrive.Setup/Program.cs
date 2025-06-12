@@ -35,6 +35,9 @@ namespace BigDrive.Setup
             ConsoleExtensions.WriteIndented($"Creating User: {UserManager.BigDriveTrustedInstallerUserName}...");
             SecureString password = UserManager.CreateBigDriveTrustedInstaller();
 
+            // Ensure the BigDrive registry keys exist
+            RegistryManager.EnsureBigDriveRegistryKeyExists();
+
             /// Grant Full Control to the BigDriveInstaller for the BigDrive registry keys
             RegistryManager.GrantFullControl(password);
 
