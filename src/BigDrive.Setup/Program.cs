@@ -50,7 +50,10 @@ namespace BigDrive.Setup
                 username: UserManager.BigDriveTrustedInstallerUserName,
                 password: password.ToString());
 
-            ComRegistrationManager.CallServiceValidate();
+            Guid passIdentifier = Guid.NewGuid();
+            Console.WriteLine($"Pass Identifier: {passIdentifier}");
+
+            ComRegistrationManager.CallServiceValidate(passIdentifier);
         }
 
         private static bool IsRunningElevated()
@@ -64,20 +67,17 @@ namespace BigDrive.Setup
 
         private static void BoostrapBigDriveEventLogs()
         {
-            BoostrapBigDriveEventLog("Service");
-            BoostrapBigDriveEventLog("ShellFolder");
-            BoostrapBigDriveEventLog("Client");
-            BoostrapBigDriveEventLog("Provider.Sample");
+            BoostrapBigDriveEventLog(Constants.EventLogService);
+            BoostrapBigDriveEventLog(Constants.EventLogShellFolder);
+            BoostrapBigDriveEventLog(Constants.EventLogClient);
+            BoostrapBigDriveEventLog(Constants.EventLogProviderSample);
         }
 
         private static void BoostrapBigDriveEventLog(string application)
         {
             ConsoleExtensions.WriteIndented($"Creating Custom Event Source For BigDrive {application}...");
 
-            string eventSource = $"BigDrive.{application}";
-            string logName = $@"BigDrive";
-
-            EventViewerManager eventViewerManager = new EventViewerManager(eventSource, logName);
+            EventViewerManager eventViewerManager = EventViewerManager.CreateEventViewerManager(application);
             eventViewerManager.CreateEventSource();
         }
     }

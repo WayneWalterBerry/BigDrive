@@ -15,6 +15,6 @@ namespace BigDrive.Service.Interfaces
         /// <summary>
         /// Called By BigDrive.Setup to validate the setup process.
         /// </summary>
-        void Validate();
+        void Validate(Guid activityId);
     }
 }

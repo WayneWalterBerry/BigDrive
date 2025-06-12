@@ -8,6 +8,7 @@ namespace BigDrive.Setup
     using System;
     using System.Diagnostics;
     using System.Runtime.InteropServices;
+    using static System.Net.Mime.MediaTypeNames;
 
     public static class ComRegistrationManager
     {
@@ -148,7 +149,8 @@ namespace BigDrive.Setup
         /// <summary>
         /// Calls the IBigDriveSetup.Validate() method on the COM+ Application specified by ComPlusServiceName.
         /// </summary>
-        public static void CallServiceValidate()
+        /// <param name="passiIdentifier">Unique identiier to send to the Big Drive Service.</param>
+        public static void CallServiceValidate(Guid activityId)
         {
             ConsoleExtensions.WriteIndented("Calling IBigDriveSetup.Validate() on the COM+ service...");
 
@@ -163,7 +165,17 @@ namespace BigDrive.Setup
 
             // Cast to IBigDriveSetup and call Validate
             IBigDriveSetup setup = (IBigDriveSetup)comObject;
-            setup.Validate();
+
+            // Call the Validate method on the COM+ BigDrive.Service application
+            // which is hosted in dllhost.exe, expecting it to write to the event log
+            // verify that it can write there, by matching the identifier, to the message
+            // in the event log.
+            EventViewerManager eventViewerManager = EventViewerManager.CreateEventViewerManager(Constants.EventLogService);
+            eventViewerManager.VerifyLogging(activityId, (id) =>
+            {
+                Console.WriteLine($"Validating COM+ application with ID: {id}");
+                setup.Validate(activityId: id);
+            });
         }
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
