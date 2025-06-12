@@ -8,10 +8,10 @@ namespace BigDrive.Service
     using System.EnterpriseServices;
     using System.Runtime.InteropServices;
     using System.Threading;
-    using ConfigProvider;
-    using BigDrive.ConfigProvider.Extensions;
-    using BigDrive.ConfigProvider.Model;
-    using BigDrive.Service.Interfaces;
+    using global::BigDrive.ConfigProvider;
+    using global::BigDrive.ConfigProvider.Extensions;
+    using global::BigDrive.ConfigProvider.Model;
+    using global::BigDrive.Service.Interfaces;
 
     [Guid("E6F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E7F")] // Unique GUID for the COM class
     [ClassInterface(ClassInterfaceType.None)] // No automatic interface generation
@@ -29,7 +29,6 @@ namespace BigDrive.Service
         {
             asssemblyResolver = AssemblyResolver.Instance;
         }
-
 
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)

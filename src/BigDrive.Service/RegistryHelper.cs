@@ -1,18 +1,18 @@
-﻿// <copyright file="RegistrationHelper.cs" company="Wayne Walter Berry">
+﻿// <copyright file="RegistryHelper.cs" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-namespace BigDrive.Setup
+namespace BigDrive.Service
 {
-    using Microsoft.Win32;
     using System;
     using System.Threading;
+    using Microsoft.Win32;
 
     /// <summary>
     /// Provides static methods for registering, unregistering, and managing custom shell folder extensions
     /// in the Windows registry for the BigDrive application.
     /// </summary>
-    public static class RegistrationHelper
+    public static class RegistryHelper
     {
         /// <summary>
         /// Registers the shell folder with the given drive Guid and display name.

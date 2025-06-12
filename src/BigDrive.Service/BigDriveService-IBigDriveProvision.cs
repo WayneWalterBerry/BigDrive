@@ -4,19 +4,17 @@
 
 namespace BigDrive.Service
 {
-    using BigDrive.ConfigProvider;
-    using BigDrive.Setup;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Threading;
-    using System.Threading.Tasks;
+    using BigDrive.Service;
+    using global::BigDrive.ConfigProvider;
 
     public partial class BigDriveService
     {
         public void Create(Guid driveGuid)
         {
+            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", driveGuid);
+
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
             if (DriveManager.DriveExists(driveGuid, cancellationTokenSource.Token))
@@ -25,7 +23,9 @@ namespace BigDrive.Service
             }
 
             var driveConfiguration = DriveManager.ReadConfiguration(driveGuid, cancellationTokenSource.Token);
-            RegistrationHelper.RegisterShellFolder(guidDrive: driveGuid, displayName: driveConfiguration.Name, cancellationTokenSource.Token);
+            RegistryHelper.RegisterShellFolder(guidDrive: driveGuid, displayName: driveConfiguration.Name, cancellationTokenSource.Token);
+
+            ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
         }
     }
 }
