@@ -5,6 +5,7 @@
 namespace BigDrive.Setup
 {
     using System;
+    using System.Security;
     using System.Security.Principal;
 
     internal class Program
@@ -13,12 +14,43 @@ namespace BigDrive.Setup
         {
             if (!IsRunningElevated())
             {
-                Console.WriteLine("Administrative Rights Required.");
+                ConsoleExtensions.WriteIndented("Administrative Rights Required.");
                 return;
             }
 
-            Console.WriteLine("Bootstrapping BigDrive Event Logs...");
+            ConsoleExtensions.WriteIndented("Bootstrapping BigDrive Event Logs...");
             BoostrapBigDriveEventLogs();
+
+            // Check To See If the Trusted Installer User Exists
+            if (UserManager.UserExists())
+            {
+                ConsoleExtensions.WriteIndented($"User {UserManager.BigDriveTrustedInstallerUserName} already exists. Deleting User...");
+                RegistryManager.RemoveFullControl();
+
+                ComRegistrationManager.DeleteComPlusApplication();
+
+                UserManager.DeleteBigDriveTrustedInstaller();
+            }
+
+            ConsoleExtensions.WriteIndented($"Creating User: {UserManager.BigDriveTrustedInstallerUserName}...");
+            SecureString password = UserManager.CreateBigDriveTrustedInstaller();
+
+            /// Grant Full Control to the BigDriveInstaller for the BigDrive registry keys
+            RegistryManager.GrantFullControl(password);
+
+            // Build the full path to BigDrive.Service.dll in the same directory as the executable
+            string assemblyPath = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "BigDrive.Service.dll");
+
+            ComRegistrationManager.RegisterComAssemblyAsUser(assemblyPath: assemblyPath);
+
+            ComRegistrationManager.SetApplicationIdentityToThisUser(
+                applicationName: ComRegistrationManager.ComPlusServiceName,
+                username: UserManager.BigDriveTrustedInstallerUserName,
+                password: password.ToString());
+
+            ComRegistrationManager.CallServiceValidate();
         }
 
         private static bool IsRunningElevated()
@@ -40,7 +72,7 @@ namespace BigDrive.Setup
 
         private static void BoostrapBigDriveEventLog(string application)
         {
-            Console.WriteLine($"Creating Custom Event Source For BigDrive {application}...");
+            ConsoleExtensions.WriteIndented($"Creating Custom Event Source For BigDrive {application}...");
 
             string eventSource = $"BigDrive.{application}";
             string logName = $@"BigDrive";

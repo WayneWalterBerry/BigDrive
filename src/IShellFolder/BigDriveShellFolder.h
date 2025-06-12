@@ -596,6 +596,17 @@ private:
 	HRESULT WriteErrorFormatted(LPCWSTR formatter, ...);
 	HRESULT WriteError(LPCWSTR szMessage);
 
+	/// <summary>
+	/// Handles retrieval of property values for FMTID_ShellDetails columns.
+	/// </summary>
+	/// <param name="pidl">The item ID (relative PIDL).</param>
+	/// <param name="pscid">Pointer to the SHCOLUMNID structure.</param>
+	/// <param name="pv">Pointer to a VARIANT to receive the value.</param>
+	/// <returns>S_OK if handled, E_NOTIMPL if not a supported property.</returns>
+	HRESULT GetShellDetailsProperty(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv);
+
+	HRESULT GetStorageProperty(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv);
+
 public:
 
 	/// <summary>

@@ -36,6 +36,8 @@
     <Reference Include="Polly, Version=7.0.0.0, Culture=neutral, PublicKeyToken=c8a3ffc3f8f825cc, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.DirectoryServices.AccountManagement" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -45,14 +47,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ComRegistrationManager.cs" />
     <Compile Include="EventViewerManager.cs" />
+    <Compile Include="Extensions\ConsoleExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryManager.cs" />
+    <Compile Include="UserManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Service\BigDrive.Service.csproj">
+      <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
+      <Name>BigDrive.Service</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
       <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
       <Name>BigDrive.ConfigProvider</Name>

@@ -55,13 +55,13 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\BigDrive.Service\BigDrive.Service.csproj">
+      <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
+      <Name>BigDrive.Service</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\src\ConfigProvider\BigDrive.ConfigProvider.csproj">
       <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
       <Name>BigDrive.ConfigProvider</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\src\DTC\BigDrive.Service.csproj">
-      <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
-      <Name>BigDrive.Service</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />

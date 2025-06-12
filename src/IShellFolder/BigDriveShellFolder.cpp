@@ -10,8 +10,24 @@
 // Local
 #include "LaunchDebugger.h"
 #include "BigDriveShellFolderStatic.h"
+#include "..\BigDrive.Client\BigDriveInterfaceProvider.h"
+#include "..\BigDrive.Client\BigDriveConfigurationClient.h"
 
 #include <oleauto.h> 
+#include <shlguid.h>
+#include <shlwapi.h>
+
+#ifndef PID_STG_NAME
+#define PID_STG_NAME 10
+#endif
+
+#ifndef PID_STG_WRITETIME
+#define PID_STG_WRITETIME 14
+#endif
+
+#ifndef PID_STG_SIZE
+#define PID_STG_SIZE 12
+#endif
 
 BigDriveShellFolderStatic BigDriveShellFolder::s_staticData;
 BigDriveShellFolderEventLogger BigDriveShellFolder::s_eventLogger(L"BigDrive.ShellFolder");
@@ -577,4 +593,417 @@ HRESULT BigDriveShellFolder::VariantToStrRet(VARIANT& var, STRRET* pStrRet)
     // ...
 
     return E_NOTIMPL;
+}
+
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::GetShellDetailsProperty(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
+{
+    HRESULT hr = S_OK;
+    STRRET strret = { 0 };
+    DriveConfiguration driveConfiguration;
+    BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
+    IBigDriveFileInfo* pBigDriveFileInfo = nullptr;
+    BSTR bstrPath = nullptr;
+    PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+    ULONGLONG ullFileSize = 0;
+    DATE dtLastModifiedTime = 0;
+
+    if (!pidl || !pscid || !pv)
+    {
+        hr = E_INVALIDARG;
+        goto End;
+    }
+
+    ::VariantInit(pv);
+
+    switch (pscid->pid)
+    {
+    case 0: // Name
+        hr = GetBigDriveItemNameFromPidl(pidl, &strret);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        {
+            WCHAR szName[MAX_PATH] = { 0 };
+            hr = ::StrRetToBufW(&strret, pidl, szName, ARRAYSIZE(szName));
+            if (FAILED(hr))
+            {
+                goto End;
+            }
+            pv->vt = VT_BSTR;
+            pv->bstrVal = ::SysAllocString(szName);
+            if (!pv->bstrVal)
+            {
+                hr = E_OUTOFMEMORY;
+                goto End;
+            }
+        }
+        break;
+
+    case 2: // Size
+    {
+        const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+        if (pItem && pItem->uType == BigDriveItemType_Folder)
+        {
+            pv->vt = VT_EMPTY;
+            hr = S_OK;
+            goto End;
+        }
+        hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+        if (!pInterfaceProvider)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+        hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
+        if (FAILED(hr) || !pBigDriveFileInfo)
+        {
+            goto End;
+        }
+        pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+        hr = GetPathForProviders(pidlAbsolute, bstrPath);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        hr = pBigDriveFileInfo->GetFileSize(m_driveGuid, bstrPath, &ullFileSize);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        pv->vt = VT_UI8;
+        pv->ullVal = ullFileSize;
+        break;
+    }
+
+    case 3: // Date Modified
+        hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+        if (!pInterfaceProvider)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+        hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
+        if (FAILED(hr) || !pBigDriveFileInfo)
+        {
+            goto End;
+        }
+        pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+        hr = GetPathForProviders(pidlAbsolute, bstrPath);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+        pv->vt = VT_DATE;
+        pv->date = dtLastModifiedTime;
+        break;
+
+    case 9: // Attributes (FMTID_ShellDetails, pid 9)
+    {
+        const BIGDRIVE_ITEMID* pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+        if (pItem == nullptr)
+        {
+            hr = E_INVALIDARG;
+            goto End;
+        }
+
+        pv->vt = VT_BSTR;
+
+        if (pItem->uType == BigDriveItemType_Folder)
+        {
+            pv->bstrVal = ::SysAllocString(L"D");
+        }
+        else if (pItem->uType == BigDriveItemType_File)
+        {
+            pv->bstrVal = ::SysAllocString(L"A");
+        }
+        else
+        {
+            pv->bstrVal = nullptr;
+            hr = E_NOTIMPL;
+            goto End;
+        }
+
+        if (pv->bstrVal == nullptr)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        hr = S_OK;
+        break;
+    }
+
+    case 11: // Owner (FMTID_ShellDetails, pid 11)
+    {
+        // If you have a way to get the owner, set it here.
+        // For now, return VT_EMPTY or E_NOTIMPL if not supported.
+        pv->vt = VT_EMPTY;
+        hr = S_OK;
+        break;
+    }
+
+    default:
+        hr = E_NOTIMPL;
+        break;
+    }
+
+End:
+
+    if (pidlAbsolute)
+    {
+        ::ILFree(pidlAbsolute);
+        pidlAbsolute = nullptr;
+    }
+
+    if (bstrPath)
+    {
+        ::SysFreeString(bstrPath);
+        bstrPath = nullptr;
+    }
+
+    if (pInterfaceProvider)
+    {
+        delete pInterfaceProvider;
+        pInterfaceProvider = nullptr;
+    }
+
+    if (pBigDriveFileInfo)
+    {
+        pBigDriveFileInfo->Release();
+        pBigDriveFileInfo = nullptr;
+    }
+
+    return hr;
+
+}
+
+/// <inheritdoc />
+HRESULT BigDriveShellFolder::GetStorageProperty(PCUITEMID_CHILD pidl, const SHCOLUMNID* pscid, VARIANT* pv)
+{
+    HRESULT hr = E_NOTIMPL;
+    DriveConfiguration driveConfiguration;
+    BigDriveInterfaceProvider* pInterfaceProvider = nullptr;
+    IBigDriveFileInfo* pBigDriveFileInfo = nullptr;
+    BSTR bstrPath = nullptr;
+    DATE dtLastModifiedTime;
+    PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
+    ULONGLONG ullFileSize;
+    const BIGDRIVE_ITEMID* pItem = nullptr;
+
+    // Initialize common components needed for both properties
+    switch (pscid->pid)
+    {
+    case PID_STG_WRITETIME:
+    case PID_STG_SIZE:
+
+        hr = BigDriveConfigurationClient::GetDriveConfiguration(m_driveGuid, driveConfiguration);
+        if (FAILED(hr))
+        {
+            WriteErrorFormatted(L"GetDetailsEx: Failed to get drive configuration. HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        pInterfaceProvider = new BigDriveInterfaceProvider(driveConfiguration);
+        if (pInterfaceProvider == nullptr)
+        {
+            WriteError(L"GetDetailsEx: Failed to create BigDriveInterfaceProvider");
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        hr = pInterfaceProvider->GetIBigDriveFileInfo(&pBigDriveFileInfo);
+        switch (hr)
+        {
+        case S_OK:
+            break;
+        case S_FALSE:
+            // Interface isn't Implemented By The Provider
+            goto End;
+        default:
+            WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+            break;
+        }
+
+        if (pBigDriveFileInfo == nullptr)
+        {
+            hr = E_FAIL;
+            WriteErrorFormatted(L"GetDetailsEx: Failed to obtain IBigDriveFileInfo, HRESULT: 0x%08X", hr);
+            goto End;
+        }
+
+        pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+
+        hr = GetPathForProviders(pidlAbsolute, bstrPath);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+
+        break;
+    }
+
+    // Speific Code For Each Column
+    switch (pscid->pid)
+    {
+    case  PID_STG_WRITETIME:
+
+        hr = pBigDriveFileInfo->LastModifiedTime(m_driveGuid, bstrPath, &dtLastModifiedTime);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+
+        // Set VARIANT to FILETIME (corrected)
+        pv->vt = VT_DATE;
+        pv->date = dtLastModifiedTime;
+
+        hr = S_OK;
+
+        break;
+
+    case PID_STG_SIZE:
+
+        // Check if this is a folder
+        pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+        if (pItem && pItem->uType == BigDriveItemType_Folder)
+        {
+            // Don't display size for folders
+            pv->vt = VT_EMPTY;
+            hr = S_OK;
+            goto End;
+        }
+
+        // Get the file size from our provider
+        hr = pBigDriveFileInfo->GetFileSize(m_driveGuid, bstrPath, &ullFileSize);
+        if (FAILED(hr))
+        {
+            goto End;
+        }
+
+        // Set VARIANT to 64-bit unsigned integer
+        pv->vt = VT_UI8;
+        pv->ullVal = ullFileSize;
+        hr = S_OK;
+
+        break;
+
+    case 24: // Content Type (FMTID_Storage, PID_STG_CONTENTTYPE)
+    {
+        pItem = reinterpret_cast<const BIGDRIVE_ITEMID*>(pidl);
+        if (pItem == nullptr)
+        {
+            hr = E_INVALIDARG;
+            goto End;
+        }
+
+        pv->vt = VT_BSTR;
+
+        if (pItem->uType == BigDriveItemType_Folder)
+        {
+            pv->bstrVal = ::SysAllocString(L"File Folder");
+        }
+        else if (pItem->uType == BigDriveItemType_File)
+        {
+            // Example: Use file extension to determine type
+            // For a real implementation, you might want to map extensions to friendly names
+            // Here, we just return "File" or you can expand this logic as needed
+
+            // Find the extension in the name
+            const WCHAR* szName = pItem->szName;
+            const WCHAR* pExt = nullptr;
+            for (const WCHAR* p = szName; *p; ++p)
+            {
+                if (*p == L'.')
+                {
+                    pExt = p;
+                }
+            }
+
+            if (pExt && *(pExt + 1))
+            {
+                // Example: ".txt" => "Text Document"
+                if (::lstrcmpiW(pExt, L".txt") == 0)
+                {
+                    pv->bstrVal = ::SysAllocString(L"Text Document");
+                }
+                else if (::lstrcmpiW(pExt, L".jpg") == 0 || ::lstrcmpiW(pExt, L".jpeg") == 0)
+                {
+                    pv->bstrVal = ::SysAllocString(L"JPEG Image");
+                }
+                else if (::lstrcmpiW(pExt, L".png") == 0)
+                {
+                    pv->bstrVal = ::SysAllocString(L"PNG Image");
+                }
+                else
+                {
+                    pv->bstrVal = ::SysAllocString(L"File");
+                }
+            }
+            else
+            {
+                pv->bstrVal = ::SysAllocString(L"File");
+            }
+        }
+        else
+        {
+            pv->bstrVal = nullptr;
+            hr = E_NOTIMPL;
+            goto End;
+        }
+
+        if (pv->bstrVal == nullptr)
+        {
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        hr = S_OK;
+        break;
+    }
+    }
+
+End:
+
+    if (pidlAbsolute)
+    {
+        ::ILFree(pidlAbsolute);
+        pidlAbsolute = nullptr;
+    }
+
+    if (bstrPath)
+    {
+        ::SysFreeString(bstrPath);
+        bstrPath = nullptr;
+    }
+
+    if (pInterfaceProvider)
+    {
+        delete pInterfaceProvider;
+        pInterfaceProvider = nullptr;
+    }
+
+    if (pBigDriveFileInfo)
+    {
+        pBigDriveFileInfo->Release();
+        pBigDriveFileInfo = nullptr;
+    }
+
+    return hr;
 }

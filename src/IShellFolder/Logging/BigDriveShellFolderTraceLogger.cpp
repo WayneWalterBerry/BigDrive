@@ -551,3 +551,19 @@ void BigDriveShellFolderTraceLogger::LogInfo(const char* message)
 {
 	TraceLoggingWrite(g_hBigDriveTraceProvider, "Info", TraceLoggingValue(message, "Message"));
 }
+
+/// <inheritdoc />
+void BigDriveShellFolderTraceLogger::LogInfo(LPCSTR functionName, LPCWSTR format, ...)
+{
+	// Buffer for the formatted message
+	WCHAR szBuffer[1024] = { 0 };
+
+	// Format the variable arguments
+	va_list args;
+	va_start(args, format);
+	::vswprintf_s(szBuffer, _countof(szBuffer), format, args);
+	va_end(args);
+
+	// Log the final message
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "Info", TraceLoggingString(functionName, "FunctionName"), TraceLoggingValue(szBuffer, "Message"));
+}

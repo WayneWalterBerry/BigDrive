@@ -1076,6 +1076,7 @@ End:
 HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SHGDNF uFlags, STRRET* pName)
 {
 	HRESULT hr = E_NOTIMPL;
+	PIDLIST_ABSOLUTE pidlAbsolute = nullptr;
 
 	m_traceLogger.LogEnter(__FUNCTION__);
 
@@ -1093,7 +1094,15 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 
 	if ((uFlags & SHGDN_FORPARSING) == SHGDN_FORPARSING)
 	{
-		hr = GetBigDriveItemNameFromPidl(pidl, pName);
+		// For parsing, we need to return a full path or canonical name
+		pidlAbsolute = ::ILCombine(m_pidlAbsolute, pidl);
+		if (!pidlAbsolute)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		hr = GetBigDriveItemNameFromPidl(pidlAbsolute, pName);
 		if (FAILED(hr))
 		{
 			goto End;
@@ -1109,6 +1118,12 @@ HRESULT __stdcall BigDriveShellFolder::GetDisplayNameOf(PCUITEMID_CHILD pidl, SH
 	}
 
 End:
+
+	if (pidlAbsolute)
+	{
+		::ILFree(pidlAbsolute);
+		pidlAbsolute = nullptr;
+	}
 
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 

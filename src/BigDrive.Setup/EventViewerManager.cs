@@ -44,7 +44,7 @@ namespace BigDrive.Setup
 
         private void ClearLogs()
         {
-            Console.WriteLine($"Clearing all logs for event source: {eventSource}...");
+            ConsoleExtensions.WriteIndented($"Clearing all logs for event source: {eventSource}...");
             using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
             {
                 eventLog.Clear();
@@ -55,14 +55,14 @@ namespace BigDrive.Setup
         {
             if (EventLog.SourceExists(this.eventSource))
             {
-                Console.WriteLine($"Deleting Event Source: {eventSource}...");
+                ConsoleExtensions.WriteIndented($"Deleting Event Source: {eventSource}...");
                 EventLog.DeleteEventSource(eventSource);
             }
         }
 
         public void CreateEventSource()
         {
-            Console.WriteLine($"Creating Event Source: {eventSource}...");
+            ConsoleExtensions.WriteIndented($"Creating Event Source: {eventSource}...");
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -74,7 +74,7 @@ namespace BigDrive.Setup
                     sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(10), // Wait 1 second between retries
                     onRetry: (exception, timeSpan, retryCount, context) =>
                     {
-                        Console.WriteLine($"Retry {retryCount} for event source '{eventSource}' after {stopwatch.Elapsed.TotalSeconds} seconds. Exception: {exception.Message}");
+                        ConsoleExtensions.WriteIndented($"Retry {retryCount} for event source '{eventSource}' after {stopwatch.Elapsed.TotalSeconds} seconds. Exception: {exception.Message}");
                     });
 
             // Execute the retry policy
@@ -99,7 +99,7 @@ namespace BigDrive.Setup
                         {
                             // What this means is that the source already exists in another
                             // location then under the log name.
-                            Console.WriteLine(exception.Message);
+                            ConsoleExtensions.WriteIndented(exception.Message);
                         }
                     }
 
@@ -132,7 +132,7 @@ namespace BigDrive.Setup
                     sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(10), // Wait 1 second between retries
                     onRetry: (exception, timeSpan, retryCount, context) =>
                     {
-                        Console.WriteLine($"Retry {retryCount} for event source '{eventSource}' after {stopwatch.Elapsed.TotalSeconds} seconds. Exception: {exception.Message}");
+                        ConsoleExtensions.WriteIndented($"Retry {retryCount} for event source '{eventSource}' after {stopwatch.Elapsed.TotalSeconds} seconds. Exception: {exception.Message}");
                     });
             // Execute the retry policy
             retryPolicy.Execute(() =>
@@ -142,7 +142,7 @@ namespace BigDrive.Setup
                     throw new InvalidOperationException($"Event Source '{eventSource}' doesn't exist.");
                 }
 
-                Console.WriteLine($"Event Source '{eventSource}' Exists.");
+                ConsoleExtensions.WriteIndented($"Event Source '{eventSource}' Exists.");
             });
         }
 
@@ -155,7 +155,7 @@ namespace BigDrive.Setup
 
             ClearLogs();
 
-            Console.WriteLine($"Writing To Event Source: {eventSource}...");
+            ConsoleExtensions.WriteIndented($"Writing To Event Source: {eventSource}...");
 
             Guid activityId = Guid.NewGuid();
 
@@ -174,7 +174,7 @@ namespace BigDrive.Setup
                 eventLogListener.Flush();
             }
 
-            Console.WriteLine($"Verifying Event Source: {eventSource}...");
+            ConsoleExtensions.WriteIndented($"Verifying Event Source: {eventSource}...");
 
             using (EventLog eventLog = new EventLog(logName: logName) { Source = eventSource })
             {
@@ -182,7 +182,7 @@ namespace BigDrive.Setup
                 {
                     if (entry.Message.Contains(activityId.ToString()))
                     {
-                        Console.WriteLine("Log entry successfully written to the custom Event Log.");
+                        ConsoleExtensions.WriteIndented("Log entry successfully written to the custom Event Log.");
                         return;
                     }
                 }
@@ -201,7 +201,7 @@ namespace BigDrive.Setup
         {
             string serviceName = "EventLog"; // The name of the Windows Event Log service
 
-            Console.WriteLine("Verify the Windows Event Log service is running...");
+            ConsoleExtensions.WriteIndented("Verify the Windows Event Log service is running...");
 
             try
             {
@@ -209,24 +209,24 @@ namespace BigDrive.Setup
                 {
                     if (serviceController.Status == serviceControllerStatus)
                     {
-                        Console.WriteLine("The Windows Event Log service is running.");
+                        ConsoleExtensions.WriteIndented("The Windows Event Log service is running.");
                         return true;
                     }
                     else
                     {
-                        Console.WriteLine($"The Windows Event Log service is not running. Current status: {serviceController.Status}");
+                        ConsoleExtensions.WriteIndented($"The Windows Event Log service is not running. Current status: {serviceController.Status}");
                         return false;
                     }
                 }
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Error: The service '{serviceName}' could not be found. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: The service '{serviceName}' could not be found. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An unexpected error occurred: {ex.Message}");
                 throw;
             }
         }
@@ -250,7 +250,7 @@ namespace BigDrive.Setup
         {
             string serviceName = "EventLog"; // The name of the Windows Event Log service
 
-            Console.WriteLine("Attempting to stop the Windows Event Log service...");
+            ConsoleExtensions.WriteIndented("Attempting to stop the Windows Event Log service...");
 
             try
             {
@@ -258,32 +258,32 @@ namespace BigDrive.Setup
                 {
                     if (serviceController.Status == ServiceControllerStatus.Running)
                     {
-                        Console.WriteLine("The Windows Event Log service is currently running. Stopping the service...");
+                        ConsoleExtensions.WriteIndented("The Windows Event Log service is currently running. Stopping the service...");
 
                         serviceController.Stop();
                         serviceController.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
 
-                        Console.WriteLine("The Windows Event Log service has been stopped successfully.");
+                        ConsoleExtensions.WriteIndented("The Windows Event Log service has been stopped successfully.");
                     }
                     else
                     {
-                        Console.WriteLine($"The Windows Event Log service is not running. Current status: {serviceController.Status}");
+                        ConsoleExtensions.WriteIndented($"The Windows Event Log service is not running. Current status: {serviceController.Status}");
                     }
                 }
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Error: The service '{serviceName}' could not be found. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: The service '{serviceName}' could not be found. {ex.Message}");
                 throw;
             }
             catch (System.ServiceProcess.TimeoutException ex)
             {
-                Console.WriteLine($"Error: The service '{serviceName}' did not stop within the expected time. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: The service '{serviceName}' did not stop within the expected time. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected error occurred while stopping the service: {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An unexpected error occurred while stopping the service: {ex.Message}");
                 throw;
             }
         }
@@ -295,7 +295,7 @@ namespace BigDrive.Setup
         {
             string serviceName = "EventLog"; // The name of the Windows Event Log service
 
-            Console.WriteLine("Attempting to start the Windows Event Log service...");
+            ConsoleExtensions.WriteIndented("Attempting to start the Windows Event Log service...");
 
             try
             {
@@ -303,32 +303,32 @@ namespace BigDrive.Setup
                 {
                     if (serviceController.Status == ServiceControllerStatus.Stopped)
                     {
-                        Console.WriteLine("The Windows Event Log service is currently stopped. Starting the service...");
+                        ConsoleExtensions.WriteIndented("The Windows Event Log service is currently stopped. Starting the service...");
 
                         serviceController.Start();
                         serviceController.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
 
-                        Console.WriteLine("The Windows Event Log service has been started successfully.");
+                        ConsoleExtensions.WriteIndented("The Windows Event Log service has been started successfully.");
                     }
                     else
                     {
-                        Console.WriteLine($"The Windows Event Log service is already running. Current status: {serviceController.Status}");
+                        ConsoleExtensions.WriteIndented($"The Windows Event Log service is already running. Current status: {serviceController.Status}");
                     }
                 }
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Error: The service '{serviceName}' could not be found. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: The service '{serviceName}' could not be found. {ex.Message}");
                 throw;
             }
             catch (System.ServiceProcess.TimeoutException ex)
             {
-                Console.WriteLine($"Error: The service '{serviceName}' did not start within the expected time. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: The service '{serviceName}' did not start within the expected time. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected error occurred while starting the service: {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An unexpected error occurred while starting the service: {ex.Message}");
                 throw;
             }
         }
@@ -344,23 +344,23 @@ namespace BigDrive.Setup
                 // Get the Windows installation directory using the %SystemRoot% environment variable
                 string logFilePath = Environment.ExpandEnvironmentVariables($@"%windir%\System32\winevt\Logs\{eventSource}.evtx");
 
-                Console.WriteLine($"Attempting to delete the log file: {logFilePath}...");
+                ConsoleExtensions.WriteIndented($"Attempting to delete the log file: {logFilePath}...");
 
                 // Check if the file exists
                 if (File.Exists(logFilePath))
                 {
                     // Delete the file
                     File.Delete(logFilePath);
-                    Console.WriteLine($"Log file '{logFilePath}' deleted successfully.");
+                    ConsoleExtensions.WriteIndented($"Log file '{logFilePath}' deleted successfully.");
                 }
                 else
                 {
-                    Console.WriteLine($"Log file '{logFilePath}' does not exist.");
+                    ConsoleExtensions.WriteIndented($"Log file '{logFilePath}' does not exist.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred while deleting the log file: {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An error occurred while deleting the log file: {ex.Message}");
                 throw;
             }
         }
@@ -389,7 +389,7 @@ namespace BigDrive.Setup
         {
             try
             {
-                Console.WriteLine($"Attempting to unregister event log: {this.logName}...");
+                ConsoleExtensions.WriteIndented($"Attempting to unregister event log: {this.logName}...");
 
                 // Open the registry key for deletion
                 using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\EventLog", writable: true))
@@ -397,22 +397,22 @@ namespace BigDrive.Setup
                     if (key != null && key.GetSubKeyNames().Contains(this.logName))
                     {
                         key.DeleteSubKeyTree(this.logName);
-                        Console.WriteLine($"Event log '{this.logName}' unregistered successfully.");
+                        ConsoleExtensions.WriteIndented($"Event log '{this.logName}' unregistered successfully.");
                     }
                     else
                     {
-                        Console.WriteLine($"Event log '{this.logName}' does not exist in the registry.");
+                        ConsoleExtensions.WriteIndented($"Event log '{this.logName}' does not exist in the registry.");
                     }
                 }
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"Error: Insufficient permissions to delete the registry key for event log '{this.logName}'. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: Insufficient permissions to delete the registry key for event log '{this.logName}'. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected error occurred while unregistering the event log '{this.logName}': {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An unexpected error occurred while unregistering the event log '{this.logName}': {ex.Message}");
                 throw;
             }
         }
@@ -421,7 +421,7 @@ namespace BigDrive.Setup
         {
             try
             {
-                Console.WriteLine($"Attempting to unregister event source: {this.eventSource}...");
+                ConsoleExtensions.WriteIndented($"Attempting to unregister event source: {this.eventSource}...");
 
                 // Open the registry key for deletion
                 using (RegistryKey key = Registry.LocalMachine.OpenSubKey(
@@ -430,22 +430,22 @@ namespace BigDrive.Setup
                     if (key != null && key.GetSubKeyNames().Contains(this.eventSource))
                     {
                         key.DeleteSubKeyTree(this.logName);
-                        Console.WriteLine($"Event source '{this.eventSource}' unregistered successfully.");
+                        ConsoleExtensions.WriteIndented($"Event source '{this.eventSource}' unregistered successfully.");
                     }
                     else
                     {
-                        Console.WriteLine($"Event source '{this.eventSource}' does not exist in the registry.");
+                        ConsoleExtensions.WriteIndented($"Event source '{this.eventSource}' does not exist in the registry.");
                     }
                 }
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"Error: Insufficient permissions to delete the registry key for event source '{this.eventSource}'. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Error: Insufficient permissions to delete the registry key for event source '{this.eventSource}'. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected error occurred while unregistering the event source '{this.eventSource}': {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An unexpected error occurred while unregistering the event source '{this.eventSource}': {ex.Message}");
                 throw;
             }
         }
@@ -460,7 +460,7 @@ namespace BigDrive.Setup
                 {
                     if (eventLogKey == null)
                     {
-                        Console.WriteLine($"Registry path '{registryPath}' not found.");
+                        ConsoleExtensions.WriteIndented($"Registry path '{registryPath}' not found.");
                         return false;
                     }
 
@@ -470,7 +470,7 @@ namespace BigDrive.Setup
                         {
                             if (subKey != null && subKey.GetSubKeyNames().Contains(this.eventSource))
                             {
-                                Console.WriteLine($"Event source '{this.eventSource}' found under '{subKeyName}'.");
+                                ConsoleExtensions.WriteIndented($"Event source '{this.eventSource}' found under '{subKeyName}'.");
                                 return true;
                             }
                         }
@@ -479,16 +479,16 @@ namespace BigDrive.Setup
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"Unauthorized access to registry path '{registryPath}'. {ex.Message}");
+                ConsoleExtensions.WriteIndented($"Unauthorized access to registry path '{registryPath}'. {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred while searching for the event source: {ex.Message}");
+                ConsoleExtensions.WriteIndented($"An error occurred while searching for the event source: {ex.Message}");
                 throw;
             }
 
-            Console.WriteLine($"Event source '{this.eventSource}' not found.");
+            ConsoleExtensions.WriteIndented($"Event source '{this.eventSource}' not found.");
             return false;
         }
     }

@@ -42,7 +42,39 @@ private:
     /// </summary>
     BigDriveShellFolderTraceLogger m_traceLogger;
 
-	GUID m_driveGuid;
+    /// <summary>
+    /// Specifies the preferred effect as a DWORD value.
+    /// </summary>
+    DWORD m_dwPreferredEffect;
+
+	/// <summary>
+	/// Stores the value representing the performed effect.
+	/// </summary>
+	DWORD m_dwPerformedEffect;
+
+	/// <summary>
+	/// Indicates whether a paste operation was successful.
+	/// </summary>
+	DWORD m_dwPasteSucceeded;
+
+    /// <summary>
+    /// GUID representing the drive associated with the data object.
+    /// </summary>
+    /// <remarks>
+    /// This GUID is used to identify the drive for operations like drag-and-drop
+    /// and clipboard actions, ensuring that the correct drive is targeted.
+	/// </remarks>
+    GUID m_driveGuid;
+
+    /// <summary>
+    /// A variable that holds a drop description structure.
+    /// </summary>
+    DROPDESCRIPTION m_dropDescription;
+
+    /// <summary>
+    /// Indicates whether the default drag image should be used.
+    /// </summary>
+    BOOL m_bUseDefaultDragImage; 
 
 private:
 
@@ -195,11 +227,35 @@ private:
     HRESULT CreateFileNameW(FORMATETC* pformatetc, STGMEDIUM* pmedium);
 
     /// <summary>
-    /// Creates an HDROP storage medium for the shell's standard drag and drop operations.
+    /// Creates an HDROP structure containing file paths for shell drag-and-drop operations.
+    /// 
+    /// This method populates a STGMEDIUM with a global memory block containing a DROPFILES structure,
+    /// which holds the absolute file paths of the selected items. The Windows Shell uses this data
+    /// format (CF_HDROP) to enable dragging files between applications and folders.
     /// </summary>
-    /// <param name="pformatetc">Format specification</param>
-    /// <param name="pmedium">The medium to initialize</param>
-    /// <returns>S_OK if successful, appropriate error code otherwise</returns>
+    /// <param name="pformatetc">
+    /// Pointer to a FORMATETC structure that describes the format, medium, and target device
+    /// to use when passing the data. The method expects CF_HDROP as the format.
+    /// </param>
+    /// <param name="pmedium">
+    /// [out] Pointer to a STGMEDIUM structure that receives the HDROP data. On successful return,
+    /// contains a global memory handle (TYMED_HGLOBAL) with the DROPFILES structure.
+    /// </param>
+    /// <returns>
+    /// S_OK if successful;
+    /// E_INVALIDARG if input parameters are null or invalid;
+    /// E_OUTOFMEMORY if memory allocation fails;
+    /// Other HRESULT error codes as appropriate.
+    /// </returns>
+    /// <remarks>
+    /// The HDROP structure contains:
+    /// - A DROPFILES header with fWide=TRUE to indicate Unicode paths
+    /// - A sequence of null-terminated Unicode file paths
+    /// - A final null terminator marking the end of the path list
+    /// 
+    /// The caller takes ownership of the returned STGMEDIUM and is responsible for releasing 
+    /// it when no longer needed.
+    /// </remarks>
     HRESULT CreateHDrop(FORMATETC* pformatetc, STGMEDIUM* pmedium);
 
     HRESULT GetFileDataFromPidl(PCUITEMID_CHILD pidl, BYTE** ppData, SIZE_T& dataSize);

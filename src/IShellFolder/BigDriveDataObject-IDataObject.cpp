@@ -131,6 +131,12 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 	}
 	else if (pformatetc->cfFormat == g_cfHDrop)
 	{
+		// This is not suported in BigDrive, since all the files are virtualized.
+		hr = DV_E_FORMATETC;
+		goto End;
+	}
+	else if (pformatetc->cfFormat == g_cfPreferredDropEffect)
+	{
 		// Verify the medium type is supported
 		if ((pformatetc->tymed & TYMED_HGLOBAL) == 0)
 		{
@@ -145,7 +151,83 @@ HRESULT __stdcall BigDriveDataObject::GetData(FORMATETC* pformatetc, STGMEDIUM* 
 			goto End;
 		}
 
-		hr = CreateHDrop(pformatetc, pmedium);
+		pmedium->tymed = TYMED_HGLOBAL;
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+		if (!pmedium->hGlobal)
+		{
+			hr = E_OUTOFMEMORY;
+			goto End;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Use the member variable for the preferred effect
+		*pdwEffect = m_dwPreferredEffect; 
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr; 
+
+		::GlobalUnlock(pmedium->hGlobal);
+		
+		goto End;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT))
+	{
+		pmedium->tymed = TYMED_HGLOBAL;
+		
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+		
+		if (!pmedium->hGlobal)
+		{
+			return E_OUTOFMEMORY;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			return E_UNEXPECTED;
+		}
+
+		// Use the member variable for the performed effect
+		*pdwEffect = m_dwPerformedEffect; 
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr; 
+
+		::GlobalUnlock(pmedium->hGlobal);
+		
+		goto End;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+	{
+		pmedium->tymed = TYMED_HGLOBAL;
+
+		pmedium->hGlobal = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DWORD));
+
+		if (!pmedium->hGlobal)
+		{
+			return E_OUTOFMEMORY;
+		}
+
+		DWORD* pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			return E_UNEXPECTED;
+		}
+
+		// Use the member variable for the performed effect
+		*pdwEffect = m_dwPasteSucceeded;
+
+		// No need to release anything
+		pmedium->pUnkForRelease = nullptr;
+
+		::GlobalUnlock(pmedium->hGlobal);
+
 		goto End;
 	}
 	else
@@ -218,8 +300,7 @@ HRESULT __stdcall BigDriveDataObject::QueryGetData(FORMATETC* pformatetc)
 		(cf == g_cfFileDescriptor) ||
 		(cf == g_cfFileContents) ||
 		(cf == g_cfDropDescription) ||
-		(cf == g_cfFileNameW) ||
-		(cf == g_cfHDrop))
+		(cf == g_cfFileNameW))
 	{
 		hr = S_OK;
 		goto End;
@@ -260,10 +341,110 @@ End:
 /// <inheritdoc />
 HRESULT __stdcall BigDriveDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease)
 {
-
 	HRESULT hr = E_NOTIMPL;
 
-	m_traceLogger.LogEnter(__FUNCTION__);
+	m_traceLogger.LogEnter(__FUNCTION__, *pformatetc);
+	
+	if (pmedium == nullptr || pformatetc == nullptr)
+	{
+		hr = E_INVALIDARG;
+		goto End;
+	}
+
+	if (pmedium->tymed != TYMED_HGLOBAL || !pmedium->hGlobal)
+	{
+		hr = DV_E_TYMED;
+		goto End;
+	}
+
+	// Handle known formats that might be set during drag-drop
+	if (pformatetc->cfFormat == g_cfPreferredDropEffect ||
+		pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT) ||
+		pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+	{
+		DWORD *pdwEffect = static_cast<DWORD*>(::GlobalLock(pmedium->hGlobal));
+		if (!pdwEffect)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store the value in member variables if needed
+		if (pformatetc->cfFormat == g_cfPreferredDropEffect)
+		{
+			m_dwPreferredEffect = *pdwEffect;
+		}
+		else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT))
+		{
+			m_dwPerformedEffect = *pdwEffect;
+		}
+		else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_PASTESUCCEEDED))
+		{
+			m_dwPasteSucceeded = *pdwEffect;
+		}
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(CFSTR_DROPDESCRIPTION))
+	{
+		DROPDESCRIPTION* pDropDesc = static_cast<DROPDESCRIPTION*>(::GlobalLock(pmedium->hGlobal));
+		if (!pDropDesc)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store the drop description
+		::memcpy(&m_dropDescription, pDropDesc, sizeof(DROPDESCRIPTION));
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else if (pformatetc->cfFormat == RegisterClipboardFormat(L"UsingDefaultDragImage"))
+	{
+		BOOL* pbUseDefaultDragImage = static_cast<BOOL*>(::GlobalLock(pmedium->hGlobal));
+		if (!pbUseDefaultDragImage)
+		{
+			hr = E_UNEXPECTED;
+			goto End;
+		}
+
+		// Store whether to use the default drag image
+		m_bUseDefaultDragImage = *pbUseDefaultDragImage;
+
+		::GlobalUnlock(pmedium->hGlobal);
+
+		// If fRelease is TRUE, we're now responsible for releasing the medium
+		if (fRelease)
+		{
+			::ReleaseStgMedium(pmedium);
+		}
+
+		hr = S_OK;
+	}
+	else
+	{
+		// For formats we don't handle, return E_NOTIMPL
+		hr = E_NOTIMPL;
+	}
+
+End:
+
 	m_traceLogger.LogExit(__FUNCTION__, hr);
 
 	return hr;
@@ -293,21 +474,21 @@ HRESULT __stdcall BigDriveDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORM
 	// Define the supported formats
 	static const FORMATETC formats[] = {
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_SHELLIDLIST), // cfFormat
+			g_cfShellIdList, // cfFormat
 			nullptr,                                                  // ptd
 			DVASPECT_CONTENT,                                         // dwAspect
 			-1,                                                       // lindex
 			TYMED_HGLOBAL                                             // tymed
 		},
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR),
+			g_cfFileDescriptor,
 			nullptr,
 			DVASPECT_CONTENT,
 			-1,
 			TYMED_HGLOBAL
 		},
 		{
-			(CLIPFORMAT)::RegisterClipboardFormat(CFSTR_FILECONTENTS),
+			g_cfFileContents,
 			nullptr,
 			DVASPECT_CONTENT,
 			-1,

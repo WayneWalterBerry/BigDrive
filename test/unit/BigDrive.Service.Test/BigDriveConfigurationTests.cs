@@ -11,15 +11,15 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using BigDrive.Service.ComObjects;
 using BigDrive.ConfigProvider;
 using BigDrive.ConfigProvider.Model;
 using Microsoft.Win32;
+using BigDrive.Service;
 
 namespace BigDrive.Unit.Service.Test
 {
     /// <summary>
-    /// Contains unit tests for the <see cref="BigDriveConfiguration"/> class.
+    /// Contains unit tests for the <see cref="BigDriveService"/> class.
     /// </summary>
     [TestClass]
     public class BigDriveConfigurationTests
@@ -54,7 +54,7 @@ namespace BigDrive.Unit.Service.Test
             DriveManager.WriteConfiguration(driveConfig, cancellationToken);
 
             // Act
-            var bigDriveConfiguration = new BigDriveConfiguration();
+            var bigDriveConfiguration = new BigDriveService();
             string json = bigDriveConfiguration.GetConfiguration(driveConfig.Id);
 
             // Deserialize the JSON back to a DriveConfiguration object
@@ -79,7 +79,7 @@ namespace BigDrive.Unit.Service.Test
         public void GetConfiguration_MissingConfiguration_ThrowsException()
         {
             // Arrange
-            var bigDriveConfiguration = new BigDriveConfiguration();
+            var bigDriveConfiguration = new BigDriveService();
             Guid missingGuid = Guid.NewGuid();
 
             // Act
