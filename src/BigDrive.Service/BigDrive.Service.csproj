@@ -84,12 +84,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyResolver.cs" />
+    <Compile Include="BigDriveService-IBigDriveProvision.cs" />
     <Compile Include="BigDriveService-IBigDriveSetup.cs" />
     <Compile Include="BigDriveService.cs" />
     <Compile Include="BigDriveTraceSource.cs" />
     <Compile Include="Interfaces\IBigDriveConfiguration.cs" />
     <Compile Include="Interfaces\IBigDriveSetup.cs" />
+    <Compile Include="Interfaces\IBigDriveProvision.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryHelper.cs" />
+    <Compile Include="ShellHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

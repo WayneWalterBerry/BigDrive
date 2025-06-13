@@ -16,13 +16,33 @@ namespace BigDrive.ConfigProvider
     public static class DriveManager
     {
         /// <summary>
+        /// Checks if a drive with the specified Guid exists in the registry under SOFTWARE\BigDrive\Drives.
+        /// </summary>
+        /// <param name="driveId">The unique identifier (Guid) of the drive.</param>
+        /// <param name="cancellationToken">Cancellation Token</param>
+        /// <returns>True if the drive exists; otherwise, false.</returns>
+        public static bool DriveExists(Guid guidDrive, CancellationToken cancellationToken)
+        {
+            if (guidDrive == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(guidDrive), "Guid cannot be empty.");
+            }
+
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Drives\{guidDrive:B}";
+            using (RegistryKey subFolderKey = Registry.LocalMachine.OpenSubKey(subFolderRegistryPath))
+            {
+                return subFolderKey != null;
+            }
+        }
+
+        /// <summary>
         /// Reads the Drives subfolder in the registry and iterates all subfolders, calling LoadConfiguration for each.
         /// </summary>
         public static IEnumerable<DriveConfiguration> ReadConfigurations(CancellationToken cancellationToken)
         {
-            string drivesRegistryPath = Path.Combine("Software\\BigDrive", "Drives");
+            string drivesRegistryPath = Path.Combine("SOFTWARE\\BigDrive", "Drives");
 
-            using (RegistryKey drivesKey = Registry.CurrentUser.OpenSubKey(@"Software\BigDrive\Drives"))
+            using (RegistryKey drivesKey = Registry.LocalMachine.OpenSubKey(@"Software\BigDrive\Drives"))
             {
                 if (drivesKey == null)
                 {
@@ -43,17 +63,17 @@ namespace BigDrive.ConfigProvider
         /// </summary>
         /// <param name="subFolderName">The name of the subfolder in the registry.</param>
         /// <param name="cancellationToken">Cancellation Token</param>
-        public static DriveConfiguration ReadConfiguration(Guid guid, CancellationToken cancellationToken)
+        public static DriveConfiguration ReadConfiguration(Guid guidDrive, CancellationToken cancellationToken)
         {
-            if (guid== Guid.Empty)
+            if (guidDrive== Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(guid), "Guid cannot be empty.");
+                throw new ArgumentNullException(nameof(guidDrive), "Guid cannot be empty.");
             }
 
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{guid:B}";
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Drives\{guidDrive:B}";
 
-            using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath))
+            using (RegistryKey subFolderKey = Registry.LocalMachine.OpenSubKey(subFolderRegistryPath))
             {
                 if (subFolderKey == null)
                 {
@@ -103,7 +123,7 @@ namespace BigDrive.ConfigProvider
                 }
 
                 // Verify that the subfolder name matches the driveConfig.Id
-                if (guid != driveConfiguration.Id)
+                if (guidDrive != driveConfiguration.Id)
                 {
                     throw new InvalidOperationException($"Subfolder name of register key: '{subFolderKey.Name}' does not match Id found in that key '{driveConfiguration.Id}'.");
                 }
@@ -126,9 +146,9 @@ namespace BigDrive.ConfigProvider
             }
 
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Drives\{{{driveConfig.Id}}}";
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Drives\{{{driveConfig.Id}}}";
 
-            using (RegistryKey subFolderKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
+            using (RegistryKey subFolderKey = Registry.LocalMachine.CreateSubKey(subFolderRegistryPath))
             {
                 if (subFolderKey == null)
                 {

@@ -2,16 +2,10 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-using System.Diagnostics;
-
 namespace BigDrive.Service
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     internal class BigDriveTraceSource : TraceSource
     {

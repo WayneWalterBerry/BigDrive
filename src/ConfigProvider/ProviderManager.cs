@@ -29,12 +29,12 @@ namespace BigDrive.ConfigProvider
             }
 
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{providerConfig.Id.ToString().ToUpper()}}}";
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Providers\{{{providerConfig.Id.ToString().ToUpper()}}}";
 
             // Clear the SubKey In ProviderConfiguration different properties since the last write.
             Registry.CurrentUser.DeleteSubKeyTree(subFolderRegistryPath, throwOnMissingSubKey: false);
 
-            using (RegistryKey subFolderKey = Registry.CurrentUser.CreateSubKey(subFolderRegistryPath))
+            using (RegistryKey subFolderKey = Registry.LocalMachine.CreateSubKey(subFolderRegistryPath))
             {
                 if (subFolderKey == null)
                 {
@@ -79,13 +79,13 @@ namespace BigDrive.ConfigProvider
         public static void UnRegisterProvider(Guid guidProvider, CancellationToken cancellationToken)
         {
             // Define the registry path for the specific subfolder
-            string subFolderRegistryPath = $@"Software\BigDrive\Providers\{{{guidProvider.ToString().ToUpper()}}}";
-            using (RegistryKey subFolderKey = Registry.CurrentUser.OpenSubKey(subFolderRegistryPath, true))
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Providers\{{{guidProvider.ToString().ToUpper()}}}";
+            using (RegistryKey subFolderKey = Registry.LocalMachine.OpenSubKey(subFolderRegistryPath, true))
             {
                 if (subFolderKey != null)
                 {
                     // Delete the subfolder from the registry
-                    Registry.CurrentUser.DeleteSubKeyTree(subFolderRegistryPath, false);
+                    Registry.LocalMachine.DeleteSubKeyTree(subFolderRegistryPath, false);
                 }
             }
         }
