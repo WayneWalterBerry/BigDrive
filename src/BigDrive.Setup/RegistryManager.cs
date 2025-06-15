@@ -218,11 +218,11 @@ namespace BigDrive.Setup
                     {
                         ConsoleExtensions.WriteIndented("Current user is not the owner, attempting to take ownership...");
 
-                        ConsoleExtensions.WriteIndented("Enabling SeTakeOwnershipPrivilege...");
                         EnablePrivilege("SeTakeOwnershipPrivilege");
+                        EnablePrivilege("SeRestorePrivilege");
 
                         // Reopen the key with WRITE_OWNER | READ_CONTROL
-                        using (hKey = Registry.ClassesRoot.OpenSubKey(keyPath, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership | RegistryRights.ReadPermissions))
+                        using (hKey = rootKey.OpenSubKey(keyPath, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership | RegistryRights.ReadPermissions))
                         {
                             if (hKey == null)
                             {
@@ -251,19 +251,31 @@ namespace BigDrive.Setup
                 }
                 finally
                 {
-                    // 5. Restore only the original owner if we took ownership
-                    if (ownershipTaken && originalOwner != null && !sid.Equals(originalOwner))
+                    hKey?.Close();
+                    hKey = null;
+
+                    using (hKey = rootKey.OpenSubKey(keyPath, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership | RegistryRights.ReadPermissions))
                     {
-                        ConsoleExtensions.WriteIndented("Restoring original owner of the key...");
-                        var ownerSecurity = hKey.GetAccessControl();
-                        ownerSecurity.SetOwner(originalOwner);
-                        hKey.SetAccessControl(ownerSecurity);
+                        if (hKey == null)
+                        {
+                            throw new InvalidOperationException($"Failed to open registry key '{keyPath}' for WRITE_OWNER.");
+                        }
+
+                        // 5. Restore only the original owner if we took ownership
+                        if (ownershipTaken && originalOwner != null && !sid.Equals(originalOwner))
+                        {
+                            ConsoleExtensions.WriteIndented("Restoring original owner of the key...");
+                            var ownerSecurity = hKey.GetAccessControl();
+                            ownerSecurity.SetOwner(originalOwner);
+                            hKey.SetAccessControl(ownerSecurity);
+                        }
                     }
                 }
             }
             finally
             {
                 hKey?.Close();
+                hKey = null;
             }
         }
 
@@ -339,6 +351,8 @@ namespace BigDrive.Setup
         /// <param name="privilege">The name of the privilege to enable (e.g., "SeTakeOwnershipPrivilege").</param>
         private static void EnablePrivilege(string privilege)
         {
+            ConsoleExtensions.WriteIndented($"Enabling {privilege} privilege...");
+
             if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out IntPtr hToken))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed.");
