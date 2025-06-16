@@ -4,14 +4,15 @@
 
 namespace BigDrive.ConfigProvider
 {
+    using BigDrive.ConfigProvider.Model;
+    using Microsoft.Win32;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Threading;
-    using BigDrive.ConfigProvider.Model;
-    using Microsoft.Win32;
 
     public static class DriveManager
     {
@@ -134,6 +135,50 @@ namespace BigDrive.ConfigProvider
         }
 
         /// <summary>
+        /// Deserializes a JSON string into a <see cref="DriveConfiguration"/> object.
+        /// </summary>
+        /// <remarks>The method uses case-insensitive property name matching and supports enum values
+        /// serialized as camel-case strings. If the JSON string is invalid or does not match the expected structure of
+        /// <see cref="DriveConfiguration"/>, the method returns <see langword="null"/> instead of throwing an
+        /// exception.</remarks>
+        /// <param name="jsonConfiguration">A JSON-formatted string representing the configuration. Cannot be null, empty, or whitespace.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation. If cancellation is requested, the method will throw <see
+        /// cref="OperationCanceledException"/>.</param>
+        /// <returns>A <see cref="DriveConfiguration"/> object deserialized from the provided JSON string, or <see
+        /// langword="null"/> if the JSON is invalid or cannot be deserialized.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="jsonConfiguration"/> is null, empty, or consists only of whitespace.</exception>
+        public static DriveConfiguration ReadConfigurationFromJson(string jsonConfiguration, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(jsonConfiguration))
+            {
+                throw new ArgumentNullException(nameof(jsonConfiguration), "JSON configuration cannot be null or empty.");
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+            };
+
+            // Support cancellation
+            cancellationToken.ThrowIfCancellationRequested();
+
+            DriveConfiguration config;
+            try
+            {
+                config = JsonSerializer.Deserialize<DriveConfiguration>(jsonConfiguration, options);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return config;
+        }
+
+        /// <summary>
         /// Writes a DriveConfiguration to the registry under the specified subfolder name.
         /// </summary>
         /// <param name="driveConfig">The DriveConfiguration object to write.</param>
@@ -177,6 +222,35 @@ namespace BigDrive.ConfigProvider
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Serializes a <see cref="DriveConfiguration"/> object to a JSON string.
+        /// </summary>
+        /// <param name="driveConfg">The <see cref="DriveConfiguration"/> instance to serialize.</param>
+        /// <param name="callectionToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+        /// <returns>A JSON-formatted string representing the <see cref="DriveConfiguration"/>.</returns>
+        public static string ToJson(this DriveConfiguration driveConfg, CancellationToken callectionToken)
+        {
+            if (driveConfg == null)
+            {
+                throw new ArgumentNullException(nameof(driveConfg), "DriveConfiguration cannot be null.");
+            }
+
+            callectionToken.ThrowIfCancellationRequested();
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = null,
+                WriteIndented = false,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(driveConfg, options);
+
+            callectionToken.ThrowIfCancellationRequested();
+
+            return json;
         }
     }
 }

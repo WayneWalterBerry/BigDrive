@@ -16,5 +16,11 @@ namespace BigDrive.Service.Interfaces
         /// Create a new drive with the specifed guid.
         /// </summary>
         void Create(Guid driveGuid);
+
+        /// <summary>
+        /// Create a new drive with the specified JSON configuration.
+        /// </summary>
+        /// <param name="jsonConfiguration"></param>
+        void CreateFromConfiguration(string jsonConfiguration);
     }
 }

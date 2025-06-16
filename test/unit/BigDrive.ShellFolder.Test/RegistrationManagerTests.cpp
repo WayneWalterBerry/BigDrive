@@ -8,7 +8,7 @@
 
 #include "CppUnitTest.h"
 
-#include "..\..\..\src\IShellFolder\Exports\RegistrationManagerImports.h"
+#include "..\..\..\src\BigDrive.ShellFolder\Exports\RegistrationManagerImports.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

@@ -47,3 +47,7 @@ extern "C" HRESULT __stdcall DllUnregisterServer();
 /// <returns>S_OK on success, CLASS_E_CLASSNOTAVAILABLE if the CLSID is not supported, or another HRESULT error code.</returns>
 extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
 
+HRESULT GetModuleFileNameW(LPWSTR szModulePath, DWORD dwSize);
+HRESULT IsCurrentOS64Bit(bool& is64Bit);
+HRESULT IsDll64Bit(const wchar_t* dllPath, bool& is64Bit);
+HRESULT CheckDllAndOSBitnessMatch(bool& isMatch);
