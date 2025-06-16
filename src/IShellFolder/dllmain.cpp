@@ -8,6 +8,7 @@
 #include "dllmain.h"
 
 // System
+#include <windows.h>
 #include <combaseapi.h>
 
 /// Local
@@ -65,6 +66,28 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     HRESULT hr = S_OK;
     bool bitMatch = FALSE;
 
+    hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
+    if (FAILED(hr))
+    {
+        // Log the error and return failure.
+        goto End;
+    }
+
+    if (!bitMatch)
+    {
+        // Log a message indicating that the bitness of the DLL and OS do not match.
+        hr = E_FAIL;
+        goto End;
+    }
+
+	hr = WriteShellDllLocationToRegistry();
+    if (FAILED(hr))
+    {
+        // Log the error and return failure.
+        goto End;
+    }
+
+    /*
     // Registers all COM+ applications (providers) and their components that support the IBigDriveRegistration interface.
     // This method enumerates applications and their components using the COMAdminCatalog, queries for the
     // IBigDriveRegistration interface, and invokes the Register method on each supported component.
@@ -85,19 +108,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
 
-    hr = RegistrationManager::CheckDllAndOSBitnessMatch(bitMatch);
-    if (FAILED(hr))
-    {
-        // Log the error and return failure.
-        goto End;
-    }
 
-    if (!bitMatch)
-    {        
-        // Log a message indicating that the bitness of the DLL and OS do not match.
-        hr = E_FAIL;
-        goto End;
-    }
 
     /// Enumerates all registered drive GUIDs from the registry, retrieves their configuration,
     /// and registers each as a shell folder in Windows Explorer. For each drive, this method
@@ -114,7 +125,7 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 
     // Refresh the desktop to ensure that any changes made to the desktop folder are reflected immediately.
     ::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, L"C:\\Users\\Public\\Desktop", NULL);
-
+    */
 
 End:
   
@@ -210,4 +221,76 @@ End:
 }
 
 
+/// <inheritdoc/>
+HRESULT WriteShellDllLocationToRegistry()
+{
+    HMODULE hModule = nullptr;
+    WCHAR dllPath[MAX_PATH] = { 0 };
+    HKEY hKey = nullptr;
+    HRESULT hr = S_OK;
+    LONG lResult = 0;
+
+    // Registry path: HKLM\SOFTWARE\BigDrive\ShellFolder
+    LPCWSTR subKey = L"SOFTWARE\\BigDrive\\ShellFolder";
+    LPCWSTR valueName = L"ShellDll";
+
+    // Get the module handle for the current DLL
+    if (!::GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCWSTR>(&WriteShellDllLocationToRegistry),
+        &hModule))
+    {
+        hr = HRESULT_FROM_WIN32(::GetLastError());
+        goto End;
+    }
+
+    // Get the full path of the DLL
+    if (::GetModuleFileNameW(hModule, dllPath, MAX_PATH) == 0)
+    {
+        hr = HRESULT_FROM_WIN32(::GetLastError());
+        goto End;
+    }
+
+    lResult = ::RegCreateKeyExW(
+        HKEY_LOCAL_MACHINE,
+        subKey,
+        0,
+        nullptr,
+        REG_OPTION_NON_VOLATILE,
+        KEY_WRITE,
+        nullptr,
+        &hKey,
+        nullptr);
+
+    if (lResult != ERROR_SUCCESS)
+    {
+        hr = HRESULT_FROM_WIN32(lResult);
+        goto End;
+    }
+
+    lResult = ::RegSetValueExW(
+        hKey,
+        valueName,
+        0,
+        REG_SZ,
+        reinterpret_cast<const BYTE*>(dllPath),
+        static_cast<DWORD>((::lstrlenW(dllPath) + 1) * sizeof(WCHAR)));
+
+    if (lResult != ERROR_SUCCESS)
+    {
+        hr = HRESULT_FROM_WIN32(lResult);
+        goto End;
+    }
+
+End:
+
+    if (hKey != nullptr)
+    {
+        ::RegCloseKey(hKey);
+        hKey = nullptr;
+    }
+
+    return hr;
+
+}
 

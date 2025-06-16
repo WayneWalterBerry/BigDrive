@@ -47,3 +47,10 @@ extern "C" HRESULT __stdcall DllUnregisterServer();
 /// <returns>S_OK on success, CLASS_E_CLASSNOTAVAILABLE if the CLSID is not supported, or another HRESULT error code.</returns>
 extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
 
+/// <summary>
+/// Writes the current DLL location to the registry at
+/// HKEY_LOCAL_MACHINE\SOFTWARE\BigDrive\ShellFolder\ShellDll.
+/// </summary>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT WriteShellDllLocationToRegistry();
+
