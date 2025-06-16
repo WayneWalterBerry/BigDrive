@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "mcp_server_win32_registry_server": {
+      "type": "stdio",
+      "command": "C:\\Repos\\mcp-server-win32-registry\\artifacts\\Debug\\mcp-server-win32-registry-server.exe",
+      "args": []
+    }
+  }
+}

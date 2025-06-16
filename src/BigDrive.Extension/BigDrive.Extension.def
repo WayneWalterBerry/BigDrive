@@ -1,4 +1,4 @@
-LIBRARY "BigDrive.Extendion.dll
+LIBRARY "BigDrive.Extension.dll"
 
 EXPORTS
     DllGetClassObject           @1

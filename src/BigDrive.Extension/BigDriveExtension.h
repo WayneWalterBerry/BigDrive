@@ -9,6 +9,9 @@
 #include <windows.h>
 #include <shlobj.h>
 
+// {CBB26998-8B10-4599-8AB7-01AF65F3F68B}
+extern "C" const CLSID CLSID_BigDriveExtension;
+
 /// <summary>
 /// Implements a context menu extension for "My PC".
 /// </summary>
