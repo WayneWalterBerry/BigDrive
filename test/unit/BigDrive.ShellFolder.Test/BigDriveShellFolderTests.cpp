@@ -10,9 +10,9 @@
 
 #include "CppUnitTest.h"
 
-#include "..\..\..\src\IShellFolder\Exports\BigDriveShellFolderExports.h"
-#include "..\..\..\src\IShellFolder\BigDriveItemType.h"
-#include "..\..\..\src\IShellFolder\ILExtensions.h"
+#include "..\..\..\src\BigDrive.ShellFolder\Exports\BigDriveShellFolderExports.h"
+#include "..\..\..\src\BigDrive.ShellFolder\BigDriveItemType.h"
+#include "..\..\..\src\BigDrive.ShellFolder\ILExtensions.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

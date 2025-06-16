@@ -10,7 +10,7 @@
 #include <objbase.h>
 #include <Unknwn.h> 
 
-#include "..\..\..\src\IShellFolder\dllmain.h"
+#include "..\..\..\src\BigDrive.ShellFolder\dllmain.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

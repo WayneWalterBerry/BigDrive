@@ -10,7 +10,7 @@
 #include "pch.h"
 #include <windows.h>
 #include "CppUnitTest.h"
-#include "..\..\..\src\IShellFolder\Exports\BigDriveEnumIDListImports.h"
+#include "..\..\..\src\BigDrive.ShellFolder\Exports\BigDriveEnumIDListImports.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
