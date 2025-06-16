@@ -42,6 +42,8 @@ namespace BigDrive.Service
         /// <exception cref="InvalidOperationException">Thrown if a drive with the GUID specified in the configuration already exists.</exception>
         public void CreateFromConfiguration(string jsonConfiguration)
         {
+            System.Diagnostics.Debugger.Launch();
+
             DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for configuration: {0}", jsonConfiguration);
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 

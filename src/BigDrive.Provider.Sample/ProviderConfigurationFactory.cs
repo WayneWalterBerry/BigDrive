@@ -4,17 +4,12 @@
 
 namespace BigDrive.Provider.Sample
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Reflection;
-    using System.Text;
-    using System.Threading.Tasks;
     using BigDrive.ConfigProvider.Model;
 
     internal static class ProviderConfigurationFactory
     {
-       public static BigDrive.ConfigProvider.Model.ProviderConfiguration Create()
+       public static ProviderConfiguration Create()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             AssemblyTitleAttribute titleAttribute = assembly.GetCustomAttribute<AssemblyTitleAttribute>();

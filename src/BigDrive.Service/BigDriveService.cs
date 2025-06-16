@@ -30,6 +30,26 @@ namespace BigDrive.Service
             asssemblyResolver = AssemblyResolver.Instance;
         }
 
+        /// <summary>
+        /// Gets the globally unique identifier (GUID) associated with the <see cref="BigDriveService"/> class.
+        /// </summary>
+        /// <remarks>This property retrieves the GUID defined in the metadata of the <see
+        /// cref="BigDriveService"/> class. It is useful for scenarios where the class's unique identifier is required,
+        /// such as COM interop or other identification purposes.</remarks>
+        public static Guid CLSID
+        {
+            get
+            {
+                // Get the type of the Provider class
+                Type providerType = typeof(BigDriveService);
+
+                // Get the GuidAttribute applied to the Provider class
+                GuidAttribute guidAttribute = (GuidAttribute)Attribute.GetCustomAttribute(providerType, typeof(GuidAttribute));
+
+                return Guid.Parse(guidAttribute.Value);
+            }
+        }
+
         /// <inheritdoc/>
         public string GetConfiguration(Guid guid)
         {

@@ -223,5 +223,34 @@ namespace BigDrive.ConfigProvider
                 }
             }
         }
+
+        /// <summary>
+        /// Serializes a <see cref="DriveConfiguration"/> object to a JSON string.
+        /// </summary>
+        /// <param name="driveConfg">The <see cref="DriveConfiguration"/> instance to serialize.</param>
+        /// <param name="callectionToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+        /// <returns>A JSON-formatted string representing the <see cref="DriveConfiguration"/>.</returns>
+        public static string ToJson(this DriveConfiguration driveConfg, CancellationToken callectionToken)
+        {
+            if (driveConfg == null)
+            {
+                throw new ArgumentNullException(nameof(driveConfg), "DriveConfiguration cannot be null.");
+            }
+
+            callectionToken.ThrowIfCancellationRequested();
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = null,
+                WriteIndented = false,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(driveConfg, options);
+
+            callectionToken.ThrowIfCancellationRequested();
+
+            return json;
+        }
     }
 }
