@@ -9,6 +9,7 @@
 #include "BigDriveExtensionClassFactory.h"
 
 #include <windows.h>
+#include <strsafe.h>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -128,14 +129,19 @@ End:
 }
 
 /// </ inheritdoc>
+/// <inheritdoc>
 HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 {
 	HRESULT hr = S_OK;
-	HKEY hKey = nullptr;
+	HKEY hKeyCLSID = nullptr;
 	HKEY hKeyInproc = nullptr;
+	HKEY hKeyDriveHandler = nullptr;
 	WCHAR szCLSID[64] = { 0 };
+	WCHAR szCLSIDKey[128] = { 0 };
 	WCHAR szModulePath[MAX_PATH] = { 0 };
 	LONG lResult = 0;
+
+	LaunchDebugger(); // Optional: Launch debugger if needed for troubleshooting
 
 	// Correct registry key for Drive context menu handlers
 	LPCWSTR szDriveHandlers = L"Drive\\shellex\\ContextMenuHandlers\\BigDriveExtension";
@@ -147,16 +153,23 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 		goto End;
 	}
 
+	// Build CLSID key path: "CLSID\\{...}"
+	hr = ::StringCchPrintfW(szCLSIDKey, ARRAYSIZE(szCLSIDKey), L"CLSID\\%s", szCLSID);
+	if (FAILED(hr))
+	{
+		goto End;
+	}
+
 	// 1. Register the COM object under HKCR\CLSID\{CLSID_BigDriveExtension}
 	lResult = ::RegCreateKeyExW(
 		HKEY_CLASSES_ROOT,
-		szCLSID,
+		szCLSIDKey,
 		0,
 		nullptr,
 		REG_OPTION_NON_VOLATILE,
 		KEY_WRITE,
 		nullptr,
-		&hKey,
+		&hKeyCLSID,
 		nullptr);
 
 	if (lResult != ERROR_SUCCESS)
@@ -167,7 +180,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 
 	// Set the default value (optional, but recommended)
 	lResult = ::RegSetValueExW(
-		hKey,
+		hKeyCLSID,
 		nullptr,
 		0,
 		REG_SZ,
@@ -182,7 +195,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 
 	// 2. Register InprocServer32 subkey
 	lResult = ::RegCreateKeyExW(
-		hKey,
+		hKeyCLSID,
 		L"InprocServer32",
 		0,
 		nullptr,
@@ -236,12 +249,6 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	}
 
 	// 3. Register the handler under Drive ContextMenuHandlers
-	if (hKey)
-	{
-		::RegCloseKey(hKey);
-		hKey = nullptr;
-	}
-
 	lResult = ::RegCreateKeyExW(
 		HKEY_CLASSES_ROOT,
 		szDriveHandlers,
@@ -250,7 +257,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 		REG_OPTION_NON_VOLATILE,
 		KEY_WRITE,
 		nullptr,
-		&hKey,
+		&hKeyDriveHandler,
 		nullptr);
 
 	if (lResult != ERROR_SUCCESS)
@@ -259,9 +266,9 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 		goto End;
 	}
 
-	// Set the default value to the CLSID string
+	// Set the default value to the CLSID string (without braces)
 	lResult = ::RegSetValueExW(
-		hKey,
+		hKeyDriveHandler,
 		nullptr,
 		0,
 		REG_SZ,
@@ -282,14 +289,21 @@ End:
 		hKeyInproc = nullptr;
 	}
 
-	if (hKey)
+	if (hKeyCLSID)
 	{
-		::RegCloseKey(hKey);
-		hKey = nullptr;
+		::RegCloseKey(hKeyCLSID);
+		hKeyCLSID = nullptr;
+	}
+
+	if (hKeyDriveHandler)
+	{
+		::RegCloseKey(hKeyDriveHandler);
+		hKeyDriveHandler = nullptr;
 	}
 
 	return hr;
 }
+
 
 /// </ inheritdoc>
 HRESULT CheckDllAndOSBitnessMatch(bool& isMatch)
