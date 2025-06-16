@@ -4,13 +4,7 @@
 
 namespace BigDrive.Provider.Sample
 {
-    using System;
-    using System.Runtime.InteropServices;
-    using System.Threading;
-    using BigDrive.ConfigProvider;
     using BigDrive.ConfigProvider.Model;
-    using BigDrive.Service;
-    using BigDrive.Service.Interfaces;
 
     public partial class Provider
     {
