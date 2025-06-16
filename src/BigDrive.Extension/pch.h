@@ -7,7 +7,8 @@
 #ifndef PCH_H
 #define PCH_H
 
-// add headers that you want to pre-compile here
-#include "framework.h"
+#include <windows.h>
+
+static const GUID PSGUID_STORAGE = { 0x28636AA6, 0x953D, 0x11D2, { 0xB5, 0xD6, 0x00, 0xC0, 0x4F, 0xD9 } };
 
 #endif //PCH_H

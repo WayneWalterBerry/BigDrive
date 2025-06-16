@@ -142,12 +142,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BigDriveExtension.h" />
+    <ClInclude Include="BigDriveTraceLogger.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BigDriveExtension-IContextMenu.cpp" />
+    <ClCompile Include="BigDriveExtension-IShellExtInit.cpp" />
+    <ClCompile Include="BigDriveExtension-IUnknown.cpp" />
+    <ClCompile Include="BigDriveExtension.cpp" />
+    <ClCompile Include="BigDriveTraceLogger.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
     <ClCompile Include="pch.cpp">
