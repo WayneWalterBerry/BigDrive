@@ -20,6 +20,11 @@ namespace BigDrive.Setup
         public const string EventLogShellFolder = "ShellFolder";
 
         /// <summary>
+        /// The event log name for the BigDrive Extension.
+        /// </summary>
+        public const string EventLogExtension = "Extension";
+
+        /// <summary>
         /// The event log name for the BigDrive Client.
         /// </summary>
         public const string EventLogClient = "Client";

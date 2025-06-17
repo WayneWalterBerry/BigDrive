@@ -7,6 +7,8 @@
 #include "dllmain.h"
 #include "LaunchDebugger.h"
 #include "BigDriveExtensionClassFactory.h"
+#include "Logging\BigDriveTraceLogger.h"
+#include "RegistrationHelper.h"
 
 #include <windows.h>
 #include <strsafe.h>
@@ -39,16 +41,20 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 	bool bitMatch = FALSE;
 	LPITEMIDLIST pidlMyComputer = nullptr;
 
+	BigDriveTraceLogger::LogEnter(__FUNCTION__);
+
 	hr = CheckDllAndOSBitnessMatch(bitMatch);
 	if (FAILED(hr))
 	{
 		// Log the error and return failure.
+		BigDriveTraceLogger::LogEvent(L"Failed to check DLL and OS bitness match. Ensure the extension is compatible with your system architecture.");
 		goto End;
 	}
 
 	if (!bitMatch)
 	{
 		// Log a message indicating that the bitness of the DLL and OS do not match.
+		BigDriveTraceLogger::LogEvent(L"DLL and OS bitness do not match. Please ensure you are using the correct version of the extension for your system architecture.");
 		hr = E_FAIL;
 		goto End;
 	}
@@ -63,11 +69,14 @@ extern "C" HRESULT __stdcall DllRegisterServer()
 	hr = ::SHGetSpecialFolderLocation(NULL, CSIDL_DRIVES, &pidlMyComputer);
 	if (SUCCEEDED(hr) && pidlMyComputer != nullptr)
 	{
+		BigDriveTraceLogger::LogEvent(L"Refreshing the Shell Folder");
 		::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_IDLIST, pidlMyComputer, NULL);
 		::CoTaskMemFree(pidlMyComputer);
 	}
 
 End:
+
+	BigDriveTraceLogger::LogExit(__FUNCTION__, hr);
 
 	return hr;
 }
@@ -86,7 +95,7 @@ extern "C" HRESULT __stdcall DllUnregisterServer()
 /// <param name="riid">The interface identifier (IID) for the requested interface.</param>
 /// <param name="ppv">Pointer to the location where the interface pointer will be stored.</param>
 /// <returns>HRESULT indicating success or failure.</returns>
-extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
+extern "C" STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
 {
 	HRESULT hr = S_OK;
 	BigDriveExtensionClassFactory* pFactory = nullptr;
@@ -128,6 +137,82 @@ End:
 	return hr;
 }
 
+/// <summary>
+/// Registers the context menu handler for "My PC" (This PC) in the registry.
+/// </summary>
+/// <returns>HRESULT indicating success or failure.</returns>
+HRESULT RegisterMyPCContextMenuHandler()
+{
+	HRESULT hr = S_OK;
+	HKEY hKeyDriveHandler = nullptr;
+	LONG lResult = 0;
+	LPCWSTR szDriveHandlers = L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\shellex\\ContextMenuHandlers\\BigDriveExtension";
+	WCHAR szCLSID[64] = { 0 };
+	size_t len = 0;
+
+	// Convert CLSID_BigDriveExtension to string (with braces)
+	if (FAILED(::StringFromGUID2(CLSID_BigDriveExtension, szCLSID, ARRAYSIZE(szCLSID))))
+	{
+		hr = E_FAIL;
+		goto End;
+	}
+
+	// Remove braces from szCLSID
+	len = ::lstrlenW(szCLSID);
+	if (len >= 2 && szCLSID[0] == L'{' && szCLSID[len - 1] == L'}')
+	{
+		for (size_t i = 0; i < len - 2; ++i)
+		{
+			szCLSID[i] = szCLSID[i + 1];
+		}
+		szCLSID[len - 2] = L'\0';
+	}
+
+	// 3. Register the handler under My PC ContextMenuHandlers
+	lResult = ::RegCreateKeyExW(
+		HKEY_CLASSES_ROOT,
+		szDriveHandlers,
+		0,
+		nullptr,
+		REG_OPTION_NON_VOLATILE,
+		KEY_WRITE,
+		nullptr,
+		&hKeyDriveHandler,
+		nullptr);
+
+	if (lResult != ERROR_SUCCESS)
+	{
+		hr = HRESULT_FROM_WIN32(lResult);
+		goto End;
+	}
+
+	// Set the default value to the CLSID string (without braces)
+	lResult = ::RegSetValueExW(
+		hKeyDriveHandler,
+		nullptr,
+		0,
+		REG_SZ,
+		reinterpret_cast<const BYTE*>(szCLSID),
+		static_cast<DWORD>((::lstrlenW(szCLSID) + 1) * sizeof(WCHAR)));
+
+	if (lResult != ERROR_SUCCESS)
+	{
+		hr = HRESULT_FROM_WIN32(lResult);
+		goto End;
+	}
+
+End:
+
+	if (hKeyDriveHandler)
+	{
+		::RegCloseKey(hKeyDriveHandler);
+		hKeyDriveHandler = nullptr;
+	}
+
+	return hr;
+
+}
+
 /// </ inheritdoc>
 /// <inheritdoc>
 HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
@@ -141,10 +226,10 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	WCHAR szModulePath[MAX_PATH] = { 0 };
 	LONG lResult = 0;
 
-	LaunchDebugger(); // Optional: Launch debugger if needed for troubleshooting
+	BigDriveTraceLogger::LogEnter(__FUNCTION__);
 
-	// Correct registry key for Drive context menu handlers
-	LPCWSTR szDriveHandlers = L"Drive\\shellex\\ContextMenuHandlers\\BigDriveExtension";
+	// Correct registry key for My PC context menu handlers
+	LPCWSTR szDriveHandlers = L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\shellex\\ContextMenuHandlers\\BigDriveExtension";
 
 	// Convert CLSID to string
 	if (FAILED(::StringFromGUID2(clsidExtension, szCLSID, ARRAYSIZE(szCLSID))))
@@ -247,41 +332,17 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 		hr = HRESULT_FROM_WIN32(lResult);
 		goto End;
 	}
-
-	// 3. Register the handler under Drive ContextMenuHandlers
-	lResult = ::RegCreateKeyExW(
-		HKEY_CLASSES_ROOT,
-		szDriveHandlers,
-		0,
-		nullptr,
-		REG_OPTION_NON_VOLATILE,
-		KEY_WRITE,
-		nullptr,
-		&hKeyDriveHandler,
-		nullptr);
-
-	if (lResult != ERROR_SUCCESS)
+	
+	hr = TakeOwnershipAndGrantFullControl(&RegisterMyPCContextMenuHandler);
+	if (FAILED(hr))
 	{
-		hr = HRESULT_FROM_WIN32(lResult);
-		goto End;
-	}
-
-	// Set the default value to the CLSID string (without braces)
-	lResult = ::RegSetValueExW(
-		hKeyDriveHandler,
-		nullptr,
-		0,
-		REG_SZ,
-		reinterpret_cast<const BYTE*>(szCLSID),
-		static_cast<DWORD>((::lstrlenW(szCLSID) + 1) * sizeof(WCHAR)));
-
-	if (lResult != ERROR_SUCCESS)
-	{
-		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEvent(L"RegisterShellFolder: Failed to take ownership and grant full control.");
 		goto End;
 	}
 
 End:
+
+	BigDriveTraceLogger::LogExit(__FUNCTION__, hr);
 
 	if (hKeyInproc)
 	{
@@ -303,7 +364,6 @@ End:
 
 	return hr;
 }
-
 
 /// </ inheritdoc>
 HRESULT CheckDllAndOSBitnessMatch(bool& isMatch)

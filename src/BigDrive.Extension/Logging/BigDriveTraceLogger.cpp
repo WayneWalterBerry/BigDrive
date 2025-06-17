@@ -8,12 +8,13 @@
 
 #include <shlguid.h>      // For PSGUIDs
 #include <combaseapi.h>   // For StringFromGUID2
+#include <wchar.h>
 
-// Provider Id: {A356D4CC-CDAC-4894-A93D-35C4C3F84944}
+// Provider Id: {FE595A38-23DD-434D-BBCE-EAB7CA88C40F}
 TRACELOGGING_DEFINE_PROVIDER(
 	g_hBigDriveTraceProvider,
 	"BigDrive.ShellFolder",
-	(0xa356d4cc, 0xcdac, 0x4894, 0xa9, 0x3d, 0x35, 0xc4, 0xc3, 0xf8, 0x49, 0x44)
+	(0xfe595a38, 0x23dd, 0x434d, 0xbb, 0xce, 0xea, 0xb7, 0xca, 0x88, 0xc4, 0x0f)
 );
 
 __declspec(thread) LARGE_INTEGER BigDriveTraceLogger::s_startTime = { 0 };
@@ -31,9 +32,27 @@ void BigDriveTraceLogger::Uninitialize()
 }
 
 /// <inheritdoc />
-void BigDriveTraceLogger::LogEvent(const char* message)
+void BigDriveTraceLogger::LogEvent(const wchar_t* message)
 {
-	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveShellFolderEvent", TraceLoggingValue(message, "Message"));
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveExtensionEvent", TraceLoggingWideString(message, "Message"));
+}
+
+/// <inheritdoc />
+void BigDriveTraceLogger::LogEvent(LPCSTR functionName, const wchar_t* message)
+{
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveExtensionEvent", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(message, "Message"));
+}
+
+void BigDriveTraceLogger::LogEventFormatted(LPCSTR functionName, LPCWSTR formatter, ...)
+{
+	va_list args;
+
+	va_start(args, formatter);
+	wchar_t message[1024];
+	::vswprintf(message, sizeof(message) / sizeof(message[0]), formatter, args);
+	va_end(args);
+
+	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveExtensionEvent", TraceLoggingValue(functionName, "FunctionName"), TraceLoggingValue(message, "Message"));
 }
 
 /// <inheritdoc />

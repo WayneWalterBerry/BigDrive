@@ -8,13 +8,13 @@
 #include <shlobj.h> 
 
 /// <summary>
-/// Hanldes the trace logging provider for the BigDrive Shell Folder.
+/// Handles the trace logging provider for the BigDrive Extension.
 /// </summary>
 /// <param name=""></param>
 TRACELOGGING_DECLARE_PROVIDER(g_hBigDriveTraceProvider);
 
 /// <summary>
-/// Provides static, thread-safe methods for trace logging events and diagnostics related to the BigDrive Shell Folder.
+/// Provides static, thread-safe methods for trace logging events and diagnostics related to the BigDrive Extension.
 /// Supports logging function entry/exit, method parameters, and duration tracking for performance analysis.
 /// </summary>
 class BigDriveTraceLogger
@@ -29,7 +29,7 @@ private:
 public:
 
 	/// <summary>
-	/// Registers the trace logging provider for the BigDrive Shell Folder.
+	/// Registers the trace logging provider for the BigDrive Extension.
 	/// Call this before any logging is performed.
 	/// </summary>
 	static void Initialize();
@@ -44,7 +44,22 @@ public:
 	/// Logs a custom informational event message.
 	/// </summary>
 	/// <param name="message">The message to log.</param>
-	static void LogEvent(const char* message);
+	static void LogEvent(const wchar_t* message);
+
+	/// <summary>
+	/// Logs a custom informational event message.
+	/// </summary>
+	/// <param name="functionName">The function name (typically __FUNCTION__).</param>
+	/// <param name="message">The message to log.</param>
+	static void LogEvent(LPCSTR functionName, const wchar_t* message);
+
+	/// <summary>
+	/// Log Formatted event message with a function name and a formatted string.
+	/// </summary>
+	/// <param name="functionName">The function name (typically __FUNCTION__).</param>
+	/// <param name="formatter"></param>
+	/// <param name=""></param>
+	static void LogEventFormatted(LPCSTR functionName, LPCWSTR formatter, ...);
 
 	/// <summary>
 	/// Logs entry into CreateInstance, including the requested IID.

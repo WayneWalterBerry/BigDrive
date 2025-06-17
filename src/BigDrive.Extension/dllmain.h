@@ -45,7 +45,7 @@ extern "C" HRESULT __stdcall DllUnregisterServer();
 /// <param name="riid">The interface identifier (IID) of the interface to retrieve (usually IID_IClassFactory).</param>
 /// <param name="ppv">Address of pointer variable that receives the interface pointer requested in riid.</param>
 /// <returns>S_OK on success, CLASS_E_CLASSNOTAVAILABLE if the CLSID is not supported, or another HRESULT error code.</returns>
-extern "C" HRESULT __stdcall DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
+extern "C" STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv);
 
 /// <summary>
 /// Registers the BigDrive context menu extension for "My PC" (This PC) in the Windows Shell.
