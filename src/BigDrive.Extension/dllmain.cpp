@@ -27,9 +27,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
+		BigDriveTraceLogger::Initialize();
+		break;
 	case DLL_THREAD_ATTACH:
+		break;
 	case DLL_THREAD_DETACH:
+		break;
 	case DLL_PROCESS_DETACH:
+		BigDriveTraceLogger::Uninitialize();
 		break;
 	}
 	return TRUE;
@@ -153,7 +158,7 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (FAILED(::StringFromGUID2(CLSID_BigDriveExtension, szCLSID, ARRAYSIZE(szCLSID))))
 	{
 		hr = E_FAIL;
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to convert CLSID_BigDriveExtension to string. HRESULT: 0x%08X", hr);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to convert CLSID_BigDriveExtension to string. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
@@ -173,7 +178,7 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create registry key for My PC ContextMenuHandlers. Error: %u", lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to create registry key for My PC ContextMenuHandlers. Error: %u", lResult);
 		goto End;
 	}
 
@@ -189,7 +194,7 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for My PC ContextMenuHandlers. Error: %u", lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set default value for My PC ContextMenuHandlers. Error: %u", lResult);
 		goto End;
 	}
 
@@ -236,7 +241,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (FAILED(::StringFromGUID2(clsidExtension, szCLSID, ARRAYSIZE(szCLSID))))
 	{
 		hr = E_FAIL;
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to convert CLSID to string. HRESULT: 0x%08X", hr);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to convert CLSID to string. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
@@ -262,7 +267,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create registry key '%s'. Error: %u", szCLSIDKey, lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to create registry key '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -278,7 +283,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for CLSID key '%s'. Error: %u", szCLSIDKey, lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set default value for CLSID key '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -297,7 +302,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create InprocServer32 key for CLSID '%s'. Error: %u", szCLSIDKey, lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to create InprocServer32 key for CLSID '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -305,7 +310,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (!::GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), szModulePath, ARRAYSIZE(szModulePath)))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get module file name. Error: %u", hr);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get module file name. Error: %u", hr);
 		goto End;
 	}
 
@@ -321,7 +326,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for InprocServer32 key. Error: %u", lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set default value for InprocServer32 key. Error: %u", lResult);
 		goto End;
 	}
 
@@ -337,7 +342,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set ThreadingModel for InprocServer32 key. Error: %u", lResult);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set ThreadingModel for InprocServer32 key. Error: %u", lResult);
 		goto End;
 	}
 

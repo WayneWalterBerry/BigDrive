@@ -144,12 +144,14 @@
   <ItemGroup>
     <ClInclude Include="BigDriveExtension.h" />
     <ClInclude Include="BigDriveExtensionClassFactory.h" />
+    <ClInclude Include="Dialogs\BigDriveExtensionMapDialog.h" />
     <ClInclude Include="Logging\BigDriveTraceLogger.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LaunchDebugger.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegistrationHelper.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BigDriveExtension-IContextMenu.cpp" />
@@ -157,6 +159,7 @@
     <ClCompile Include="BigDriveExtension-IUnknown.cpp" />
     <ClCompile Include="BigDriveExtension.cpp" />
     <ClCompile Include="BigDriveExtensionClassFactory.cpp" />
+    <ClCompile Include="Dialogs\BigDriveExtensionMapDialog.cpp" />
     <ClCompile Include="Logging\BigDriveTraceLogger.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="LaunchDebugger.cpp" />
@@ -170,6 +173,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="BigDrive.Extension.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BigDrive.Extension.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

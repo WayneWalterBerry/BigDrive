@@ -24,7 +24,7 @@ HRESULT GetCurrentProcessSID(PSID* pOwner)
 	if (!pOwner)
 	{
 		hr = E_POINTER;
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"GetCurrentProcessSID: pOwner pointer is null.");
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"GetCurrentProcessSID: pOwner pointer is null.");
 		goto End;
 	}
 
@@ -33,7 +33,7 @@ HRESULT GetCurrentProcessSID(PSID* pOwner)
 	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &hToken))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"GetCurrentProcessSID: OpenProcessToken failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"GetCurrentProcessSID: OpenProcessToken failed. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -50,7 +50,7 @@ HRESULT GetCurrentProcessSID(PSID* pOwner)
 	if (!::GetTokenInformation(hToken, TokenUser, pTokenUser, dwLen, &dwLen))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"GetCurrentProcessSID: GetTokenInformation failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"GetCurrentProcessSID: GetTokenInformation failed. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -60,14 +60,14 @@ HRESULT GetCurrentProcessSID(PSID* pOwner)
 	if (!*pOwner)
 	{
 		hr = E_OUTOFMEMORY;
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"GetCurrentProcessSID: Failed to allocate memory for SID.");
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"GetCurrentProcessSID: Failed to allocate memory for SID.");
 		goto End;
 	}
 
 	if (!::CopySid(sidLen, *pOwner, pTokenUser->User.Sid))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"GetCurrentProcessSID: CopySid failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"GetCurrentProcessSID: CopySid failed. Error: %u", ::GetLastError());
 		::free(*pOwner);
 		*pOwner = nullptr;
 		goto End;
@@ -101,14 +101,14 @@ HRESULT EnablePrivilege(LPCWSTR privilege)
 	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"EnablePrivilege: OpenProcessToken failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"EnablePrivilege: OpenProcessToken failed. Error: %u", ::GetLastError());
 		goto End;
 	}
 
 	if (!::LookupPrivilegeValueW(nullptr, privilege, &luid))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"EnablePrivilege: LookupPrivilegeValueW failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"EnablePrivilege: LookupPrivilegeValueW failed. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -119,7 +119,7 @@ HRESULT EnablePrivilege(LPCWSTR privilege)
 	if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"EnablePrivilege: AdjustTokenPrivileges failed. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"EnablePrivilege: AdjustTokenPrivileges failed. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -127,7 +127,7 @@ HRESULT EnablePrivilege(LPCWSTR privilege)
 	if (::GetLastError() != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"EnablePrivilege: AdjustTokenPrivileges did not enable privilege. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"EnablePrivilege: AdjustTokenPrivileges did not enable privilege. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -178,7 +178,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to open registry key '%s' for READ_CONTROL. Error: %u", keyPath, lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to open registry key '%s' for READ_CONTROL. Error: %u", keyPath, lRes);
 		goto End;
 	}
 
@@ -187,7 +187,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_INSUFFICIENT_BUFFER)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get size for OWNER_SECURITY_INFORMATION. Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get size for OWNER_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
@@ -203,7 +203,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get OWNER_SECURITY_INFORMATION. Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get OWNER_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
@@ -212,7 +212,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_INSUFFICIENT_BUFFER)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get size for DACL_SECURITY_INFORMATION. Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get size for DACL_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
@@ -228,7 +228,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get DACL_SECURITY_INFORMATION. Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get DACL_SECURITY_INFORMATION. Error: %u", lRes);
 		goto End;
 	}
 
@@ -239,7 +239,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	hr = GetCurrentProcessSID(&psidCurrentUser);
 	if (FAILED(hr))
 	{
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get current process SID. HRESULT: 0x%08X", hr);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get current process SID. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
@@ -254,14 +254,14 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 		hr = EnablePrivilege(SE_TAKE_OWNERSHIP_NAME);
 		if (FAILED(hr))
 		{
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to enable SeTakeOwnershipPrivilege. HRESULT: 0x%08X", hr);
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to enable SeTakeOwnershipPrivilege. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 
 		hr = EnablePrivilege(SE_RESTORE_NAME);
 		if (FAILED(hr))
 		{
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to enable SeTakeOwnershipPrivilege. HRESULT: 0x%08X", hr);
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to enable SeTakeOwnershipPrivilege. HRESULT: 0x%08X", hr);
 			goto End;
 		}
 
@@ -269,21 +269,21 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 		if (lRes != ERROR_SUCCESS)
 		{
 			hr = HRESULT_FROM_WIN32(lRes);
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to open registry key '%s' for WRITE_OWNER. Error: %u", keyPath, lRes);
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to open registry key '%s' for WRITE_OWNER. Error: %u", keyPath, lRes);
 			goto End;
 		}
 
 		if (!::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION))
 		{
 			hr = HRESULT_FROM_WIN32(::GetLastError());
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to initialize security descriptor. Error: %u", ::GetLastError());
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to initialize security descriptor. Error: %u", ::GetLastError());
 			goto End;
 		}
 
 		if (!::SetSecurityDescriptorOwner(&sd, psidCurrentUser, FALSE))
 		{
 			hr = HRESULT_FROM_WIN32(::GetLastError());
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set security descriptor owner. Error: %u", ::GetLastError());
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set security descriptor owner. Error: %u", ::GetLastError());
 			goto End;
 		}
 
@@ -291,7 +291,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 		if (lRes != ERROR_SUCCESS)
 		{
 			hr = HRESULT_FROM_WIN32(lRes);
-			BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set key owner. Error: %u", lRes);
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set key owner. Error: %u", lRes);
 			goto End;
 		}
 
@@ -304,7 +304,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to open registry key '%s' for WRITE_DAC. Error: %u", keyPath, lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to open registry key '%s' for WRITE_DAC. Error: %u", keyPath, lRes);
 		goto End;
 	}
 
@@ -320,7 +320,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_INSUFFICIENT_BUFFER)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get size for DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get size for DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
 		goto End;
 	}
 
@@ -336,14 +336,14 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get DACL_SECURITY_INFORMATION (WRITE_DAC). Error: %u", lRes);
 		goto End;
 	}
 
 	if (!::GetSecurityDescriptorDacl(pSD, &bOwnerDefaulted, &pOldDACL, &bOwnerDefaulted))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get security descriptor DACL. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to get security descriptor DACL. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -351,21 +351,21 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (dwRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(dwRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set entries in ACL. Error: %u", dwRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set entries in ACL. Error: %u", dwRes);
 		goto End;
 	}
 
 	if (!::InitializeSecurityDescriptor(&sdNew, SECURITY_DESCRIPTOR_REVISION))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to initialize new security descriptor. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to initialize new security descriptor. Error: %u", ::GetLastError());
 		goto End;
 	}
 
 	if (!::SetSecurityDescriptorDacl(&sdNew, TRUE, pNewDACL, FALSE))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set new security descriptor DACL. Error: %u", ::GetLastError());
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set new security descriptor DACL. Error: %u", ::GetLastError());
 		goto End;
 	}
 
@@ -373,7 +373,7 @@ HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 	if (lRes != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lRes);
-		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set key DACL. Error: %u", lRes);
+		BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to set key DACL. Error: %u", lRes);
 		goto End;
 	}
 

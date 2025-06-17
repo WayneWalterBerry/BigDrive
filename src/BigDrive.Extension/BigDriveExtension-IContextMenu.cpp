@@ -5,6 +5,9 @@
 #include "pch.h"
 
 #include "BigDriveExtension.h"
+#include "resource.h"
+#include "Dialogs\BigDriveExtensionMapDialog.h"
+#include "Logging\BigDriveTraceLogger.h"
 
 #include <strsafe.h>
 
@@ -33,7 +36,7 @@ HRESULT BigDriveExtension::AddCustomMenuItem(HMENU& hMenu, UINT& indexMenu, UINT
         indexMenu,
         MF_BYPOSITION,
         idCmdFirst,
-        L"BigDrive Custom Action"))
+        L"Map BigDrive..."))
     {
         hr = HRESULT_FROM_WIN32(::GetLastError());
         goto End;
@@ -59,7 +62,22 @@ STDMETHODIMP BigDriveExtension::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 
     if (LOWORD(pici->lpVerb) == 0)
     {
-        ::MessageBoxW(nullptr, L"BigDrive Custom Action Invoked!", L"BigDriveExtension", MB_OK);
+        // Create and show the modeless dialog using the dialog class
+        BigDriveExtensionMapDialog* pDialog = new BigDriveExtensionMapDialog();
+        if (pDialog == nullptr)
+        {
+			BigDriveTraceLogger::LogError(__FUNCTION__, L"Failed to allocate memory for BigDriveExtensionMapDialog.");
+            hr = E_OUTOFMEMORY;
+            goto End;
+        }
+
+        hr = pDialog->ShowDialog(::GetModuleHandleW(nullptr), nullptr);
+        if (FAILED(hr))
+        {
+			BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to show BigDriveExtensionMapDialog. HRESULT: 0x%08X", hr);
+            delete pDialog;
+            goto End;
+        }
     }
 
 End:

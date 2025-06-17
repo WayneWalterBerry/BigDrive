@@ -5,10 +5,16 @@
 #include "pch.h"
 
 #include "BigDriveTraceLogger.h"
+#include "..\LaunchDebugger.h"
 
 #include <shlguid.h>      // For PSGUIDs
 #include <combaseapi.h>   // For StringFromGUID2
 #include <wchar.h>
+#include <evntprov.h>
+
+#ifndef TRACE_LEVEL_ERROR
+#define TRACE_LEVEL_ERROR 2
+#endif
 
 // Provider Id: {FE595A38-23DD-434D-BBCE-EAB7CA88C40F}
 TRACELOGGING_DEFINE_PROVIDER(
@@ -43,7 +49,17 @@ void BigDriveTraceLogger::LogEvent(LPCSTR functionName, const wchar_t* message)
 	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveExtensionEvent", TraceLoggingString(functionName, "FunctionName"), TraceLoggingWideString(message, "Message"));
 }
 
-void BigDriveTraceLogger::LogEventFormatted(LPCSTR functionName, LPCWSTR formatter, ...)
+/// <inheritdoc />
+void BigDriveTraceLogger::LogError(LPCSTR functionName, const wchar_t* message)
+{
+	TraceLoggingWrite(g_hBigDriveTraceProvider,
+		"BigDriveExtensionEvent", 
+		TraceLoggingLevel(TRACE_LEVEL_ERROR),
+		TraceLoggingString(functionName, "FunctionName"), 
+		TraceLoggingWideString(message, "Message"));
+}
+
+void BigDriveTraceLogger::LogErrorFormatted(LPCSTR functionName, LPCWSTR formatter, ...)
 {
 	va_list args;
 
@@ -52,7 +68,12 @@ void BigDriveTraceLogger::LogEventFormatted(LPCSTR functionName, LPCWSTR formatt
 	::vswprintf(message, sizeof(message) / sizeof(message[0]), formatter, args);
 	va_end(args);
 
-	TraceLoggingWrite(g_hBigDriveTraceProvider, "BigDriveExtensionEvent", TraceLoggingValue(functionName, "FunctionName"), TraceLoggingValue(message, "Message"));
+	TraceLoggingWrite(
+		g_hBigDriveTraceProvider,
+		"BigDriveExtensionEvent", 
+		TraceLoggingLevel(TRACE_LEVEL_ERROR), 
+		TraceLoggingValue(functionName, "FunctionName"),
+		TraceLoggingValue(message, "Message"));
 }
 
 /// <inheritdoc />

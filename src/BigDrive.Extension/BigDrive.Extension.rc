@@ -1,0 +1,10 @@
+#include <windows.h>
+
+IDD_BIGDRIVE_MAP_DIALOG DIALOGEX 0, 0, 200, 100
+STYLE WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Map BigDrive"
+FONT 8, "MS Shell Dlg"
+BEGIN
+LTEXT           "This is a modeless dialog.", -1, 10, 10, 180, 20
+DEFPUSHBUTTON   "Close", IDOK, 75, 70, 50, 14
+END

@@ -54,12 +54,19 @@ public:
 	static void LogEvent(LPCSTR functionName, const wchar_t* message);
 
 	/// <summary>
-	/// Log Formatted event message with a function name and a formatted string.
+	/// Logs an error message associated with a specific function.
+	/// </summary>
+	/// <param name="functionName">The name of the function where the error occurred (as a null-terminated ANSI string).</param>
+	/// <param name="message">The error message to log (as a wide-character string).</param>
+	static void LogError(LPCSTR functionName, const wchar_t* message);
+
+	/// <summary>
+	/// Log Formatted error message with a function name and a formatted string.
 	/// </summary>
 	/// <param name="functionName">The function name (typically __FUNCTION__).</param>
 	/// <param name="formatter"></param>
 	/// <param name=""></param>
-	static void LogEventFormatted(LPCSTR functionName, LPCWSTR formatter, ...);
+	static void LogErrorFormatted(LPCSTR functionName, LPCWSTR formatter, ...);
 
 	/// <summary>
 	/// Logs entry into CreateInstance, including the requested IID.
