@@ -17,7 +17,7 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 // {CBB26998-8B10-4599-8AB7-01AF65F3F68B}
 extern "C" const CLSID CLSID_BigDriveExtension =
-	{ 0xcbb26998, 0x8b10, 0x4599, { 0x8a, 0xb7, 0x01, 0xaf, 0x65, 0xf3, 0xf6, 0x8b } };
+{ 0xcbb26998, 0x8b10, 0x4599, { 0x8a, 0xb7, 0x01, 0xaf, 0x65, 0xf3, 0xf6, 0x8b } };
 
 BOOL APIENTRY DllMain(HMODULE hModule,
 	DWORD  ul_reason_for_call,
@@ -100,8 +100,6 @@ extern "C" STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Out
 	HRESULT hr = S_OK;
 	BigDriveExtensionClassFactory* pFactory = nullptr;
 
-	LaunchDebugger(); // Optional: Launch debugger if needed for troubleshooting
-
 	if (ppv == nullptr)
 	{
 		hr = E_POINTER;
@@ -144,9 +142,10 @@ End:
 HRESULT RegisterMyPCContextMenuHandler()
 {
 	HRESULT hr = S_OK;
+	HKEY hKeyShellEx = nullptr;
 	HKEY hKeyDriveHandler = nullptr;
+	HKEY hKeyContextMenuHandlers = nullptr;
 	LONG lResult = 0;
-	LPCWSTR szDriveHandlers = L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\shellex\\ContextMenuHandlers\\BigDriveExtension";
 	WCHAR szCLSID[64] = { 0 };
 	size_t len = 0;
 
@@ -154,28 +153,19 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (FAILED(::StringFromGUID2(CLSID_BigDriveExtension, szCLSID, ARRAYSIZE(szCLSID))))
 	{
 		hr = E_FAIL;
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to convert CLSID_BigDriveExtension to string. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
-	// Remove braces from szCLSID
-	len = ::lstrlenW(szCLSID);
-	if (len >= 2 && szCLSID[0] == L'{' && szCLSID[len - 1] == L'}')
-	{
-		for (size_t i = 0; i < len - 2; ++i)
-		{
-			szCLSID[i] = szCLSID[i + 1];
-		}
-		szCLSID[len - 2] = L'\0';
-	}
-
 	// 3. Register the handler under My PC ContextMenuHandlers
+
 	lResult = ::RegCreateKeyExW(
 		HKEY_CLASSES_ROOT,
-		szDriveHandlers,
+		L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\shellex\\ContextMenuHandlers\\BigDriveExtension",
 		0,
 		nullptr,
 		REG_OPTION_NON_VOLATILE,
-		KEY_WRITE,
+		KEY_WRITE | KEY_WOW64_64KEY,
 		nullptr,
 		&hKeyDriveHandler,
 		nullptr);
@@ -183,6 +173,7 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create registry key for My PC ContextMenuHandlers. Error: %u", lResult);
 		goto End;
 	}
 
@@ -198,10 +189,23 @@ HRESULT RegisterMyPCContextMenuHandler()
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for My PC ContextMenuHandlers. Error: %u", lResult);
 		goto End;
 	}
 
 End:
+
+	if (hKeyShellEx)
+	{
+		::RegCloseKey(hKeyShellEx);
+		hKeyShellEx = nullptr;
+	}
+
+	if (hKeyDriveHandler)
+	{
+		::RegCloseKey(hKeyDriveHandler);
+		hKeyDriveHandler = nullptr;
+	}
 
 	if (hKeyDriveHandler)
 	{
@@ -228,13 +232,11 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 
 	BigDriveTraceLogger::LogEnter(__FUNCTION__);
 
-	// Correct registry key for My PC context menu handlers
-	LPCWSTR szDriveHandlers = L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\shellex\\ContextMenuHandlers\\BigDriveExtension";
-
 	// Convert CLSID to string
 	if (FAILED(::StringFromGUID2(clsidExtension, szCLSID, ARRAYSIZE(szCLSID))))
 	{
 		hr = E_FAIL;
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to convert CLSID to string. HRESULT: 0x%08X", hr);
 		goto End;
 	}
 
@@ -260,6 +262,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create registry key '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -275,6 +278,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for CLSID key '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -293,6 +297,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to create InprocServer32 key for CLSID '%s'. Error: %u", szCLSIDKey, lResult);
 		goto End;
 	}
 
@@ -300,6 +305,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (!::GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), szModulePath, ARRAYSIZE(szModulePath)))
 	{
 		hr = HRESULT_FROM_WIN32(::GetLastError());
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to get module file name. Error: %u", hr);
 		goto End;
 	}
 
@@ -315,6 +321,7 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set default value for InprocServer32 key. Error: %u", lResult);
 		goto End;
 	}
 
@@ -330,10 +337,11 @@ HRESULT RegisterContextMenuExtension(const CLSID& clsidExtension)
 	if (lResult != ERROR_SUCCESS)
 	{
 		hr = HRESULT_FROM_WIN32(lResult);
+		BigDriveTraceLogger::LogEventFormatted(__FUNCTION__, L"Failed to set ThreadingModel for InprocServer32 key. Error: %u", lResult);
 		goto End;
 	}
-	
-	hr = TakeOwnershipAndGrantFullControl(&RegisterMyPCContextMenuHandler);
+
+	hr = TakeOwnershipAndGrantFullControl(L"CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", &RegisterMyPCContextMenuHandler);
 	if (FAILED(hr))
 	{
 		BigDriveTraceLogger::LogEvent(L"RegisterShellFolder: Failed to take ownership and grant full control.");

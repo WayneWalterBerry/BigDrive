@@ -143,10 +143,9 @@ End:
 }
 
 /// </ inheritdoc>
-HRESULT TakeOwnershipAndGrantFullControl(HRESULT(*callback)())
+HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)())
 {
 	HRESULT hr = S_OK;
-	LPCWSTR keyPath = L"Component Categories\\{00021493-0000-0000-C000-000000000046}";
 	HKEY hKey = nullptr;
 	LONG lRes = 0;
 	PSECURITY_DESCRIPTOR pOrigOwnerSD = nullptr;

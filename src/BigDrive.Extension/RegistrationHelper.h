@@ -6,4 +6,4 @@
 
 #include <windows.h>
 
-HRESULT TakeOwnershipAndGrantFullControl(HRESULT(*callback)());
+HRESULT TakeOwnershipAndGrantFullControl(LPCWSTR keyPath, HRESULT(*callback)());
