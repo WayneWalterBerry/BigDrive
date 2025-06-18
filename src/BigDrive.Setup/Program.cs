@@ -19,7 +19,7 @@ namespace BigDrive.Setup
             }
 
             ConsoleExtensions.WriteIndented("Bootstrapping BigDrive Event Logs...");
-            BoostrapBigDriveEventLogs();
+            BootstrapBigDriveEventLogs();
 
             // Check To See If the Trusted Installer User Exists
             if (UserManager.UserExists())
@@ -68,15 +68,16 @@ namespace BigDrive.Setup
             }
         }
 
-        private static void BoostrapBigDriveEventLogs()
+        private static void BootstrapBigDriveEventLogs()
         {
-            BoostrapBigDriveEventLog(Constants.EventLogService);
-            BoostrapBigDriveEventLog(Constants.EventLogShellFolder);
-            BoostrapBigDriveEventLog(Constants.EventLogClient);
-            BoostrapBigDriveEventLog(Constants.EventLogProviderSample);
+            BootstrapBigDriveEventLog(Constants.EventLogService);
+            BootstrapBigDriveEventLog(Constants.EventLogShellFolder);
+            BootstrapBigDriveEventLog(Constants.EventLogExtension);
+            BootstrapBigDriveEventLog(Constants.EventLogClient);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderSample);
         }
 
-        private static void BoostrapBigDriveEventLog(string application)
+        private static void BootstrapBigDriveEventLog(string application)
         {
             ConsoleExtensions.WriteIndented($"Creating Custom Event Source For BigDrive {application}...");
 

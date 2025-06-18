@@ -1,7 +1,7 @@
-LIBRARY "BigDrive.Extendion.dll
+LIBRARY "BigDrive.Extension.dll"
 
 EXPORTS
-    DllGetClassObject           @1
-    DllRegisterServer           @2
-    DllUnregisterServer         @3
+    DllGetClassObject           PRIVATE
+    DllRegisterServer           PRIVATE
+    DllUnregisterServer         PRIVATE
 
