@@ -44,10 +44,10 @@ See the [Installation Architecture](docs/architecture/installation.md) for detai
 - `src/BigDrive.Provider.Sample/` — Example C# provider implementation demonstrating integration with the framework.
 - `src/BigDrive.Setup/` — Setup utilities for bootstrapping event logs and managing event sources.
 - `src/ConfigProvider/` — Configuration provider logic and models.
-- `src/DTC/` — Distributed Transaction Coordinator integration and service logic.
+- `src/BigDrive.Service/` — COM+ Application with permsions to register drives and manage configurations.
 - `src/Interfaces/` — Shared interface definitions for providers and clients.
-- `src/IShellFolder/` — Shell extension implementation for Windows Explorer integration.
-- `src/Shared/` — Shared utilities and logging components.
+- `src/BigDrive.ShellFolder/` — Shell extension implementation for Windows Explorer integration.
+- `src/BigDrive.Extenion/` — Shell extension context menu implemenation for registering drives.
 - `test/` — Unit tests for all major modules.
 
 ## Getting Started
