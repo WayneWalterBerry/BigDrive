@@ -7,6 +7,11 @@
 #include <windows.h>
 
 /// <summary>
+/// Declares an external global variable representing the current instance handle of the application.
+/// </summary>
+extern HINSTANCE g_hInstance; 
+
+/// <summary>
 /// Entry point for the DLL. Handles process attach and detach events.
 /// </summary>
 /// <param name="hModule">Handle to the DLL module.</param>
