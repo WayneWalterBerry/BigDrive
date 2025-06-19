@@ -30,7 +30,7 @@ namespace BigDriveClientTest
 
             // Assert
             Assert::AreEqual(S_OK, hr);
-            Assert::AreEqual(L"{12345678-1234-1234-1234-56789ABCDEF0}", guidWithoutBraces);
+            Assert::AreEqual(L"12345678-1234-1234-1234-56789ABCDEF0", guidWithoutBraces);
         }
 
         /// <summary>

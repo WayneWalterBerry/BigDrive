@@ -14,7 +14,7 @@ namespace BigDrive.Service
     {
         public void Create(Guid driveGuid)
         {
-            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", driveGuid);
+            DefaultTraceSource.TraceInformation("IBigDriveProvision::Create() called for drive: {0}", driveGuid);
 
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
@@ -44,7 +44,7 @@ namespace BigDrive.Service
         {
             System.Diagnostics.Debugger.Launch();
 
-            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for configuration: {0}", jsonConfiguration);
+            DefaultTraceSource.TraceInformation("IBigDriveProvision::GetConfiguration() called for configuration: {0}", jsonConfiguration);
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
             // Parse the JSON configuration to create a DriveConfiguration object

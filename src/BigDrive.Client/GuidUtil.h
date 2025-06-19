@@ -12,28 +12,40 @@ namespace BigDriveClient
     inline HRESULT StringFromGUID(const GUID& guid, wchar_t* guidWithoutBraces, size_t bufferSize);
     inline HRESULT GUIDFromString(const wchar_t* wideStr, GUID* pGuid);
     
-    HRESULT StringFromGUID(const GUID& guid, wchar_t* guidWithBraces, size_t bufferSize)
+    /// <summary>
+    /// Converts a GUID to a string without curly braces.
+    /// <param name="guid">The GUID to convert.</param>
+    /// <param name="guidWithoutBraces">The output buffer for the GUID string without braces.</param>
+    /// <param name="bufferSize">The size of the output buffer.</param>
+    /// <returns>HRESULT indicating success or failure.</returns>
+    HRESULT StringFromGUID(const GUID& guid, wchar_t* guidWithoutBraces, size_t bufferSize)
     {
         // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
         wchar_t guidString[39];
-        if (StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
+        if (::StringFromGUID2(guid, guidString, ARRAYSIZE(guidString)) == 0)
         {
             return E_FAIL;
         }
 
-        // Ensure the buffer is large enough
-        if (bufferSize < wcslen(guidString) + 1) // Add 1 for null terminator
+        // Remove the leading '{' and trailing '}'
+        size_t guidLen = wcslen(guidString);
+        if (guidLen < 2)
         {
             return E_FAIL;
         }
 
-        // Copy the GUID string with braces directly
-        wcsncpy_s(guidWithBraces, bufferSize, guidString, wcslen(guidString));
-        guidWithBraces[wcslen(guidString)] = L'\0'; // Null-terminate the string
+        // The string without braces is 36 characters
+        if (bufferSize < 37) // 36 chars + null terminator
+        {
+            return E_FAIL;
+        }
+
+        // Copy the substring without the first and last character
+        wcsncpy_s(guidWithoutBraces, bufferSize, guidString + 1, 36);
+        guidWithoutBraces[36] = L'\0'; // Null-terminate the string
 
         return S_OK;
     }
-
 
     HRESULT GUIDFromString(const wchar_t* wideStr, GUID* pGuid)
     {

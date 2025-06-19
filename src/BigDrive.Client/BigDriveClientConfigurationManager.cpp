@@ -156,14 +156,14 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     wchar_t szProviderId[39];
 
     // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+    hr = ::StringFromGUID2(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert drive GUID to string. HRESULT: 0x%08X", hr);
         goto End;
     }
 
-    hr = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
+    hr = ::StringFromGUID2(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"WriteDriveGuid failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hr);
@@ -312,7 +312,7 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveClsid(GUID guidDrive, CLSID
     wchar_t guidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
     // Convert the GUID to a string
-    hr = StringFromGUID(guidDrive, guidString, ARRAYSIZE(guidString));
+    hr = ::StringFromGUID2(guidDrive, guidString, ARRAYSIZE(guidString));
     if (FAILED(hr))
     {
         hr = E_INVALIDARG;
@@ -611,7 +611,7 @@ HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID&
 
     // Convert the CLSID to a string
     wchar_t clsidString[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    hr = StringFromGUID(clsidProvider, clsidString, ARRAYSIZE(clsidString));
+    hr = ::StringFromGUID2(clsidProvider, clsidString, ARRAYSIZE(clsidString));
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"DoesProviderSubkeyExist: Failed to convert CLSID to string. CLSID: %p", &clsidProvider);
@@ -705,7 +705,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     // Convert the CLSID to a string
     wchar_t szProviderId[39]; // GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
-    hr = StringFromGUID(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
+    hr = ::StringFromGUID2(clsidProvider, szProviderId, ARRAYSIZE(szProviderId));
     if (FAILED(hr))
     {
         s_eventLogger.WriteErrorFormmated(L"WriteProviderClsId failed: Unable to convert provider CLSID to string. HRESULT: 0x%08X", hr);

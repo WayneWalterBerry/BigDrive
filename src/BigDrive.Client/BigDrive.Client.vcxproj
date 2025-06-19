@@ -173,6 +173,7 @@
     <ClInclude Include="BigDriveConfigurationClient.h" />
     <ClInclude Include="BigDriveInterfaceProvider.h" />
     <ClInclude Include="BigDriveInterfaceProviderFactory.h" />
+    <ClInclude Include="BigDriveService.h" />
     <ClInclude Include="CatalogCollection.h" />
     <ClInclude Include="CatalogObject.h" />
     <ClInclude Include="COMAdminCatalog.h" />
@@ -189,6 +190,7 @@
     <ClInclude Include="Interfaces\IBigDriveConfiguration.h" />
     <ClInclude Include="Interfaces\IBigDriveFileInfo.h" />
     <ClInclude Include="Interfaces\IBigDriveFileOperations.h" />
+    <ClInclude Include="Interfaces\IBigDriveProvision.h" />
     <ClInclude Include="Interfaces\IBigDriveRegistration.h" />
     <ClInclude Include="Interfaces\IBigDriveEnumerate.h" />
     <ClInclude Include="Interfaces\ICatalogObject.h" />
@@ -207,6 +209,7 @@
     <ClCompile Include="BigDriveConfigurationClient.cpp" />
     <ClCompile Include="BigDriveInterfaceProvider.cpp" />
     <ClCompile Include="BigDriveInterfaceProviderFactory.cpp" />
+    <ClCompile Include="BigDriveService.cpp" />
     <ClCompile Include="CatalogCollection.cpp" />
     <ClCompile Include="CatalogObject.cpp" />
     <ClCompile Include="COMAdminCatalog.cpp" />

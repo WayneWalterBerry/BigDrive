@@ -5,6 +5,7 @@
 namespace BigDrive.Service
 {
     using System;
+    using System.Diagnostics;
     using System.Reflection;
 
     /// <summary>
@@ -23,6 +24,14 @@ namespace BigDrive.Service
         /// Gets the singleton instance of the <see cref="AssemblyResolver"/>.
         /// </summary>
         public static AssemblyResolver Instance => _instance.Value;
+
+        /// <summary>
+        /// Represents the default trace source for logging and diagnostics within the application.
+        /// </summary>
+        /// <remarks>This trace source is a singleton instance of <see cref="BigDriveTraceSource"/> and is
+        /// used for  centralized logging and tracing. It provides a consistent mechanism for emitting diagnostic 
+        /// information throughout the application.</remarks>
+        private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AssemblyResolver"/> class.
@@ -48,8 +57,14 @@ namespace BigDrive.Service
                 TryResolveAssembly(args, "System.Diagnostics.DiagnosticSource", "System.Diagnostics.DiagnosticSource.dll", out assembly) ||
                 TryResolveAssembly(args, "System.Memory", "System.Memory.dll", out assembly) ||
                 TryResolveAssembly(args, "System.Buffers", "System.Buffers.dll", out assembly) ||
-                TryResolveAssembly(args, "System.Threading.Tasks.Extensions", "System.Threading.Tasks.Extensions.dll", out assembly))
+                TryResolveAssembly(args, "System.Threading.Tasks.Extensions", "System.Threading.Tasks.Extensions.dll", out assembly) ||
+                TryResolveAssembly(args, "System.Numerics.Vectors", "System.Numerics.Vectors.dll", out assembly))
             {
+                if (assembly == null)
+                {
+                    DefaultTraceSource.TraceEvent(TraceEventType.Warning, 0, $"Failed to resolve assembly: {args.Name}");
+                }
+
                 return assembly;
             }
 
@@ -81,10 +96,7 @@ namespace BigDrive.Service
                     }
                 }
 
-                string executingAssemblyLocation = System.IO.Path.Combine(
-                    System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-                    dllName);
-
+                string executingAssemblyLocation = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), dllName);
                 if (System.IO.File.Exists(executingAssemblyLocation))
                 {
                     assembly = Assembly.LoadFrom(executingAssemblyLocation);
@@ -92,6 +104,10 @@ namespace BigDrive.Service
                     {
                         return true;
                     }
+                }
+                else
+                {
+                    DefaultTraceSource.TraceEvent(TraceEventType.Warning, 0, $"Assembly '{assemblyName}' not found at expected location: {executingAssemblyLocation}");
                 }
             }
 

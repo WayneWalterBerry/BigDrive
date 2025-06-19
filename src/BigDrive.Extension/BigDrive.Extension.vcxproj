@@ -142,6 +142,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Client\BigDrive.Client.vcxproj" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="BigDriveExtension.h" />
     <ClInclude Include="BigDriveExtensionClassFactory.h" />
     <ClInclude Include="Dialogs\BigDriveExtensionMapDialog.h" />

@@ -38,6 +38,9 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>..\..\BigDrive.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>	
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces">
       <Version>9.0.5</Version>

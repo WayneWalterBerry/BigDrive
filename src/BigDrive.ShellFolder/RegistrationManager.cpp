@@ -156,7 +156,7 @@ HRESULT RegistrationManager::RegisterDefaultIcon(GUID guidDrive)
 	HRESULT hr = S_OK;
 
 	// Convert the GUID to a string
-	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+	hr = ::StringFromGUID2(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
 	if (FAILED(hr))
 	{
 		WriteErrorFormmated(guidDrive, L"RegisterDefaultIcon: Failed to convert GUID to string: %s", szDriveGuid);
@@ -235,7 +235,7 @@ HRESULT RegistrationManager::RegisterInprocServer32(GUID guidDrive, BSTR bstrNam
 	WCHAR szFolderType[128];
 
 	// Convert the GUID to a string
-	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+	hr = ::StringFromGUID2(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
 	if (FAILED(hr))
 	{
 		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", szDriveGuid);
@@ -392,7 +392,7 @@ HRESULT RegistrationManager::RegisterShellFolder(GUID guidDrive, BSTR bstrName)
 	}
 
 	// Convert the GUID to a string for use in registry paths
-	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+	hr = ::StringFromGUID2(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
 	if (FAILED(hr))
 	{
 		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", szDriveGuid);
@@ -457,7 +457,7 @@ HRESULT RegistrationManager::CreateComponentCategoryRegistryKey(GUID guidDrive)
 	// Convert the GUID to a string
 	// GUID string format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
-	hr = StringFromGUID(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
+	hr = ::StringFromGUID2(guidDrive, szDriveGuid, ARRAYSIZE(szDriveGuid));
 	if (FAILED(hr))
 	{
 		WriteErrorFormmated(guidDrive, L"RegisterShellFolder: Failed to convert GUID to string: %s", szDriveGuid);

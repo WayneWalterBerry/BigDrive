@@ -7,6 +7,10 @@
 #include "..\resource.h"
 #include "..\Logging\BigDriveTraceLogger.h"
 #include "..\dllmain.h"
+#include "..\..\BigDrive.Client\BigDriveService.h"
+
+#include <guiddef.h>
+#include <wchar.h>
 
 HRESULT BigDriveExtensionMapDialog::ShowDialog(HINSTANCE hInstance, HWND hParent)
 {
@@ -97,6 +101,14 @@ INT_PTR CALLBACK BigDriveExtensionMapDialog::DialogProc(HWND hDlg, UINT message,
 
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
+            BigDriveService service;
+
+            hr = service.CreateSampleProviderDrive();
+            if (FAILED(hr))
+            {
+                BigDriveTraceLogger::LogErrorFormatted(__FUNCTION__, L"Failed to create sample provider drive.", hr);
+			}
+
             ::DestroyWindow(hDlg);
             return (INT_PTR)TRUE;
         }
@@ -122,3 +134,5 @@ INT_PTR CALLBACK BigDriveExtensionMapDialog::DialogProc(HWND hDlg, UINT message,
 
     return (INT_PTR)FALSE;
 }
+
+
