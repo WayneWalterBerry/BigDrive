@@ -15,6 +15,8 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
+extern HINSTANCE g_hInstance = nullptr;
+
 // {CBB26998-8B10-4599-8AB7-01AF65F3F68B}
 extern "C" const CLSID CLSID_BigDriveExtension =
 { 0xcbb26998, 0x8b10, 0x4599, { 0x8a, 0xb7, 0x01, 0xaf, 0x65, 0xf3, 0xf6, 0x8b } };
@@ -27,6 +29,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
+
+		// Stores the BigDrive.Extesnion module handle for loading resources and other operations.
+		g_hInstance = hModule;
+
 		BigDriveTraceLogger::Initialize();
 		break;
 	case DLL_THREAD_ATTACH:
