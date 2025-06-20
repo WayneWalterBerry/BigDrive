@@ -211,7 +211,7 @@ End:
 
     if (pclsid)
     {
-        CoTaskMemFree(pclsid);
+        ::CoTaskMemFree(pclsid);
         pclsid = nullptr;
     }
 

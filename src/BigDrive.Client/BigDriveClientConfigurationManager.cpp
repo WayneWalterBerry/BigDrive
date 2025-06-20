@@ -52,7 +52,7 @@ HRESULT BigDriveClientConfigurationManager::GetDriveGuids(GUID** ppGuids, DWORD&
 
     // Open the registry key
     HKEY hKey = nullptr;
-    LONG result = RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
+    LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
         s_eventLogger.WriteErrorFormmated(L"GetDriveGuids failed: Unable to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
@@ -171,7 +171,7 @@ HRESULT BigDriveClientConfigurationManager::WriteDriveGuid(const GUID& guidDrive
     }
 
     // Open or create the registry key
-    result = ::RegCreateKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
+    result = ::RegCreateKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
         hr = HRESULT_FROM_WIN32(result);
@@ -249,7 +249,7 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveGuid(GUID& guid)
     const std::wstring drivesRegistryPath = L"Software\\BigDrive\\Drives";
 
     // Open the registry key
-    LONG result = RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
+    LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
         hr = HRESULT_FROM_WIN32(result);
@@ -321,7 +321,7 @@ HRESULT BigDriveClientConfigurationManager::ReadDriveClsid(GUID guidDrive, CLSID
     }
 
     // Open the registry key
-    LONG result = ::RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
+    LONG result = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
         hr = HRESULT_FROM_WIN32(result);
@@ -387,7 +387,7 @@ HRESULT BigDriveClientConfigurationManager::DeleteAllDriveGuids()
     const std::wstring drivesRegistryPath = L"Software\\BigDrive\\Drives";
 
     // Open the registry key
-    result = ::RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_WRITE, &hKey);
+    result = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_WRITE, &hKey);
     if (result != ERROR_SUCCESS)
     {
         // If the key doesn't exist, return success
@@ -451,7 +451,7 @@ HRESULT BigDriveClientConfigurationManager::DeleteDriveGuid(const GUID& guid)
     }
 
     // Open the registry key
-    result = RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_WRITE, &hKey);
+    result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_WRITE, &hKey);
     if (result != ERROR_SUCCESS)
     {
         if (result == ERROR_FILE_NOT_FOUND)
@@ -523,7 +523,7 @@ HRESULT BigDriveClientConfigurationManager::GetProviderClsIds(CLSID** ppClisd)
 
     // Open the registry key
     HKEY hKey = nullptr;
-    LONG result = RegOpenKeyEx(HKEY_CURRENT_USER, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
+    LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, drivesRegistryPath.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
         s_eventLogger.WriteErrorFormmated(L"GetProviderClsIds failed: Unable to open registry key '%s'. Error code: 0x%08X", drivesRegistryPath.c_str(), result);
@@ -619,7 +619,7 @@ HRESULT BigDriveClientConfigurationManager::DoesProviderSubkeyExist(const CLSID&
     }
 
     // Open the registry key
-    result = ::RegOpenKeyEx(HKEY_CURRENT_USER, providersRegistryPath, 0, KEY_READ, &hKey);
+    result = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, providersRegistryPath, 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS)
     {
         if (result == ERROR_FILE_NOT_FOUND)
@@ -713,7 +713,7 @@ HRESULT BigDriveClientConfigurationManager::WriteProviderClsId(const CLSID& clsi
     }
 
     // Open or create the registry key
-    result = ::RegCreateKeyEx(HKEY_CURRENT_USER, providersRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
+    result = ::RegCreateKeyEx(HKEY_LOCAL_MACHINE, providersRegistryPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
     if (result != ERROR_SUCCESS)
     {
         hr = HRESULT_FROM_WIN32(result);
