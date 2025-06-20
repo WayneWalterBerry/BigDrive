@@ -64,6 +64,8 @@ namespace BigDrive.Service
             string implementedCategoriesPath = $@"CLSID\{guidString}\Implemented Categories\{{00021490-0000-0000-C000-000000000046}}";
             string shellFolderPath = $@"CLSID\{guidString}\ShellFolder";
 
+            string modulePath = GetShellFolderExtensionPath();
+
             // Set display name
             using (RegistryKey clsidKey = Registry.ClassesRoot.CreateSubKey(clsidPath, RegistryKeyPermissionCheck.ReadWriteSubTree))
             {
@@ -73,7 +75,6 @@ namespace BigDrive.Service
             // Set InprocServer32
             using (RegistryKey inprocKey = Registry.ClassesRoot.CreateSubKey(inprocPath, RegistryKeyPermissionCheck.ReadWriteSubTree))
             {
-                string modulePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 inprocKey.SetValue(null, modulePath, RegistryValueKind.String);
                 inprocKey.SetValue("ThreadingModel", "Apartment", RegistryValueKind.String);
             }
@@ -121,6 +122,30 @@ namespace BigDrive.Service
                 {
                     // No value needed, just the key
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets the full path to the shell folder extension from the registry.
+        /// </summary>
+        /// <returns>The full path to the shell folder extension.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the registry key or value is not found.</exception>
+        public static string GetShellFolderExtensionPath()
+        {
+            const string keyPath = @"SOFTWARE\BigDrive\ShellFolder";
+            const string valueName = "ShellDll";
+            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(keyPath))
+            {
+                if (key == null)
+                {
+                    throw new InvalidOperationException($"Registry key '{keyPath}' not found.");
+                }
+                var value = key.GetValue(valueName) as string;
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new InvalidOperationException($"Registry value '{valueName}' not found in '{keyPath}'.");
+                }
+                return value;
             }
         }
     }
