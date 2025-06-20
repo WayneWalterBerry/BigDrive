@@ -15,6 +15,9 @@ namespace BigDrive.Service
     /// </summary>
     internal sealed class AssemblyResolver
     {
+        // Forces reference to System.Threading.Tasks.Extensions
+        private static readonly Type _forceReference = typeof(System.Threading.Tasks.ValueTask);
+
         /// <summary>
         /// Singleton instance of the <see cref="AssemblyResolver"/> class, initialized lazily.
         /// </summary>

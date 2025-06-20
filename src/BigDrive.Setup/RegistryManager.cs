@@ -25,7 +25,12 @@ namespace BigDrive.Setup
             // Initialize the pairs with the root keys and their respective paths
             _pairs.Add((Registry.ClassesRoot, @"Component Categories\{00021493-0000-0000-C000-000000000046}"));
             _pairs.Add((Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace"));
+
+            //	HKEY_CLASSES_ROOT is a merged view of HKEY_LOCAL_MACHINE\SOFTWARE\Classes and HKEY_CURRENT_USER\Software\Classes.Writes to
+            //	HKCR typically redirect to HKLM\SOFTWARE\Classes for system - wide changes.
             _pairs.Add((Registry.ClassesRoot, @"CLSID"));
+            _pairs.Add((Registry.LocalMachine, @"SOFTWARE\Classes"));
+
             _pairs.Add((Registry.LocalMachine, @"SOFTWARE\BigDrive"));
         }
 

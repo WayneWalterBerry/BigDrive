@@ -4,11 +4,12 @@
 
 namespace BigDrive.Service
 {
-    using System;
-    using System.Threading;
     using BigDrive.Service;
     using global::BigDrive.ConfigProvider;
     using global::BigDrive.ConfigProvider.Model;
+    using System;
+    using System.Security.Principal;
+    using System.Threading;
 
     public partial class BigDriveService
     {
@@ -47,6 +48,8 @@ namespace BigDrive.Service
             DefaultTraceSource.TraceInformation("IBigDriveProvision::GetConfiguration() called for configuration: {0}", jsonConfiguration);
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
+            string currentUser = WindowsIdentity.GetCurrent().Name;
+
             // Parse the JSON configuration to create a DriveConfiguration object
             DriveConfiguration driveConfiguration = DriveManager.ReadConfigurationFromJson(jsonConfiguration, cancellationTokenSource.Token);
             if (driveConfiguration == null)
@@ -65,8 +68,6 @@ namespace BigDrive.Service
 
             // Register the shell folder for the drive
             RegistryHelper.RegisterShellFolder(guidDrive: driveConfiguration.Id, displayName: driveConfiguration.Name, cancellationTokenSource.Token);
-
-            ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
         }
     }
 }
