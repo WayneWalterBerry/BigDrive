@@ -4,6 +4,7 @@
 
 namespace BigDrive.Provider.Flickr
 {
+    using System;
     using BigDrive.ConfigProvider.Model;
 
     /// <summary>
@@ -13,9 +14,23 @@ namespace BigDrive.Provider.Flickr
     public partial class Provider
     {
         /// <summary>
-        /// The provider configuration.
+        /// Lazy-loaded provider configuration to ensure AssemblyResolver runs first.
         /// </summary>
-        private static readonly ProviderConfiguration providerConfiguration = ProviderConfigurationFactory.Create();
+        private static readonly Lazy<ProviderConfiguration> _providerConfiguration = 
+            new Lazy<ProviderConfiguration>(() => ProviderConfigurationFactory.Create());
+
+        /// <summary>
+        /// Gets the provider configuration.
+        /// </summary>
+        private static ProviderConfiguration ProviderConfig => _providerConfiguration.Value;
+
+        /// <summary>
+        /// Static constructor ensures AssemblyResolver is initialized before any other code.
+        /// </summary>
+        static Provider()
+        {
+            AssemblyResolver.Initialize();
+        }
 
         /// <summary>
         /// Called when the COM+ Service starts the provider.

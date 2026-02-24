@@ -31,6 +31,7 @@ namespace BigDrive.Provider.Flickr
     public partial class Provider : ServicedComponent,
         IProcessInitializer,
         IBigDriveRegistration,
+        IBigDriveAuthentication,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileOperations,

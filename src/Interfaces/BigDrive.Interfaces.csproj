@@ -47,6 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BigDriveAuthenticationRequiredException.cs" />
+    <Compile Include="IBigDriveAuthentication.cs" />
     <Compile Include="IBigDriveFileInfo.cs" />
     <Compile Include="IBigDriveFileOperations.cs" />
     <Compile Include="IBigDriveRegistration.cs" />

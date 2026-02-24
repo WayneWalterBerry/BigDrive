@@ -195,6 +195,87 @@ BigDrive:{6369DDE1-1234-5678-9ABC-DEF012345678}:FlickrApiKey
 BigDrive:{6369DDE1-1234-5678-9ABC-DEF012345678}:FlickrOAuthToken
 ```
 
+---
+
+## OAuth Authentication
+
+BigDrive.Shell supports OAuth authentication for cloud providers. The authentication
+architecture follows patterns used by Azure CLI, GitHub CLI, and other modern CLIs.
+
+### Supported OAuth Flows
+
+| Flow | Use Case | Security Notes |
+|------|----------|----------------|
+| **Authorization Code with Loopback** | Default. Opens browser, listens on localhost. | Uses state parameter for CSRF protection. No client secret required in URL. |
+| **Device Code (RFC 8628)** | Headless/SSH environments. | Short-lived codes (15 min), polling-based. |
+| **OAuth 1.0a** | Legacy providers (Flickr). | HMAC-SHA1 signatures, nonce/timestamp for replay protection. |
+
+### Authentication Flow (Authorization Code)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ BigDrive.Shell.exe                                                              │
+│                                                                                 │
+│  1. User runs 'login' command                                                   │
+│  2. Shell queries provider via IBigDriveAuthentication.GetAuthenticationInfo() │
+│  3. Shell starts local HTTP listener on random port (e.g., 127.0.0.1:53682)     │
+│  4. Shell opens default browser to authorization URL                            │
+│     └─► URL includes: client_id, redirect_uri, scopes, state (CSRF token)      │
+│                                                                                 │
+└──────────────────────────────────────┬──────────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ User's Web Browser                                                              │
+│                                                                                 │
+│  5. User logs in and authorizes BigDrive                                        │
+│  6. Provider redirects to http://127.0.0.1:53682/?code=ABC&state=XYZ           │
+│                                                                                 │
+└──────────────────────────────────────┬──────────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ BigDrive.Shell.exe                                                              │
+│                                                                                 │
+│  7. Local listener receives redirect with authorization code                    │
+│  8. Shell validates state parameter (CSRF protection)                           │
+│  9. Shell exchanges code for tokens at token endpoint                           │
+│ 10. Shell stores tokens in Windows Credential Manager                           │
+│     └─► DriveManager.WriteSecretProperty(driveGuid, "OAuthToken", token)       │
+│ 11. Shell notifies provider via IBigDriveAuthentication.OnAuthenticationComplete│
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Token Security
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Storage** | Windows Credential Manager (DPAPI-encrypted, per-user) |
+| **Isolation** | Tokens keyed by Drive GUID - multiple accounts supported |
+| **Refresh** | OAuth 2.0 refresh tokens stored for silent renewal |
+| **Revocation** | `logout` command clears local tokens; user guided to revoke at provider |
+| **Scope** | Minimal scopes requested (principle of least privilege) |
+
+### IBigDriveAuthentication Interface
+
+Providers implement this COM interface to describe their OAuth requirements:
+
+```csharp
+public interface IBigDriveAuthentication
+{
+    // Returns OAuth endpoints, client ID, flow type, etc.
+    int GetAuthenticationInfo(Guid driveGuid, out AuthenticationInfo authInfo);
+
+    // Called after successful OAuth - provider can validate/cache tokens
+    int OnAuthenticationComplete(Guid driveGuid, string accessToken, 
+                                 string refreshToken, int expiresIn);
+
+    // Check if valid tokens exist
+    int IsAuthenticated(Guid driveGuid, out bool isAuthenticated);
+}
+```
+
 ### Configuration Priority (Provider Read Order)
 
 When a provider requests a configuration value, it checks in this order:

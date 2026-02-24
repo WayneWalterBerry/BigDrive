@@ -13,7 +13,9 @@ namespace BigDrive.Provider.Flickr
     using System.Threading;
 
     using BigDrive.ConfigProvider;
+    using BigDrive.Interfaces;
     using FlickrNet;
+    using FlickrNet.Exceptions;
 
     /// <summary>
     /// Wrapper for the FlickrNet SDK to provide Flickr API functionality.
@@ -132,8 +134,46 @@ namespace BigDrive.Provider.Flickr
                 _cacheExpiration = DateTime.Now.AddMinutes(CacheDurationMinutes);
                 return _photosetCache;
             }
+            catch (OAuthException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InvalidToken, ex);
+            }
+            catch (AuthenticationRequiredException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.NotAuthenticated, ex);
+            }
+            catch (LoginFailedInvalidTokenException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.TokenExpired, ex);
+            }
+            catch (InvalidSignatureException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InvalidSignature, ex);
+            }
+            catch (PermissionDeniedException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InsufficientPermissions, ex);
+            }
+            catch (UserNotLoggedInInsufficientPermissionsException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InsufficientPermissions, ex);
+            }
+            catch (ApiKeyRequiredException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.ApiKeyMissing, ex);
+            }
+            catch (InvalidApiKeyException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.ApiKeyMissing, ex);
+            }
+            catch (FlickrApiException)
+            {
+                // Non-auth API errors - return empty list
+                return new List<PhotosetInfo>();
+            }
             catch (Exception)
             {
+                // General errors - return empty list
                 return new List<PhotosetInfo>();
             }
         }
@@ -161,6 +201,34 @@ namespace BigDrive.Provider.Flickr
                     DateUploaded = p.DateUploaded,
                     Url = p.LargeUrl ?? p.MediumUrl ?? p.SmallUrl
                 }).ToList();
+            }
+            catch (OAuthException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InvalidToken, ex);
+            }
+            catch (AuthenticationRequiredException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.NotAuthenticated, ex);
+            }
+            catch (LoginFailedInvalidTokenException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.TokenExpired, ex);
+            }
+            catch (InvalidSignatureException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InvalidSignature, ex);
+            }
+            catch (PermissionDeniedException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InsufficientPermissions, ex);
+            }
+            catch (UserNotLoggedInInsufficientPermissionsException ex)
+            {
+                throw CreateAuthException(AuthenticationFailureReason.InsufficientPermissions, ex);
+            }
+            catch (FlickrApiException)
+            {
+                return new List<PhotoInfo>();
             }
             catch (Exception)
             {
@@ -458,6 +526,23 @@ namespace BigDrive.Provider.Flickr
             }
 
             return defaultValue;
+        }
+
+        /// <summary>
+        /// Creates a BigDriveAuthenticationRequiredException from a Flickr exception.
+        /// </summary>
+        /// <param name="reason">The authentication failure reason.</param>
+        /// <param name="innerException">The Flickr exception that was caught.</param>
+        /// <returns>A BigDriveAuthenticationRequiredException.</returns>
+        private BigDriveAuthenticationRequiredException CreateAuthException(
+            AuthenticationFailureReason reason,
+            Exception innerException)
+        {
+            return new BigDriveAuthenticationRequiredException(
+                _driveGuid,
+                "Flickr",
+                reason,
+                innerException);
         }
     }
 

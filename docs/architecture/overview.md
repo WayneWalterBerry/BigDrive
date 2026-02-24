@@ -185,6 +185,11 @@ IProcessInitializer          ← COM+ lifecycle (Startup/Shutdown)
 │   ├── DeleteFile()
 │   └── CreateDirectory()
 │
+├── IBigDriveAuthentication  ← Optional: OAuth support
+│   ├── GetAuthenticationInfo()    → Returns OAuth endpoints, flow type
+│   ├── OnAuthenticationComplete() → Called after successful auth
+│   └── IsAuthenticated()          → Check auth status
+│
 └── IBigDriveRegistration    ← Optional: Setup callbacks
     ├── Register()
     └── Unregister()

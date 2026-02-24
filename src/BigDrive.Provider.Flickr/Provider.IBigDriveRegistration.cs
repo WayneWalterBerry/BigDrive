@@ -31,12 +31,12 @@ namespace BigDrive.Provider.Flickr
             DefaultTraceSource.TraceInformation($"Register: User={identity.Name}, ImpersonationLevel={identity.ImpersonationLevel}");
 
             // Register the provider
-            ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
+            ProviderManager.RegisterProvider(ProviderConfig, CancellationToken.None);
 
             // Create a drive configuration for the Flickr provider
             DriveConfiguration driveConfiguration = new DriveConfiguration
             {
-                CLSID = providerConfiguration.Id,
+                CLSID = ProviderConfig.Id,
                 Name = "Flickr Photos",
                 Id = FlickrDriveId
             };
@@ -55,7 +55,7 @@ namespace BigDrive.Provider.Flickr
 
             // TODO: Implement full unregistration
             // DriveManager.DeleteConfiguration(FlickrDriveId, CancellationToken.None);
-            // ProviderManager.UnregisterProvider(providerConfiguration.Id, CancellationToken.None);
+            // ProviderManager.UnregisterProvider(ProviderConfig.Id, CancellationToken.None);
         }
     }
 }

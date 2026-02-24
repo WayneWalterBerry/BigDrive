@@ -129,11 +129,60 @@ Z:\> secret list
     2 secret(s) configured.
 ```
 
-> **Note:** For full read/write access (upload, delete), you'll also need OAuth tokens (`FlickrOAuthToken`, `FlickrOAuthSecret`). See the [Provider Development Guide](ProviderDevelopmentGuide.md) for OAuth setup.
+---
+
+## Step 6: Authenticate with Flickr (OAuth)
+
+Use the `login` command to perform OAuth 1.0a authentication with Flickr. This opens your browser for authorization.
+
+```
+Z:\> login
+Flickr Authentication
+=====================
+
+Requesting temporary token from Flickr...
+
+Opening your web browser for Flickr authorization...
+
+If the browser does not open automatically, navigate to:
+  https://www.flickr.com/services/oauth/authorize?oauth_token=...
+
+After authorizing, Flickr will display a verification code.
+Enter the verification code: 123-456-789
+
+Exchanging for access token...
+Authentication successful!
+
+Flickr authentication complete!
+Tokens saved to Windows Credential Manager.
+```
+
+Verify authentication status:
+
+```
+Z:\> authstatus
+
+Authentication Status
+=====================
+
+  Drive:      Flickr Photos
+  Drive ID:   a2b3c4d5-e6f7-8901-a2b3-c4d5e6f78901
+  Provider:   Flickr Provider
+
+  Status:     Authenticated
+
+  Configured secrets:
+    - FlickrApiKey
+    - FlickrApiSecret
+    - FlickrOAuthToken
+    - FlickrOAuthSecret
+
+  4 secret(s) configured.
+```
 
 ---
 
-## Step 6: Browse Your Photosets
+## Step 7: Browse Your Photosets
 
 List your Flickr albums (photosets):
 
@@ -151,7 +200,7 @@ Z:\> dir
 
 ---
 
-## Step 7: View Photos in an Album
+## Step 8: View Photos in an Album
 
 Navigate into an album and list photos:
 
@@ -171,7 +220,7 @@ Z:\Vacation 2024> dir
 
 ---
 
-## Step 8: Download a Photo
+## Step 9: Download a Photo
 
 Copy a photo from Flickr to your local drive:
 
@@ -182,7 +231,7 @@ Z:\Vacation 2024> copy "Beach Sunset.jpg" C:\Users\YourName\Downloads\beach.jpg
 
 ---
 
-## Step 9: Upload a Photo
+## Step 10: Upload a Photo
 
 Copy a local photo to a Flickr album:
 
@@ -191,7 +240,7 @@ Z:\Vacation 2024> copy C:\Users\YourName\Pictures\NewPhoto.jpg "New Photo.jpg"
         1 file(s) copied.
 ```
 
-> **Note:** Upload requires OAuth authentication with write permissions.
+> **Note:** Upload requires OAuth authentication (completed in Step 6).
 
 ---
 
@@ -205,6 +254,9 @@ Z:\Vacation 2024> copy C:\Users\YourName\Pictures\NewPhoto.jpg "New Photo.jpg"
 | `cd folder` | `cd "Vacation 2024"` | Enter a folder (album) |
 | `cd ..` | `cd ..` | Go up one level |
 | `dir` | `dir` | List current directory contents |
+| `login` | `login` | Authenticate with provider (OAuth) |
+| `logout` | `logout` | Clear cached authentication tokens |
+| `authstatus` | `authstatus` | Check authentication status |
 | `secret set` | `secret set FlickrApiKey` | Set a secret (prompts for value) |
 | `secret list` | `secret list` | List secrets and their status |
 | `secret exists` | `secret exists FlickrApiKey` | Check if a secret exists |

@@ -63,6 +63,58 @@ IBigDriveFileData (0F471AE9-1787-437F-B230-60CA6717DD04)
   Methods:
     - GetFileData(driveGuid, path, out IStream stream) -> HRESULT
 
+IBigDriveAuthentication (7E8F9A0B-1C2D-3E4F-5A6B-7C8D9E0F1A2B)
+  Purpose: Describe OAuth authentication requirements for BigDrive Shell.
+  Methods:
+    - GetAuthenticationInfo(driveGuid, out AuthenticationInfo) -> HRESULT
+        Returns OAuth endpoints, client ID, flow type, etc.
+    - OnAuthenticationComplete(driveGuid, accessToken, refreshToken, expiresIn) -> HRESULT
+        Called after successful OAuth to notify the provider.
+    - IsAuthenticated(driveGuid, out bool) -> HRESULT
+        Check if valid tokens are available.
+
+  Supporting Types:
+    - AuthenticationInfo: Struct containing OAuth configuration
+    - OAuthFlowType: Enum (AuthorizationCode, DeviceCode, OAuth1, AuthorizationCodePKCE)
+
+  Notes:
+    This interface is optional. Providers that don't require OAuth don't need
+    to implement it. When implemented, BigDrive Shell can perform generic OAuth
+    flows and store tokens in Windows Credential Manager.
+
+EXCEPTION TYPES
+--------------------------------------------------------------------------------
+
+BigDriveAuthenticationRequiredException
+  Purpose: Thrown by providers when an operation fails due to missing/invalid auth.
+
+  Properties:
+    - DriveGuid: The drive GUID that requires authentication
+    - ProviderName: Friendly name (e.g., "Flickr", "OneDrive")
+    - Reason: AuthenticationFailureReason enum value
+
+  AuthenticationFailureReason values:
+    - Unknown (0): Unspecified reason
+    - NotAuthenticated (1): No credentials present
+    - TokenExpired (2): OAuth token has expired
+    - TokenRevoked (3): OAuth token was revoked
+    - InvalidToken (4): Token or credentials are invalid
+    - InsufficientPermissions (5): User lacks required permissions
+    - InvalidSignature (6): OAuth signature verification failed (OAuth 1.0a)
+    - ApiKeyMissing (7): API key or client credentials missing
+
+  Usage:
+    Providers catch service-specific exceptions and throw this generic exception.
+    BigDrive.Shell catches it and automatically prompts for login:
+
+    ```csharp
+    catch (FlickrNet.OAuthException ex)
+    {
+        throw new BigDriveAuthenticationRequiredException(
+            driveGuid, "Flickr", AuthenticationFailureReason.InvalidToken, ex);
+    }
+    ```
+
 COM INTEROP DESIGN
 --------------------------------------------------------------------------------
 All interfaces follow these patterns for cross-language compatibility:
@@ -99,9 +151,11 @@ To create a custom BigDrive provider:
        - IBigDriveFileInfo (required)
        - IBigDriveFileOperations (optional)
        - IBigDriveFileData (optional)
+       - IBigDriveAuthentication (optional - for OAuth-enabled providers)
   4. Register the COM+ application with the BigDrive service.
 
 Example: See BigDrive.Provider.Sample for a complete implementation.
+Example: See BigDrive.Provider.Flickr for OAuth 1.0a authentication.
 
 TARGET FRAMEWORK
 --------------------------------------------------------------------------------

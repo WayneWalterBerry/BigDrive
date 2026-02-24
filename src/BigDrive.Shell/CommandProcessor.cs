@@ -7,6 +7,7 @@ namespace BigDrive.Shell
     using System;
     using System.Collections.Generic;
 
+    using BigDrive.Interfaces;
     using BigDrive.Shell.Commands;
 
     /// <summary>
@@ -52,21 +53,81 @@ namespace BigDrive.Shell
             string[] args = new string[parts.Length - 1];
             Array.Copy(parts, 1, args, 0, args.Length);
 
+            // Handle drive letter shortcut (e.g., "Z:" or "z:" switches to drive Z)
+            if (IsDriveLetterCommand(commandName))
+            {
+                commandName = "cd";
+                args = new string[] { parts[0] };
+            }
             if (m_commands.TryGetValue(commandName, out ICommand command))
             {
                 try
                 {
                     command.Execute(m_context, args);
                 }
+                catch (BigDriveAuthenticationRequiredException authEx)
+                {
+                    HandleAuthenticationRequired(authEx);
+                }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error: " + ex.Message);
+                    // Check if inner exception is auth-related
+                    if (ex.InnerException is BigDriveAuthenticationRequiredException innerAuthEx)
+                    {
+                        HandleAuthenticationRequired(innerAuthEx);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: " + ex.Message);
+                    }
                 }
             }
             else
             {
                 Console.WriteLine("Unknown command: " + commandName);
                 Console.WriteLine("Type 'help' for available commands.");
+            }
+        }
+
+        /// <summary>
+        /// Handles authentication required exceptions by prompting for login.
+        /// </summary>
+        /// <param name="authEx">The authentication exception.</param>
+        private void HandleAuthenticationRequired(BigDriveAuthenticationRequiredException authEx)
+        {
+            Console.WriteLine();
+            Console.WriteLine(authEx.Message);
+            Console.WriteLine();
+
+            // Only prompt for auto-login if we have a current drive
+            if (m_context.CurrentDriveGuid == null || m_context.CurrentDriveGuid == Guid.Empty)
+            {
+                Console.WriteLine("Please switch to a drive and run 'login' to authenticate.");
+                return;
+            }
+
+            // Prompt user to login
+            Console.Write("Would you like to login now? [Y/n]: ");
+            string response = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(response) ||
+                response.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                response.Equals("yes", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine();
+
+                // Execute login command
+                if (m_commands.TryGetValue("login", out ICommand loginCommand))
+                {
+                    try
+                    {
+                        loginCommand.Execute(m_context, new string[0]);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Login failed: " + ex.Message);
+                    }
+                }
             }
         }
 
@@ -80,6 +141,9 @@ namespace BigDrive.Shell
             RegisterCommand(new DrivesCommand());
             RegisterCommand(new ProvidersCommand());
             RegisterCommand(new SecretCommand());
+            RegisterCommand(new LoginCommand());
+            RegisterCommand(new LogoutCommand());
+            RegisterCommand(new AuthStatusCommand());
             RegisterCommand(new DirCommand());
             RegisterCommand(new CdCommand());
             RegisterCommand(new CopyCommand());
@@ -146,6 +210,28 @@ namespace BigDrive.Shell
             }
 
             return parts.ToArray();
+        }
+
+        /// <summary>
+        /// Determines if the input is a drive letter command (e.g., "Z:" or "C:").
+        /// This allows users to type "Z:" to switch drives, like in Windows cmd.exe.
+        /// </summary>
+        /// <param name="input">The input to check.</param>
+        /// <returns>True if the input is a drive letter followed by a colon.</returns>
+        private static bool IsDriveLetterCommand(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return false;
+            }
+
+            // Check for pattern: single letter followed by colon (e.g., "Z:" or "z:")
+            if (input.Length == 2 && char.IsLetter(input[0]) && input[1] == ':')
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

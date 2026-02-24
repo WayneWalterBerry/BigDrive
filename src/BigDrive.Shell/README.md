@@ -24,6 +24,8 @@ BigDrive.Shell/
 ├── CommandProcessor.cs        # Parses input, dispatches to commands
 ├── ProviderFactory.cs         # COM+ provider activation
 ├── PathInfo.cs                # Path parsing utilities
+├── OAuthHelper.cs             # OAuth 2.0 authentication flows
+├── OAuth1Helper.cs            # OAuth 1.0a authentication flows (for Flickr)
 ├── Commands/
 │   ├── ICommand.cs            # Command interface
 │   ├── HelpCommand.cs
@@ -35,7 +37,11 @@ BigDrive.Shell/
 │   ├── MkdirCommand.cs
 │   ├── DelCommand.cs
 │   ├── MountCommand.cs        # Create new drive (like 'net use')
-│   └── UnmountCommand.cs      # Remove drive
+│   ├── UnmountCommand.cs      # Remove drive
+│   ├── SecretCommand.cs       # Manage secrets in Windows Credential Manager
+│   ├── LoginCommand.cs        # OAuth authentication
+│   ├── LogoutCommand.cs       # Clear authentication tokens
+│   └── AuthStatusCommand.cs   # Check authentication status
 └── Properties/
     └── AssemblyInfo.cs
 ```
@@ -144,6 +150,53 @@ The shell **never directly references provider assemblies**. Instead:
 | `BigDrive.ConfigProvider` | DriveManager, ProviderManager for registry access |
 
 The shell does **NOT** reference provider assemblies (Provider.Flickr, Provider.Sample, etc.)
+
+---
+
+## OAuth Authentication
+
+BigDrive.Shell includes generic OAuth support for authenticating with cloud providers.
+The implementation follows patterns from Azure CLI, GitHub CLI, and other modern CLIs
+(see [OAuth Authentication Patterns](../../research/OAuth%20Authentication%20Patterns%20in%20Windows%20CLI%20Applications.md)).
+
+### Supported OAuth Flows
+
+| Flow | Use Case |
+|------|----------|
+| **Authorization Code with Loopback** | Default. Opens browser, listens on localhost for redirect. Seamless UX. |
+| **Device Code** | For headless/SSH. Displays URL and code. User authorizes on any device. |
+| **OAuth 1.0a** | For legacy providers like Flickr that don't support OAuth 2.0. |
+
+### Authentication Commands
+
+| Command | Description |
+|---------|-------------|
+| `login` | Authenticate with the current drive's provider (browser flow) |
+| `login --device-code` | Use device code flow (for SSH/headless) |
+| `logout` | Clear cached OAuth tokens |
+| `logout --all` | Clear all secrets including API keys |
+| `authstatus` | Check current authentication status |
+
+### Token Storage
+
+Tokens are stored securely using **Windows Credential Manager** (per-user, encrypted).
+This follows the same pattern as GitHub CLI and Azure CLI. Tokens are associated with
+each drive's GUID, allowing multiple accounts per provider.
+
+### Provider Authentication Interface
+
+Providers can implement `IBigDriveAuthentication` to describe their OAuth requirements:
+
+```csharp
+public interface IBigDriveAuthentication
+{
+    int GetAuthenticationInfo(Guid driveGuid, out AuthenticationInfo authInfo);
+    int OnAuthenticationComplete(Guid driveGuid, string accessToken, string refreshToken, int expiresIn);
+    int IsAuthenticated(Guid driveGuid, out bool isAuthenticated);
+}
+```
+
+The shell handles the OAuth flow generically; the provider just describes its endpoints.
 
 ---
 

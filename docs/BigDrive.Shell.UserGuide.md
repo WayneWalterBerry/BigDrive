@@ -82,6 +82,29 @@ The `BD>` prompt indicates you're in the BigDrive Shell but no drive is selected
 | `mkdir` | `md` | Create a new directory |
 | `del` | `rm`, `delete`, `erase` | Delete a file or directory |
 
+### Authentication
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `login` | `auth`, `authenticate` | Authenticate with the current drive's provider (OAuth) |
+| `logout` | `signout` | Clear cached authentication tokens |
+| `authstatus` | `whoami`, `status` | Show authentication status for current drive |
+
+### Credential Management
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `secret set` | — | Store a secret in Windows Credential Manager |
+| `secret list` | — | List stored secrets for current drive |
+| `secret exists` | — | Check if a secret exists |
+| `secret del` | — | Delete a stored secret |
+
+### Provider Information
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `providers` | — | List registered BigDrive providers |
+
 ---
 
 ## Walkthrough: First-Time Usage
@@ -133,6 +156,16 @@ Use 'cd X:' to enter a drive.
 Drive letters are assigned automatically, starting from Z: and working backwards to avoid conflicts with OS drives.
 
 ### Step 3: Switch to a Drive
+
+You can switch drives by typing the drive letter with a colon, just like in Windows cmd:
+
+```
+BD> Z:
+
+Z:\>
+```
+
+Or use the `cd` command:
 
 ```
 BD> cd Z:
@@ -408,6 +441,137 @@ Drive unmounted: My Flickr Photos
 ```
 
 > **Note:** Mounting and unmounting requires Administrator privileges.
+
+---
+
+## Authentication
+
+Many BigDrive providers require authentication with their cloud services. BigDrive Shell
+supports OAuth authentication through the `login`, `logout`, and `authstatus` commands.
+
+### Checking Authentication Status
+
+Before using a drive, check if it's authenticated:
+
+```
+Z:\> authstatus
+
+Authentication Status
+=====================
+
+  Drive:      Flickr Photos
+  Drive ID:   a2b3c4d5-e6f7-8901-a2b3-c4d5e6f78901
+  Provider:   Flickr Provider
+
+  Status:     Not authenticated
+
+  Use 'login' to authenticate with this provider.
+```
+
+### Authenticating with a Provider
+
+Use `login` to authenticate with the current drive's provider:
+
+```
+Z:\> login
+Flickr Authentication
+=====================
+
+Requesting temporary token from Flickr...
+
+Opening your web browser for Flickr authorization...
+
+If the browser does not open automatically, navigate to:
+  https://www.flickr.com/services/oauth/authorize?oauth_token=...
+
+After authorizing, Flickr will display a verification code.
+Enter the verification code: 123-456-789
+
+Exchanging for access token...
+Authentication successful!
+
+Flickr authentication complete!
+Tokens saved to Windows Credential Manager.
+```
+
+### Device Code Flow (Headless/SSH)
+
+For environments without a browser (e.g., SSH sessions), use the device code flow:
+
+```
+Z:\> login --device-code
+
+To sign in to Flickr:
+
+  1. Open a web browser and go to: https://flickr.com/device
+  2. Enter the code: ABC-123
+
+  (Code has been copied to your clipboard)
+
+Waiting for you to authorize... Press Ctrl+C to cancel.
+....
+Authentication successful!
+```
+
+### Logging Out
+
+Clear cached tokens with `logout`:
+
+```
+Z:\> logout
+Clearing authentication tokens...
+
+  Cleared: FlickrOAuthToken
+  Cleared: FlickrOAuthSecret
+
+Cleared 2 token(s).
+
+You have been logged out of this drive.
+Use 'login' to authenticate again.
+
+Note: Clearing local tokens does not revoke access at the provider.
+To fully revoke access, visit your account settings at the provider:
+
+  Flickr:    https://www.flickr.com/services/auth/list.gne
+```
+
+### Clearing All Secrets
+
+To remove all credentials (including API keys):
+
+```
+Z:\> logout --all
+Clearing all secrets for this drive...
+
+  Cleared: FlickrApiKey
+  Cleared: FlickrApiSecret
+  Cleared: FlickrOAuthToken
+  Cleared: FlickrOAuthSecret
+
+Cleared 4 secret(s).
+```
+
+### Where Are Credentials Stored?
+
+Credentials are stored securely in **Windows Credential Manager**:
+- Per-user (only accessible by your Windows account)
+- Encrypted by Windows DPAPI
+- Separate credentials per drive (multiple accounts supported)
+
+View stored credentials with `secret list`:
+
+```
+Z:\> secret list
+
+ Secrets for current drive:
+
+    FlickrApiKey
+    FlickrApiSecret
+    FlickrOAuthToken
+    FlickrOAuthSecret
+
+    4 secret(s) configured.
+```
 
 ---
 

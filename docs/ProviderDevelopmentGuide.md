@@ -123,6 +123,206 @@ We use **one partial class file per interface** for maintainability:
 | `IBigDriveFileInfo` | File metadata | If you can provide file sizes and dates |
 | `IBigDriveFileOperations` | Copy/delete/mkdir | If provider supports write operations |
 | `IBigDriveFileData` | Stream file content | If files can be downloaded/read |
+| `IBigDriveAuthentication` | OAuth authentication | If provider requires OAuth login (see below) |
+
+---
+
+## Implementing OAuth Authentication
+
+If your provider requires OAuth authentication (most cloud services do), implement
+`IBigDriveAuthentication`. This enables BigDrive Shell to perform OAuth flows on behalf
+of your provider and store tokens securely in Windows Credential Manager.
+
+### Interface Definition
+
+```csharp
+public interface IBigDriveAuthentication
+{
+    /// <summary>
+    /// Returns OAuth configuration for BigDrive Shell to perform authentication.
+    /// </summary>
+    int GetAuthenticationInfo(Guid driveGuid, out AuthenticationInfo authInfo);
+
+    /// <summary>
+    /// Called after successful OAuth - provider can validate or cache tokens.
+    /// </summary>
+    int OnAuthenticationComplete(Guid driveGuid, string accessToken, 
+                                 string refreshToken, int expiresIn);
+
+    /// <summary>
+    /// Check if the drive has valid authentication.
+    /// </summary>
+    int IsAuthenticated(Guid driveGuid, out bool isAuthenticated);
+}
+```
+
+### AuthenticationInfo Structure
+
+```csharp
+public struct AuthenticationInfo
+{
+    public string AuthorizationUrl;      // OAuth authorize endpoint
+    public string TokenUrl;              // OAuth token endpoint
+    public string ClientId;              // Your app's client ID
+    public string ClientSecret;          // Your app's client secret (may be empty)
+    public string Scopes;                // Space-separated scopes
+    public string DeviceAuthorizationUrl; // For device code flow (optional)
+    public string ProviderName;          // Friendly name ("Flickr", "OneDrive")
+    public OAuthFlowType FlowType;       // AuthorizationCode, DeviceCode, OAuth1
+    public string SecretKeyNames;        // "AccessToken;RefreshToken;AccessSecret"
+}
+```
+
+### Supported OAuth Flow Types
+
+| Flow | Use Case | Example Providers |
+|------|----------|-------------------|
+| `AuthorizationCode` | Standard OAuth 2.0 with browser redirect | Google, Azure, OneDrive |
+| `DeviceCode` | Headless environments (RFC 8628) | Azure, GitHub |
+| `OAuth1` | Legacy OAuth 1.0a with verifier codes | Flickr, Twitter |
+| `AuthorizationCodePKCE` | Public clients (mobile, desktop) | Modern OAuth 2.0 |
+
+### Example: OAuth 2.0 Provider
+
+```csharp
+// Provider.IBigDriveAuthentication.cs
+
+public partial class Provider
+{
+    public int GetAuthenticationInfo(Guid driveGuid, out AuthenticationInfo authInfo)
+    {
+        authInfo = new AuthenticationInfo
+        {
+            AuthorizationUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+            TokenUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            ClientId = "your-client-id",
+            ClientSecret = "", // Empty for public clients
+            Scopes = "Files.Read Files.ReadWrite offline_access",
+            DeviceAuthorizationUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode",
+            ProviderName = "OneDrive",
+            FlowType = OAuthFlowType.AuthorizationCode,
+            SecretKeyNames = "OneDriveAccessToken;OneDriveRefreshToken"
+        };
+
+        return 0; // S_OK
+    }
+
+    public int OnAuthenticationComplete(Guid driveGuid, string accessToken, 
+                                        string refreshToken, int expiresIn)
+    {
+        // Invalidate any cached API clients so they pick up new tokens
+        ApiClientCache.Invalidate(driveGuid);
+        return 0; // S_OK
+    }
+
+    public int IsAuthenticated(Guid driveGuid, out bool isAuthenticated)
+    {
+        // Check if tokens exist in Credential Manager
+        string token = DriveManager.ReadSecretProperty(driveGuid, "OneDriveAccessToken", 
+                                                       CancellationToken.None);
+        isAuthenticated = !string.IsNullOrEmpty(token);
+        return 0; // S_OK
+    }
+}
+```
+
+### Example: OAuth 1.0a Provider (Flickr)
+
+For OAuth 1.0a, pack URLs in the AuthorizationUrl field:
+
+```csharp
+public int GetAuthenticationInfo(Guid driveGuid, out AuthenticationInfo authInfo)
+{
+    // Get API credentials (user must set these first via 'secret set')
+    string apiKey = DriveManager.ReadSecretProperty(driveGuid, "FlickrApiKey", 
+                                                    CancellationToken.None);
+    string apiSecret = DriveManager.ReadSecretProperty(driveGuid, "FlickrApiSecret", 
+                                                       CancellationToken.None);
+
+    // OAuth 1.0a requires three URLs: request_token, authorize, access_token
+    authInfo = new AuthenticationInfo
+    {
+        // Pack URLs as "requestTokenUrl|authorizeUrl|accessTokenUrl"
+        AuthorizationUrl = "https://flickr.com/services/oauth/request_token|" +
+                          "https://flickr.com/services/oauth/authorize|" +
+                          "https://flickr.com/services/oauth/access_token",
+        ClientId = apiKey,      // Consumer Key
+        ClientSecret = apiSecret, // Consumer Secret
+        ProviderName = "Flickr",
+        FlowType = OAuthFlowType.OAuth1,
+        SecretKeyNames = "FlickrOAuthToken;FlickrRefreshToken;FlickrOAuthSecret"
+    };
+
+    return 0; // S_OK
+}
+```
+
+### Token Storage
+
+BigDrive Shell stores tokens in Windows Credential Manager using:
+
+```
+BigDrive:{DriveGuid}:{SecretKeyName}
+```
+
+Your provider reads them with:
+
+```csharp
+string accessToken = DriveManager.ReadSecretProperty(driveGuid, "MyAccessToken", 
+                                                     CancellationToken.None);
+string refreshToken = DriveManager.ReadSecretProperty(driveGuid, "MyRefreshToken", 
+                                                      CancellationToken.None);
+```
+
+### Automatic Re-Authentication
+
+Providers should throw `BigDriveAuthenticationRequiredException` when API calls fail
+due to authentication issues. BigDrive Shell catches this exception and automatically
+prompts the user to login.
+
+```csharp
+// In your API wrapper class
+
+public List<FileInfo> GetFiles(string path)
+{
+    try
+    {
+        return _apiClient.ListFiles(path);
+    }
+    catch (YourServiceAuthException ex)
+    {
+        // Convert service-specific exception to generic BigDrive exception
+        throw new BigDriveAuthenticationRequiredException(
+            _driveGuid,
+            "YourService",
+            AuthenticationFailureReason.TokenExpired,
+            ex);
+    }
+}
+```
+
+**AuthenticationFailureReason values:**
+
+| Value | When to Use |
+|-------|-------------|
+| `NotAuthenticated` | No credentials present |
+| `TokenExpired` | OAuth token has expired |
+| `TokenRevoked` | Token was revoked by user or provider |
+| `InvalidToken` | Token or credentials are invalid |
+| `InsufficientPermissions` | User lacks required scopes/permissions |
+| `InvalidSignature` | OAuth signature verification failed (OAuth 1.0a) |
+| `ApiKeyMissing` | API key or client credentials not configured |
+
+When the shell catches this exception, it displays a user-friendly message and
+offers to run the login command automatically:
+
+```
+Flickr requires authentication. Please run 'login' to authenticate.
+
+Would you like to login now? [Y/n]: y
+
+Opening your web browser for Flickr login...
+```
 
 ---
 
