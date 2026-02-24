@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11512.155 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Interfaces", "src\Interfaces\BigDrive.Interfaces.csproj", "{28E4ADAF-11B9-4AFB-920E-F8384426E8D1}"
 EndProject
@@ -34,6 +34,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConfigProvider", "ConfigProvider", "{B9E62C3C-58C6-36FE-E927-C4144E755683}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Interfaces", "Interfaces", "{63B3D61F-35CB-AE97-AD5F-A6200F8219CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Shell", "src\BigDrive.Shell\BigDrive.Shell.csproj", "{0BE4C122-A707-4568-6DB2-CA9A70630B21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -201,6 +203,18 @@ Global
 		{A1B2C3D4-5E6F-7A8B-9C0D-E1F2A3B4C5D6}.Release|x64.Build.0 = Release|Any CPU
 		{A1B2C3D4-5E6F-7A8B-9C0D-E1F2A3B4C5D6}.Release|x86.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-5E6F-7A8B-9C0D-E1F2A3B4C5D6}.Release|x86.Build.0 = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|x64.Build.0 = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Debug|x86.Build.0 = Debug|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|x64.ActiveCfg = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|x64.Build.0 = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|x86.ActiveCfg = Release|Any CPU
+		{0BE4C122-A707-4568-6DB2-CA9A70630B21}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

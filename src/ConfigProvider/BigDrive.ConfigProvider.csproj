@@ -91,5 +91,8 @@
     <None Include="app.config" />
     <None Include="..\BigDrive.snk" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="README.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
