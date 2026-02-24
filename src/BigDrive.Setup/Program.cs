@@ -5,6 +5,7 @@
 namespace BigDrive.Setup
 {
     using System;
+    using System.IO;
     using System.Security;
     using System.Security.Principal;
 
@@ -41,22 +42,41 @@ namespace BigDrive.Setup
             /// Grant Full Control to the BigDriveInstaller for the BigDrive registry keys
             RegistryManager.GrantFullControl(password);
 
-            // Build the full path to BigDrive.Service.dll in the same directory as the executable
-            string assemblyPath = System.IO.Path.Combine(
+            // =============================================================================
+            // Register BigDrive.Service as BigDriveInstaller (elevated service account)
+            // This service needs elevated permissions to:
+            //   - Write to HKCR and shell namespace
+            //   - Set provider COM+ application identity to Interactive User
+            // =============================================================================
+            string serviceAssemblyPath = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
                 "BigDrive.Service.dll");
 
-            ComRegistrationManager.RegisterComAssemblyAsUser(assemblyPath: assemblyPath);
+            ConsoleExtensions.WriteIndented("Registering BigDrive.Service (as BigDriveInstaller)...");
+            ComRegistrationManager.RegisterComAssemblyAsUser(assemblyPath: serviceAssemblyPath);
 
             ComRegistrationManager.SetApplicationIdentityToThisUser(
                 applicationName: ComRegistrationManager.ComPlusServiceName,
                 username: UserManager.BigDriveTrustedInstallerUserName,
                 password: password.ToString());
 
+            // =============================================================================
+            // Validate the installation
+            // =============================================================================
             Guid passIdentifier = Guid.NewGuid();
             Console.WriteLine($"Pass Identifier: {passIdentifier}");
 
             ComRegistrationManager.CallServiceValidate(passIdentifier);
+
+            ConsoleExtensions.WriteIndented("BigDrive Setup completed successfully.");
+            ConsoleExtensions.WriteIndented("");
+            ConsoleExtensions.WriteIndented("Note: Providers are self-registering.");
+            ConsoleExtensions.WriteIndented("To install a provider, run (as Administrator):");
+            ConsoleExtensions.WriteIndented("  regsvcs.exe path\\to\\BigDrive.Provider.YourProvider.dll");
+            ConsoleExtensions.WriteIndented("");
+            ConsoleExtensions.WriteIndented("The provider's [ComRegisterFunction] will automatically:");
+            ConsoleExtensions.WriteIndented("  - Set COM+ application identity to Interactive User");
+            ConsoleExtensions.WriteIndented("  - Register the provider in BigDrive's configuration");
         }
 
         private static bool IsRunningElevated()

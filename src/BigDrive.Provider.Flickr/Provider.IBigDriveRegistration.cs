@@ -7,12 +7,12 @@ namespace BigDrive.Provider.Flickr
     using System;
     using System.Security.Principal;
     using System.Threading;
+
     using BigDrive.ConfigProvider;
     using BigDrive.ConfigProvider.Model;
 
     /// <summary>
     /// Implementation of <see cref="BigDrive.Interfaces.IBigDriveRegistration"/> for the Flickr provider.
-    /// Handles provider and drive registration.
     /// </summary>
     public partial class Provider
     {
@@ -43,7 +43,7 @@ namespace BigDrive.Provider.Flickr
 
             DriveManager.WriteConfiguration(driveConfiguration, CancellationToken.None);
 
-            DefaultTraceSource.TraceInformation("Flickr provider registered successfully.");
+            DefaultTraceSource.TraceInformation("Register: Flickr provider registered successfully.");
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace BigDrive.Provider.Flickr
         {
             DefaultTraceSource.TraceInformation("Unregister: Flickr provider");
 
-            // TODO: Implement unregistration logic
+            // TODO: Implement full unregistration
             // DriveManager.DeleteConfiguration(FlickrDriveId, CancellationToken.None);
             // ProviderManager.UnregisterProvider(providerConfiguration.Id, CancellationToken.None);
         }

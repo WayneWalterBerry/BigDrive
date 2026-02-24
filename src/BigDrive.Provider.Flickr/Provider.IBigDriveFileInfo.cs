@@ -24,6 +24,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"LastModifiedTime: driveGuid={driveGuid}, path={path}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(path);
                 string photoName = GetPhotoNameFromPath(path);
 
@@ -32,7 +34,7 @@ namespace BigDrive.Provider.Flickr
                     return DateTime.MinValue;
                 }
 
-                var photoInfo = FlickrClient.GetPhotoInfo(photosetName, photoName);
+                var photoInfo = flickrClient.GetPhotoInfo(photosetName, photoName);
                 if (photoInfo != null)
                 {
                     return photoInfo.DateUploaded;
@@ -59,6 +61,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"GetFileSize: driveGuid={driveGuid}, path={path}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(path);
                 string photoName = GetPhotoNameFromPath(path);
 
@@ -67,7 +71,7 @@ namespace BigDrive.Provider.Flickr
                     return 0;
                 }
 
-                var photoInfo = FlickrClient.GetPhotoInfo(photosetName, photoName);
+                var photoInfo = flickrClient.GetPhotoInfo(photosetName, photoName);
                 if (photoInfo != null)
                 {
                     return photoInfo.FileSize;

@@ -27,10 +27,12 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"EnumerateFolders: driveGuid={driveGuid}, path={path}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 // At root level, return photosets as folders
                 if (IsRootPath(path))
                 {
-                    var photosets = FlickrClient.GetPhotosets();
+                    var photosets = flickrClient.GetPhotosets();
                     return photosets.Select(ps => SanitizeFolderName(ps.Title)).ToArray();
                 }
 
@@ -57,6 +59,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"EnumerateFiles: driveGuid={driveGuid}, path={path}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 // Root level has no files, only photoset folders
                 if (IsRootPath(path))
                 {
@@ -70,7 +74,7 @@ namespace BigDrive.Provider.Flickr
                     return Array.Empty<string>();
                 }
 
-                var photos = FlickrClient.GetPhotosInPhotoset(photosetName);
+                var photos = flickrClient.GetPhotosInPhotoset(photosetName);
                 return photos.Select(p => SanitizeFileName(p.Title) + ".jpg").ToArray();
             }
             catch (Exception ex)

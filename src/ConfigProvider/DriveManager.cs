@@ -84,12 +84,21 @@ namespace BigDrive.ConfigProvider
                 // Create an instance of DriveConfiguration
                 var driveConfiguration = new DriveConfiguration();
 
+                // Reserved property names that map to DriveConfiguration properties
+                var reservedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "id", "name", "clsid" };
+
                 // Use reflection to get all properties of the DriveConfiguration class
                 var properties = typeof(DriveConfiguration).GetProperties();
 
                 foreach (var property in properties)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+
+                    // Skip the Properties dictionary - we handle it separately
+                    if (property.Name == nameof(DriveConfiguration.Properties))
+                    {
+                        continue;
+                    }
 
                     // Get the JSON property name (if it exists) or fall back to the property name
                     var jsonPropertyAttribute = property.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
@@ -123,6 +132,21 @@ namespace BigDrive.ConfigProvider
                     }
                 }
 
+                // Read all additional properties (non-reserved values)
+                foreach (string valueName in subFolderKey.GetValueNames())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!reservedNames.Contains(valueName))
+                    {
+                        object value = subFolderKey.GetValue(valueName);
+                        if (value != null)
+                        {
+                            driveConfiguration.Properties[valueName] = value.ToString();
+                        }
+                    }
+                }
+
                 // Verify that the subfolder name matches the driveConfig.Id
                 if (guidDrive != driveConfiguration.Id)
                 {
@@ -132,6 +156,200 @@ namespace BigDrive.ConfigProvider
                 // Return the populated DriveConfiguration object
                 return driveConfiguration;
             }
+        }
+
+        /// <summary>
+        /// Reads a single property value from a drive's configuration.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="propertyName">The property name to read.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The property value, or null if not found.</returns>
+        public static string ReadDriveProperty(Guid driveGuid, string propertyName, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            if (string.IsNullOrEmpty(propertyName))
+            {
+                throw new ArgumentNullException(nameof(propertyName), "Property name cannot be null or empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string registryPath = $@"SOFTWARE\BigDrive\Drives\{driveGuid:B}";
+
+            using (RegistryKey driveKey = Registry.LocalMachine.OpenSubKey(registryPath))
+            {
+                if (driveKey == null)
+                {
+                    return null;
+                }
+
+                object value = driveKey.GetValue(propertyName);
+                return value?.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Writes a single property value to a drive's configuration.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="propertyName">The property name to write.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public static void WriteDriveProperty(Guid driveGuid, string propertyName, string value, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            if (string.IsNullOrEmpty(propertyName))
+            {
+                throw new ArgumentNullException(nameof(propertyName), "Property name cannot be null or empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string registryPath = $@"SOFTWARE\BigDrive\Drives\{driveGuid:B}";
+
+            using (RegistryKey driveKey = Registry.LocalMachine.OpenSubKey(registryPath, true))
+            {
+                if (driveKey == null)
+                {
+                    throw new InvalidOperationException($"Drive not found: {driveGuid}");
+                }
+
+                if (value != null)
+                {
+                    driveKey.SetValue(propertyName, value);
+                }
+                else
+                {
+                    driveKey.DeleteValue(propertyName, false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads a secret value from Windows Credential Manager for a drive.
+        /// Use this for sensitive values like API keys, OAuth tokens, and passwords.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="secretName">The secret name (e.g., "FlickrApiKey").</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The secret value, or null if not found.</returns>
+        /// <remarks>
+        /// Secrets are stored in Windows Credential Manager, which is per-user.
+        /// The COM+ provider must run as Interactive User to access user credentials.
+        /// </remarks>
+        public static string ReadSecretProperty(Guid driveGuid, string secretName, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            if (string.IsNullOrEmpty(secretName))
+            {
+                throw new ArgumentNullException(nameof(secretName), "Secret name cannot be null or empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return CredentialManager.ReadSecret(driveGuid, secretName);
+        }
+
+        /// <summary>
+        /// Writes a secret value to Windows Credential Manager for a drive.
+        /// Use this for sensitive values like API keys, OAuth tokens, and passwords.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="secretName">The secret name (e.g., "FlickrApiKey").</param>
+        /// <param name="value">The secret value to store. Pass null to delete the secret.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <remarks>
+        /// Secrets are stored in Windows Credential Manager, which is per-user and encrypted.
+        /// The user who stores the secret must be the same user running the COM+ provider.
+        /// </remarks>
+        public static void WriteSecretProperty(Guid driveGuid, string secretName, string value, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            if (string.IsNullOrEmpty(secretName))
+            {
+                throw new ArgumentNullException(nameof(secretName), "Secret name cannot be null or empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            CredentialManager.WriteSecret(driveGuid, secretName, value);
+        }
+
+        /// <summary>
+        /// Deletes a secret from Windows Credential Manager for a drive.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="secretName">The secret name.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if the secret was deleted, false if it didn't exist.</returns>
+        public static bool DeleteSecretProperty(Guid driveGuid, string secretName, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            if (string.IsNullOrEmpty(secretName))
+            {
+                throw new ArgumentNullException(nameof(secretName), "Secret name cannot be null or empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return CredentialManager.DeleteSecret(driveGuid, secretName);
+        }
+
+        /// <summary>
+        /// Gets all secret names for a drive from Windows Credential Manager.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A list of secret names configured for the drive.</returns>
+        public static List<string> GetSecretNames(Guid driveGuid, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return CredentialManager.GetSecretNames(driveGuid);
+        }
+
+        /// <summary>
+        /// Deletes all secrets for a drive from Windows Credential Manager.
+        /// Call this when unmounting/deleting a drive to clean up credentials.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public static void DeleteAllSecrets(Guid driveGuid, CancellationToken cancellationToken)
+        {
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveGuid), "Drive GUID cannot be empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            CredentialManager.DeleteAllSecretsForDrive(driveGuid);
         }
 
         /// <summary>
@@ -207,6 +425,12 @@ namespace BigDrive.ConfigProvider
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    // Skip the Properties dictionary - we handle it separately
+                    if (property.Name == nameof(DriveConfiguration.Properties))
+                    {
+                        continue;
+                    }
+
                     // Get the JSON property name (if it exists) or fall back to the property name
                     var jsonPropertyAttribute = property.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
                                                         .FirstOrDefault() as JsonPropertyNameAttribute;
@@ -219,6 +443,20 @@ namespace BigDrive.ConfigProvider
                     {
                         // Write the value to the registry
                         subFolderKey.SetValue(registryValueName, propertyValue.ToString());
+                    }
+                }
+
+                // Write all custom properties
+                if (driveConfig.Properties != null)
+                {
+                    foreach (var kvp in driveConfig.Properties)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        if (!string.IsNullOrEmpty(kvp.Key) && kvp.Value != null)
+                        {
+                            subFolderKey.SetValue(kvp.Key, kvp.Value);
+                        }
                     }
                 }
             }

@@ -27,8 +27,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigDrive.Extension", "src\B
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigDrive.ShellFolder", "src\BigDrive.ShellFolder\BigDrive.ShellFolder.vcxproj", "{CA6D72A1-FEDF-4040-8CCF-9793437DAD97}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Flickr", "src\BigDrive.Provider.Flickr\BigDrive.Provider.Flickr.csproj", "{A1B2C3D4-5E6F-7A8B-9C0D-E1F2A3B4C5D6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConfigProvider", "ConfigProvider", "{B9E62C3C-58C6-36FE-E927-C4144E755683}"

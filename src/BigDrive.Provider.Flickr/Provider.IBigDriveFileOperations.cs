@@ -5,7 +5,6 @@
 namespace BigDrive.Provider.Flickr
 {
     using System;
-    using System.Diagnostics;
     using System.IO;
 
     /// <summary>
@@ -26,6 +25,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"CopyFileToBigDrive: localFilePath={localFilePath}, targetPath={bigDriveTargetPath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 if (!File.Exists(localFilePath))
                 {
                     throw new FileNotFoundException("Local file not found.", localFilePath);
@@ -34,7 +35,7 @@ namespace BigDrive.Provider.Flickr
                 string photosetName = GetPhotosetNameFromPath(bigDriveTargetPath);
                 string photoTitle = Path.GetFileNameWithoutExtension(bigDriveTargetPath);
 
-                FlickrClient.UploadPhoto(localFilePath, photoTitle, photosetName);
+                flickrClient.UploadPhoto(localFilePath, photoTitle, photosetName);
             }
             catch (Exception ex)
             {
@@ -55,6 +56,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"CopyFileFromBigDrive: bigDriveFilePath={bigDriveFilePath}, localTargetPath={localTargetPath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(bigDriveFilePath);
                 string photoName = GetPhotoNameFromPath(bigDriveFilePath);
 
@@ -63,7 +66,7 @@ namespace BigDrive.Provider.Flickr
                     throw new FileNotFoundException("Photo not found.", bigDriveFilePath);
                 }
 
-                FlickrClient.DownloadPhoto(photosetName, photoName, localTargetPath);
+                flickrClient.DownloadPhoto(photosetName, photoName, localTargetPath);
             }
             catch (Exception ex)
             {
@@ -83,18 +86,20 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"DeleteFile: bigDriveFilePath={bigDriveFilePath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(bigDriveFilePath);
                 string photoName = GetPhotoNameFromPath(bigDriveFilePath);
 
                 if (string.IsNullOrEmpty(photoName))
                 {
                     // Deleting a photoset
-                    FlickrClient.DeletePhotoset(photosetName);
+                    flickrClient.DeletePhotoset(photosetName);
                 }
                 else
                 {
                     // Deleting a photo
-                    FlickrClient.DeletePhoto(photosetName, photoName);
+                    flickrClient.DeletePhoto(photosetName, photoName);
                 }
             }
             catch (Exception ex)
@@ -115,13 +120,15 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"CreateDirectory: bigDriveDirectoryPath={bigDriveDirectoryPath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(bigDriveDirectoryPath);
                 if (string.IsNullOrEmpty(photosetName))
                 {
                     throw new ArgumentException("Invalid photoset name.", nameof(bigDriveDirectoryPath));
                 }
 
-                FlickrClient.CreatePhotoset(photosetName);
+                flickrClient.CreatePhotoset(photosetName);
             }
             catch (Exception ex)
             {
@@ -142,6 +149,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"OpenFile: bigDriveFilePath={bigDriveFilePath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(bigDriveFilePath);
                 string photoName = GetPhotoNameFromPath(bigDriveFilePath);
 
@@ -151,10 +160,10 @@ namespace BigDrive.Provider.Flickr
                 }
 
                 // Get the photo URL and open in browser
-                string photoUrl = FlickrClient.GetPhotoUrl(photosetName, photoName);
+                string photoUrl = flickrClient.GetPhotoUrl(photosetName, photoName);
                 if (!string.IsNullOrEmpty(photoUrl))
                 {
-                    Process.Start(new ProcessStartInfo
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = photoUrl,
                         UseShellExecute = true
@@ -180,6 +189,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"MoveFile: sourcePath={sourcePath}, destinationPath={destinationPath}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string sourcePhotosetName = GetPhotosetNameFromPath(sourcePath);
                 string sourcePhotoName = GetPhotoNameFromPath(sourcePath);
                 string destPhotosetName = GetPhotosetNameFromPath(destinationPath);
@@ -189,7 +200,7 @@ namespace BigDrive.Provider.Flickr
                     throw new ArgumentException("Invalid source or destination path.");
                 }
 
-                FlickrClient.MovePhoto(sourcePhotosetName, sourcePhotoName, destPhotosetName);
+                flickrClient.MovePhoto(sourcePhotosetName, sourcePhotoName, destPhotosetName);
             }
             catch (Exception ex)
             {

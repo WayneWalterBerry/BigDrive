@@ -5,21 +5,37 @@
 namespace BigDrive.Provider.Flickr
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Threading;
+
+    using BigDrive.ConfigProvider;
     using FlickrNet;
 
     /// <summary>
     /// Wrapper for the FlickrNet SDK to provide Flickr API functionality.
+    /// Supports drive-specific configuration for different Flickr accounts.
     /// </summary>
     internal class FlickrClientWrapper
     {
         /// <summary>
+        /// Cache of Flickr clients per drive GUID.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Guid, FlickrClientWrapper> DriveClients =
+            new ConcurrentDictionary<Guid, FlickrClientWrapper>();
+
+        /// <summary>
         /// The Flickr API client.
         /// </summary>
         private readonly Flickr _flickr;
+
+        /// <summary>
+        /// The drive GUID this client is configured for.
+        /// </summary>
+        private readonly Guid _driveGuid;
 
         /// <summary>
         /// Cache of photosets to avoid repeated API calls.
@@ -37,23 +53,58 @@ namespace BigDrive.Provider.Flickr
         private const int CacheDurationMinutes = 5;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlickrClientWrapper"/> class.
+        /// Initializes a new instance of the <see cref="FlickrClientWrapper"/> class
+        /// with default (provider-level) configuration.
         /// </summary>
         public FlickrClientWrapper()
+            : this(Guid.Empty)
         {
-            // TODO: Load API key and secret from configuration
-            // For now, use placeholder values that should be replaced with actual credentials
-            string apiKey = GetConfigValue("FlickrApiKey", string.Empty);
-            string apiSecret = GetConfigValue("FlickrApiSecret", string.Empty);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlickrClientWrapper"/> class
+        /// with drive-specific configuration.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID to load configuration for.</param>
+        public FlickrClientWrapper(Guid driveGuid)
+        {
+            _driveGuid = driveGuid;
+
+            // Load credentials from Credential Manager (secrets) or fall back to registry (non-secrets)
+            // Secrets: FlickrApiKey, FlickrApiSecret, FlickrOAuthToken, FlickrOAuthSecret
+            string apiKey = GetDriveSecretOrConfig(driveGuid, "FlickrApiKey", string.Empty);
+            string apiSecret = GetDriveSecretOrConfig(driveGuid, "FlickrApiSecret", string.Empty);
 
             _flickr = new Flickr(apiKey, apiSecret);
 
-            // TODO: Implement OAuth authentication for user-specific operations
-            // string authToken = GetConfigValue("FlickrAuthToken", string.Empty);
-            // if (!string.IsNullOrEmpty(authToken))
-            // {
-            //     _flickr.OAuthAccessToken = authToken;
-            // }
+            // Load OAuth token if available (stored as secrets)
+            string authToken = GetDriveSecretOrConfig(driveGuid, "FlickrOAuthToken", string.Empty);
+            string authSecret = GetDriveSecretOrConfig(driveGuid, "FlickrOAuthSecret", string.Empty);
+
+            if (!string.IsNullOrEmpty(authToken) && !string.IsNullOrEmpty(authSecret))
+            {
+                _flickr.OAuthAccessToken = authToken;
+                _flickr.OAuthAccessTokenSecret = authSecret;
+            }
+        }
+
+        /// <summary>
+        /// Gets or creates a FlickrClientWrapper for the specified drive.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <returns>A FlickrClientWrapper configured for the drive.</returns>
+        public static FlickrClientWrapper GetForDrive(Guid driveGuid)
+        {
+            return DriveClients.GetOrAdd(driveGuid, guid => new FlickrClientWrapper(guid));
+        }
+
+        /// <summary>
+        /// Clears the cached client for a drive (call when configuration changes).
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        public static void InvalidateDrive(Guid driveGuid)
+        {
+            DriveClients.TryRemove(driveGuid, out _);
         }
 
         /// <summary>
@@ -315,7 +366,71 @@ namespace BigDrive.Provider.Flickr
         }
 
         /// <summary>
-        /// Gets a configuration value from the registry.
+        /// Gets a secret or configuration value with the following priority:
+        /// 1. Credential Manager (secrets) for the drive
+        /// 2. Registry drive-specific property
+        /// 3. Registry provider-level property
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <param name="key">The configuration key.</param>
+        /// <param name="defaultValue">The default value if not found.</param>
+        /// <returns>The configuration value.</returns>
+        private static string GetDriveSecretOrConfig(Guid driveGuid, string key, string defaultValue)
+        {
+            if (driveGuid != Guid.Empty)
+            {
+                // First, try Credential Manager (secure storage for secrets)
+                try
+                {
+                    string secret = DriveManager.ReadSecretProperty(driveGuid, key, CancellationToken.None);
+                    if (!string.IsNullOrEmpty(secret))
+                    {
+                        return secret;
+                    }
+                }
+                catch
+                {
+                    // Credential Manager may not be available or no secret stored
+                    // Fall through to registry
+                }
+            }
+
+            // Fall back to registry-based configuration
+            return GetDriveConfigValue(driveGuid, key, defaultValue);
+        }
+
+        /// <summary>
+        /// Gets a configuration value, first checking drive-specific config, then provider-level.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID (or Guid.Empty for provider-level only).</param>
+        /// <param name="key">The configuration key.</param>
+        /// <param name="defaultValue">The default value if not found.</param>
+        /// <returns>The configuration value.</returns>
+        private static string GetDriveConfigValue(Guid driveGuid, string key, string defaultValue)
+        {
+            // First, try drive-specific configuration from registry
+            if (driveGuid != Guid.Empty)
+            {
+                try
+                {
+                    string driveValue = DriveManager.ReadDriveProperty(driveGuid, key, CancellationToken.None);
+                    if (!string.IsNullOrEmpty(driveValue))
+                    {
+                        return driveValue;
+                    }
+                }
+                catch
+                {
+                    // Fall through to provider-level config
+                }
+            }
+
+            // Fall back to provider-level configuration
+            return GetConfigValue(key, defaultValue);
+        }
+
+        /// <summary>
+        /// Gets a configuration value from the provider-level registry.
         /// </summary>
         /// <param name="key">The configuration key.</param>
         /// <param name="defaultValue">The default value if not found.</param>

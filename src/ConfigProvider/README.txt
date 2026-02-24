@@ -59,6 +59,11 @@ Example:
     id    = "{6369DDE1-9A63-4E3B-B3C0-62A8082ED32E}"
     name  = "Sample Drive"
     clsid = "{F8FE2E5A-E8B8-4207-BC04-EA4BCD4C4361}"
+    [non-sensitive properties only]
+
+  Windows Credential Manager (per-user, encrypted):
+    BigDrive:{6369DDE1-...}:FlickrApiKey = "my-api-key"
+    BigDrive:{6369DDE1-...}:FlickrOAuthToken = "oauth-token"
 
 PROJECT STRUCTURE
 --------------------------------------------------------------------------------
@@ -66,32 +71,88 @@ PROJECT STRUCTURE
 Model/
   DriveConfiguration.cs
     - Represents a drive's configuration
-    - Properties: Id (Guid), Name (string), CLSID (Guid)
+    - Properties: Id (Guid), Name (string), CLSID (Guid), Properties (Dictionary)
     - Uses [JsonPropertyName] for registry/JSON key mapping
+    - Properties dictionary stores non-sensitive provider-specific settings
 
   ProviderConfiguration.cs
     - Represents a provider's configuration
     - Properties: Id (Guid), Name (string)
     - Uses [JsonPropertyName] for registry/JSON key mapping
 
+CredentialManager.cs
+  Static class for secure credential storage using Windows Credential Manager.
+  NOTE: External callers should use DriveManager APIs instead of calling
+  CredentialManager directly.
+
+  Internal Methods:
+  - WriteSecret(Guid driveGuid, string key, string value)
+      Stores a secret in the user's Credential Manager.
+
+  - ReadSecret(Guid driveGuid, string key) -> string
+      Reads a secret from the user's Credential Manager.
+
+  - DeleteSecret(Guid driveGuid, string key) -> bool
+      Deletes a secret from the Credential Manager.
+
+  - DeleteAllSecretsForDrive(Guid driveGuid)
+      Removes all secrets for a drive (call on unmount).
+
+  - SecretExists(Guid driveGuid, string key) -> bool
+      Checks if a secret exists.
+
+  - GetSecretNames(Guid driveGuid) -> List<string>
+      Enumerates all secret key names for a drive.
+
 DriveManager.cs
   Static class for drive configuration operations:
 
+  Registry Operations:
   - DriveExists(Guid, CancellationToken) -> bool
       Checks if a drive configuration exists in the registry.
 
   - ReadConfigurations(CancellationToken) -> IEnumerable<DriveConfiguration>
-      Enumerates all registered drives.
+      Enumerates all registered drives (including custom properties).
 
   - ReadConfiguration(Guid, CancellationToken) -> DriveConfiguration
-      Reads a specific drive's configuration.
+      Reads a specific drive's configuration (including custom properties).
 
   - WriteConfiguration(DriveConfiguration, CancellationToken)
-      Creates or updates a drive configuration.
+      Creates or updates a drive configuration (including custom properties).
 
   - DeleteConfiguration(Guid, CancellationToken)
       Removes a drive configuration from the registry.
 
+  - ReadDriveProperty(Guid, string, CancellationToken) -> string
+      Reads a single property value from a drive's configuration.
+      Used by providers to get non-sensitive drive-specific settings.
+
+  - WriteDriveProperty(Guid, string, string, CancellationToken)
+      Writes a single property value to a drive's configuration.
+
+  Secret Operations (Credential Manager):
+  - ReadSecretProperty(Guid, string, CancellationToken) -> string
+      Reads a secret from Credential Manager for a drive.
+      Use for API keys, OAuth tokens, passwords.
+      Returns null if not found.
+
+  - WriteSecretProperty(Guid, string, string, CancellationToken)
+      Writes a secret to Credential Manager for a drive.
+      Pass null value to delete the secret.
+
+  - DeleteSecretProperty(Guid, string, CancellationToken) -> bool
+      Deletes a single secret from Credential Manager.
+      Returns true if deleted, false if not found.
+
+  - GetSecretNames(Guid, CancellationToken) -> List<string>
+      Lists all secret key names configured for a drive.
+      Use to enumerate what secrets exist without exposing values.
+
+  - DeleteAllSecrets(Guid, CancellationToken)
+      Deletes all secrets for a drive.
+      Call when unmounting/deleting a drive.
+
+  JSON Operations:
   - ReadConfigurationFromJson(string, CancellationToken) -> DriveConfiguration
       Deserializes a drive configuration from JSON.
 
@@ -264,6 +325,34 @@ Reading All Drives:
   {
       Console.WriteLine($"Drive: {drive.Name}, Provider CLSID: {drive.CLSID}");
   }
+
+Storing Secrets (API keys, OAuth tokens):
+  // Write a secret (encrypted in Windows Credential Manager)
+  DriveManager.WriteSecretProperty(
+      driveId, 
+      "FlickrApiKey", 
+      apiKey, 
+      CancellationToken.None);
+
+  // Read a secret
+  string apiKey = DriveManager.ReadSecretProperty(
+      driveId, 
+      "FlickrApiKey", 
+      CancellationToken.None);
+
+  // List all secrets for a drive
+  List<string> secretNames = DriveManager.GetSecretNames(
+      driveId, 
+      CancellationToken.None);
+
+  // Delete a specific secret
+  DriveManager.DeleteSecretProperty(
+      driveId, 
+      "FlickrApiKey", 
+      CancellationToken.None);
+
+  // Delete all secrets (during unmount)
+  DriveManager.DeleteAllSecrets(driveId, CancellationToken.None);
 
 SEE ALSO
 --------------------------------------------------------------------------------

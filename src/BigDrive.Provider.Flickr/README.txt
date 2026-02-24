@@ -83,8 +83,34 @@ Provider.IProcessInitializer.cs
   - Shutdown(): Called when COM+ application stops
 
 Provider.IBigDriveRegistration.cs
+  - [ComRegisterFunction]: Called during regsvcs.exe registration
+    - Sets COM+ identity to "Interactive User"
+    - Calls Register() to add provider to BigDrive configuration
+  - [ComUnregisterFunction]: Called during regsvcs.exe unregistration
   - Register(): Registers provider with BigDrive system
   - Unregister(): Removes provider registration
+
+REGISTRATION FLOW
+--------------------------------------------------------------------------------
+
+When regsvcs.exe is run (as Administrator), the following happens:
+
+    regsvcs.exe BigDrive.Provider.Flickr.dll
+           │
+           ├─► Creates COM+ Application "BigDrive.Provider.Flickr"
+           │
+           └─► Calls [ComRegisterFunction] method
+                   │
+                   ├─► SetApplicationIdentityToInteractiveUser()
+                   │       Sets COM+ identity = "Interactive User"
+                   │       Enables access to user's Credential Manager
+                   │
+                   └─► Provider.Register()
+                           ├─► ProviderManager.RegisterProvider()
+                           │       Writes to HKLM\SOFTWARE\BigDrive\Providers
+                           │
+                           └─► DriveManager.WriteConfiguration()
+                                   Writes to HKLM\SOFTWARE\BigDrive\Drives
 
 FLICKR API INTEGRATION
 --------------------------------------------------------------------------------
@@ -93,8 +119,9 @@ FlickrClientWrapper.cs
   Encapsulates all Flickr API interactions using the FlickrNet SDK:
 
   Authentication:
-    - API Key and Secret read from registry
-    - OAuth support for user-specific operations (TODO)
+    - API Key and Secret stored in Windows Credential Manager
+    - Read via DriveManager.ReadSecretProperty()
+    - Configured via BigDrive.Shell "secret set" command
 
   Caching:
     - Photoset list cached for 5 minutes

@@ -85,15 +85,44 @@ COM+ REGISTRATION FLOW
                    - Call IBigDriveSetup.Validate()
                    - Verify Event Log entry
 
+    NOTE: Providers are NOT registered by BigDrive.Setup.
+    Providers are self-registering via [ComRegisterFunction] attribute.
+    When regsvcs.exe runs (elevated), the provider's ComRegister() method:
+      1. Sets COM+ application identity to "Interactive User"
+      2. Calls ProviderManager.RegisterProvider() to register in BigDrive registry
+      3. Creates a default drive configuration
+
+
+PROVIDER SELF-REGISTRATION FLOW
+-------------------------------
+
+    regsvcs.exe Provider.dll (Run As Administrator)
+           │
+           ├─► 1. Create COM+ Application
+           │       - Reads [ApplicationActivation(Server)] attribute
+           │       - Registers CLSIDs in HKCR\CLSID
+           │       - Creates COM+ App: "BigDrive.Provider.Flickr"
+           │
+           └─► 2. Call [ComRegisterFunction] method
+                   │
+                   ├─► SetApplicationIdentityToInteractiveUser()
+                   │       - Uses COMAdmin catalog API
+                   │       - Sets identity = "Interactive User"
+                   │       - Enables access to user's Credential Manager
+                   │
+                   └─► Provider.Register()
+                           - ProviderManager.RegisterProvider()
+                           - DriveManager.WriteConfiguration()
+
 
 KEY COMPONENTS
 --------------
 
 ComRegistrationManager.cs
-    ├── RegisterComAssemblyAsUser()     - Calls regsvcs.exe to register assembly
-    ├── DeleteComPlusApplication()      - Removes COM+ app via COMAdminCatalog
+    ├── RegisterComAssemblyAsUser()        - Calls regsvcs.exe to register assembly
+    ├── DeleteComPlusApplication()         - Removes COM+ app via COMAdminCatalog
     ├── SetApplicationIdentityToThisUser() - Configures service account identity
-    └── CallServiceValidate()           - Tests COM+ activation works
+    └── CallServiceValidate()              - Tests COM+ activation works
 
 UserManager.cs
     ├── CreateBigDriveTrustedInstaller() - Creates local service account
@@ -173,14 +202,20 @@ SECURITY MODEL
     └──────────┬───────────┘
                │ COM Activation Request
                ▼
-    ┌──────────────────────┐
-    │   dllhost.exe        │  BigDriveTrustedInstaller Context
-    │   (COM+ Surrogate)   │
-    │                      │  - Limited local account
-    │   - BigDrive.Service │  - Registry access to HKLM\SOFTWARE\BigDrive
-    │   - Provider.Flickr  │  - Network access for APIs
-    │   - Provider.Sample  │  - No interactive desktop access
-    └──────────────────────┘
+    ┌──────────────────────────────────────────────────┐
+    │   dllhost.exe (COM+ Surrogate)                   │
+    │                                                  │
+    │   BigDrive.Service     BigDriveTrustedInstaller  │
+    │   - Registry write to HKLM\SOFTWARE\BigDrive     │
+    │   - Register providers as Interactive User       │
+    │   - Elevated permissions for shell registration  │
+    │                                                  │
+    │   Provider.Flickr      Interactive User          │
+    │   Provider.Sample      Interactive User          │
+    │   - Read-only registry access                    │
+    │   - Access to user's Credential Manager          │
+    │   - Network access for APIs                      │
+    └──────────────────────────────────────────────────┘
 
 Process isolation ensures:
     - Shell extension crashes don't take down Explorer

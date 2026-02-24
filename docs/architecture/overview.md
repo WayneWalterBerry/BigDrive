@@ -69,8 +69,8 @@ Explorer or BigDrive.Shell.
 | **Drive** | User-created instance that uses a provider to access *specific* storage | `SOFTWARE\BigDrive\Drives\{GUID}` |
 
 **Example**: One "Flickr Provider" can be used by multiple drives:
-- "Personal Flickr" → user's personal account
-- "Work Flickr" → company account
+- "Personal Flickr" → user's personal account (with personal API key)
+- "Work Flickr" → company account (with work API key)
 
 ### Registry Structure
 
@@ -80,7 +80,9 @@ HKLM\SOFTWARE\BigDrive\
 ├── Providers\                         ← Registered by COM+ installation
 │   ├── {B3D8F2A1-...}\               ← Flickr Provider CLSID
 │   │   ├── id   = "{B3D8F2A1-...}"
-│   │   └── name = "Flickr Provider"
+│   │   ├── name = "Flickr Provider"
+│   │   ├── FlickrApiKey = "default-api-key"     ← Provider-level defaults
+│   │   └── FlickrApiSecret = "default-secret"
 │   │
 │   └── {F8FE2E5A-...}\               ← Sample Provider CLSID
 │       ├── id   = "{F8FE2E5A-...}"
@@ -89,14 +91,42 @@ HKLM\SOFTWARE\BigDrive\
 └── Drives\                            ← Created by user (mount command)
     ├── {6369DDE1-...}\               ← Drive GUID
     │   ├── id    = "{6369DDE1-...}"
-    │   ├── name  = "My Flickr Photos"
-    │   └── clsid = "{B3D8F2A1-...}"  ← Points to Flickr Provider
+    │   ├── name  = "My Personal Flickr"
+    │   ├── clsid = "{B3D8F2A1-...}"  ← Points to Flickr Provider
+    │   ├── FlickrApiKey = "personal-key"         ← Drive-specific override
+    │   ├── FlickrOAuthToken = "oauth-token"
+    │   └── FlickrOAuthSecret = "oauth-secret"
     │
-    └── {A1B2C3D4-...}\               ← Another drive
+    └── {A1B2C3D4-...}\               ← Another drive (same provider)
         ├── id    = "{A1B2C3D4-...}"
         ├── name  = "Work Flickr"
-        └── clsid = "{B3D8F2A1-...}"  ← Same provider, different drive
+        ├── clsid = "{B3D8F2A1-...}"  ← Same provider
+        ├── FlickrApiKey = "work-key"             ← Different credentials
+        ├── FlickrOAuthToken = "work-oauth-token"
+        └── FlickrOAuthSecret = "work-oauth-secret"
 ```
+
+### Drive-Specific Configuration
+
+Providers receive the `driveGuid` parameter in all interface methods. This allows
+providers to load drive-specific configuration:
+
+```csharp
+// In provider implementation
+public string[] EnumerateFolders(Guid driveGuid, string path)
+{
+    // Load configuration for this specific drive
+    string apiKey = DriveManager.ReadDriveProperty(driveGuid, "FlickrApiKey", CancellationToken.None);
+
+    // If not found on drive, falls back to provider-level default
+    // ...
+}
+```
+
+**Configuration priority** (highest to lowest):
+1. Drive-specific value (`SOFTWARE\BigDrive\Drives\{GUID}\PropertyName`)
+2. Provider-level default (`SOFTWARE\BigDrive\Providers\{CLSID}\PropertyName`)
+3. Hard-coded default in provider code
 
 ---
 

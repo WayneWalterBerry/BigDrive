@@ -5,10 +5,12 @@
 namespace BigDrive.ConfigProvider.Model
 {
     using System;
+    using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
     /// <summary>
-    /// Represents the configuration for a drive, including its unique identifier, name, and CLSID.
+    /// Represents the configuration for a drive, including its unique identifier, name, CLSID,
+    /// and provider-specific properties.
     /// </summary>
     public class DriveConfiguration
     {
@@ -29,5 +31,16 @@ namespace BigDrive.ConfigProvider.Model
         /// </summary>
         [JsonPropertyName("clsid")]
         public Guid CLSID { get; set; }
+
+        /// <summary>
+        /// Gets or sets provider-specific properties for this drive.
+        /// These are stored as additional registry values under the drive's key.
+        /// </summary>
+        /// <remarks>
+        /// Reserved property names (id, name, clsid) should not be used as keys.
+        /// Properties are stored as REG_SZ values in the registry.
+        /// </remarks>
+        [JsonIgnore]
+        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 }

@@ -30,7 +30,9 @@ are activated via COM when the Shell or BigDrive.Shell needs to enumerate files 
 │  │ (ServicedComponent) │  │ (ServicedComponent) │                       │
 │  └─────────────────────┘  └─────────────────────┘                       │
 │                                                                         │
-│  Identity: BigDriveTrustedInstaller                                     │
+│  Identity: Interactive User (logged-in user)                            │
+│  - Access to user's Credential Manager for secrets                      │
+│  - Access to HKCU registry                                              │
 └─────────────────────────────────────────────────────────────────────────┘
                            │
                            │ Your API Calls
@@ -38,6 +40,33 @@ are activated via COM when the Shell or BigDrive.Shell needs to enumerate files 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  External Storage (Cloud API, Database, Network Share, etc.)            │
 └─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Provider Registration Flow
+
+Providers are **self-registering** using the `[ComRegisterFunction]` attribute.
+When you run `regsvcs.exe` (elevated), the following happens automatically:
+
+```
+regsvcs.exe YourProvider.dll (Run As Administrator)
+       │
+       ├─► 1. Create COM+ Application
+       │       - Reads [ApplicationActivation(Server)] attribute
+       │       - Registers CLSIDs in HKCR\CLSID
+       │       - Creates COM+ App: "BigDrive.Provider.YourService"
+       │
+       └─► 2. Call [ComRegisterFunction] method
+               │
+               ├─► SetApplicationIdentityToInteractiveUser()
+               │       - Uses COMAdmin catalog API
+               │       - Sets identity = "Interactive User"
+               │       - Enables access to user's Credential Manager
+               │
+               └─► Provider.Register()
+                       - ProviderManager.RegisterProvider()
+                       - DriveManager.WriteConfiguration()
 ```
 
 ---
@@ -161,6 +190,7 @@ namespace BigDrive.Provider.YourService
     [ComVisible(true)]
     public partial class Provider : ServicedComponent,
         IProcessInitializer,
+        IBigDriveRegistration,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileData
@@ -193,7 +223,147 @@ namespace BigDrive.Provider.YourService
 }
 ```
 
-### Step 4: Implement IProcessInitializer
+### Step 4: Implement IBigDriveRegistration (Self-Registration)
+
+This is **critical** for provider installation. The `[ComRegisterFunction]` attribute
+causes this method to be called automatically during `regsvcs.exe` registration.
+
+```csharp
+// Provider.IBigDriveRegistration.cs
+
+// <copyright file="Provider.IBigDriveRegistration.cs" company="Your Company">
+// Copyright (c) Your Company. All rights reserved.
+// </copyright>
+
+namespace BigDrive.Provider.YourService
+{
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Security.Principal;
+    using System.Threading;
+
+    using BigDrive.ConfigProvider;
+    using BigDrive.ConfigProvider.Model;
+
+    public partial class Provider
+    {
+        /// <summary>
+        /// Called automatically by regsvcs.exe during COM registration.
+        /// Sets the COM+ application identity to Interactive User and registers the provider.
+        /// </summary>
+        /// <param name="type">The type being registered.</param>
+        [ComRegisterFunction]
+        public static void ComRegister(Type type)
+        {
+            DefaultTraceSource.TraceInformation($"ComRegister: Registering provider {type.FullName}");
+
+            // IMPORTANT: Set COM+ application identity to Interactive User
+            // This allows the provider to access the user's Credential Manager
+            SetApplicationIdentityToInteractiveUser("BigDrive.Provider.YourService");
+
+            // Create an instance and call Register()
+            Provider provider = new Provider();
+            provider.Register();
+
+            DefaultTraceSource.TraceInformation("ComRegister: Provider registration completed.");
+        }
+
+        /// <summary>
+        /// Called automatically by regsvcs.exe during COM unregistration.
+        /// </summary>
+        /// <param name="type">The type being unregistered.</param>
+        [ComUnregisterFunction]
+        public static void ComUnregister(Type type)
+        {
+            DefaultTraceSource.TraceInformation($"ComUnregister: Unregistering provider {type.FullName}");
+
+            Provider provider = new Provider();
+            provider.Unregister();
+        }
+
+        /// <inheritdoc/>
+        public void Register()
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            DefaultTraceSource.TraceInformation($"Register: User={identity.Name}");
+
+            // 1. Register the provider in BigDrive's provider registry
+            var providerConfig = ProviderConfigurationFactory.Create();
+            ProviderManager.RegisterProvider(providerConfig, CancellationToken.None);
+
+            // 2. Optionally create a default drive configuration
+            DriveConfiguration driveConfig = new DriveConfiguration
+            {
+                CLSID = providerConfig.Id,
+                Name = "YourService Drive",
+                Id = Guid.NewGuid()  // Or a fixed GUID for your provider
+            };
+            DriveManager.WriteConfiguration(driveConfig, CancellationToken.None);
+
+            DefaultTraceSource.TraceInformation("Register: Provider registered successfully.");
+        }
+
+        /// <inheritdoc/>
+        public void Unregister()
+        {
+            DefaultTraceSource.TraceInformation("Unregister: Provider");
+            // TODO: Clean up registry entries
+        }
+
+        /// <summary>
+        /// Sets the identity of a COM+ application to "Interactive User".
+        /// This allows the provider to run as the logged-in user and access Credential Manager.
+        /// </summary>
+        /// <param name="applicationName">The name of the COM+ application.</param>
+        private static void SetApplicationIdentityToInteractiveUser(string applicationName)
+        {
+            Type comAdminType = Type.GetTypeFromProgID("COMAdmin.COMAdminCatalog");
+            if (comAdminType == null)
+            {
+                DefaultTraceSource.TraceError("COMAdminCatalog is not available.");
+                return;
+            }
+
+            dynamic comAdmin = Activator.CreateInstance(comAdminType);
+            try
+            {
+                dynamic applications = comAdmin.GetCollection("Applications");
+                applications.Populate();
+
+                foreach (dynamic app in applications)
+                {
+                    if (string.Equals((string)app.Name, applicationName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        app.Value["Identity"] = "Interactive User";
+                        app.Value["Password"] = "";
+                        applications.SaveChanges();
+
+                        DefaultTraceSource.TraceInformation(
+                            $"COM+ application '{applicationName}' identity set to 'Interactive User'.");
+                        return;
+                    }
+                }
+
+                DefaultTraceSource.TraceInformation($"COM+ application '{applicationName}' not found.");
+            }
+            finally
+            {
+                if (comAdmin != null && Marshal.IsComObject(comAdmin))
+                {
+                    Marshal.ReleaseComObject(comAdmin);
+                }
+            }
+        }
+    }
+}
+```
+
+**Why Interactive User?**
+- Providers run as the logged-in user, not a service account
+- This enables access to Windows Credential Manager for storing API keys/secrets
+- Users can configure secrets via `BigDrive.Shell` with the `secret` command
+
+### Step 5: Implement IProcessInitializer
 
 ```csharp
 // Provider.IProcessInitializer.cs
@@ -216,7 +386,7 @@ namespace BigDrive.Provider.YourService
         public void Startup(object punkProcessControl)
         {
             DefaultTraceSource.TraceInformation("YourService Provider Startup");
-            
+
             // Initialize your API client, authenticate, load config, etc.
             // ApiClient.Initialize();
         }
@@ -554,11 +724,76 @@ Z:\> copy File1.txt C:\Downloads\File1.txt
 - Use thread-safe collections or locking
 - Make static fields immutable or thread-safe
 
-### Configuration
+### Drive-Specific Configuration
 
-- Store provider-specific config in `HKLM\SOFTWARE\BigDrive\Providers\{CLSID}`
-- Use `ProviderConfigurationFactory` pattern for loading
-- Never hardcode credentials - use secure storage
+Providers should support **drive-specific configuration** to allow multiple drives
+using the same provider with different credentials/settings.
+
+**Configuration priority** (highest to lowest):
+1. Drive-specific: `SOFTWARE\BigDrive\Drives\{GUID}\PropertyName`
+2. Provider-level: `SOFTWARE\BigDrive\Providers\{CLSID}\PropertyName`
+3. Hard-coded default
+
+**Implementation pattern:**
+
+```csharp
+// In your API client wrapper
+private static string GetDriveConfigValue(Guid driveGuid, string key, string defaultValue)
+{
+    // First, try drive-specific configuration
+    if (driveGuid != Guid.Empty)
+    {
+        try
+        {
+            string value = DriveManager.ReadDriveProperty(driveGuid, key, CancellationToken.None);
+            if (!string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+        }
+        catch
+        {
+            // Fall through to provider-level config
+        }
+    }
+
+    // Fall back to provider-level configuration
+    return GetProviderConfigValue(key, defaultValue);
+}
+```
+
+**Cache clients per drive:**
+
+```csharp
+private static readonly ConcurrentDictionary<Guid, ApiClientWrapper> DriveClients =
+    new ConcurrentDictionary<Guid, ApiClientWrapper>();
+
+public static ApiClientWrapper GetForDrive(Guid driveGuid)
+{
+    return DriveClients.GetOrAdd(driveGuid, guid => new ApiClientWrapper(guid));
+}
+```
+
+**Use driveGuid in interface methods:**
+
+```csharp
+public string[] EnumerateFolders(Guid driveGuid, string path)
+{
+    // Get the client configured for this specific drive
+    ApiClientWrapper client = ApiClientWrapper.GetForDrive(driveGuid);
+
+    // Now use the client...
+}
+```
+
+### Configuration Properties for Common Providers
+
+| Provider Type | Common Properties |
+|---------------|-------------------|
+| Cloud Storage | ApiKey, ApiSecret, AccountId, Region |
+| OAuth Services | OAuthToken, OAuthSecret, RefreshToken, ExpiresAt |
+| Database | ConnectionString, DatabaseName, Username, Password |
+| Network | ServerUrl, Username, Password, Domain |
 
 ---
 
@@ -572,6 +807,8 @@ Z:\> copy File1.txt C:\Downloads\File1.txt
 | Invalid characters in filenames | Sanitize all names with `Path.GetInvalidFileNameChars()` |
 | Root path handling | Check for null, empty, "\\", "/", and "//" |
 | Provider crashes Explorer | Ensure all exceptions are caught at interface boundaries |
+| Same credentials for all drives | Use `GetDriveConfigValue(driveGuid, key)` pattern |
+| Static client with shared state | Use `ConcurrentDictionary` to cache clients per drive |
 
 ---
 
@@ -581,7 +818,7 @@ Study these existing providers:
 
 | Provider | Location | Notes |
 |----------|----------|-------|
-| Flickr | `src/BigDrive.Provider.Flickr/` | Full implementation, read-only |
+| Flickr | `src/BigDrive.Provider.Flickr/` | Full implementation, drive-specific config |
 | Sample | `src/BigDrive.Provider.Sample/` | Simple example, read/write |
 
 ---
@@ -598,6 +835,7 @@ Before submitting your provider:
 - [ ] Inherits from `ServicedComponent`
 - [ ] Implements `IProcessInitializer`
 - [ ] Implements `IBigDriveEnumerate` at minimum
+- [ ] **Uses `driveGuid` parameter** for drive-specific configuration
 - [ ] One partial class file per interface
 - [ ] Copyright headers on all files
 - [ ] XML documentation on all public methods
@@ -611,6 +849,7 @@ Before submitting your provider:
 
 ## See Also
 
+- [Provider Development Practices](ProviderDevelopmentPractices.md) — Build/debug workflow, DLL locking, COM+ management
 - [BigDrive.Setup README](../src/BigDrive.Setup/README.txt) — COM+ registration architecture
 - [BigDrive.Interfaces README](../src/Interfaces/README.txt) — Interface definitions
 - [BigDrive.Shell User Guide](BigDrive.Shell.UserGuide.md) — Testing with BigDrive.Shell

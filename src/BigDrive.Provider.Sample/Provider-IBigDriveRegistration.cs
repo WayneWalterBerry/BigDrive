@@ -7,39 +7,45 @@ namespace BigDrive.Provider.Sample
     using System;
     using System.Security.Principal;
     using System.Threading;
+
     using BigDrive.ConfigProvider;
     using BigDrive.ConfigProvider.Model;
 
+    /// <summary>
+    /// Implementation of <see cref="BigDrive.Interfaces.IBigDriveRegistration"/> for the Sample provider.
+    /// </summary>
     public partial class Provider
     {
         /// <inheritdoc/>
         public void Register()
         {
-            // The Expectation is that the Current User Have Admin Permissions to the Registry.
             WindowsIdentity identity = WindowsIdentity.GetCurrent();
 
-            DefaultTraceSource.TraceInformation($"User: {identity.Name}");
-            DefaultTraceSource.TraceInformation($"Impersonation Level: {identity.ImpersonationLevel}");
+            DefaultTraceSource.TraceInformation($"Register: User={identity.Name}, ImpersonationLevel={identity.ImpersonationLevel}");
 
             ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
 
             // Most Providers Will Not Create Their Own Drive, However This One Does For Testing Purposes.
+            DriveConfiguration driveConfiguration = new DriveConfiguration
             {
-                DriveConfiguration driveConfiguration = new DriveConfiguration
-                {
-                    CLSID = providerConfiguration.Id,
-                    Name = providerConfiguration.Name,
-                    Id = Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E")
-                };
+                CLSID = providerConfiguration.Id,
+                Name = providerConfiguration.Name,
+                Id = Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E")
+            };
 
-                DriveManager.WriteConfiguration(driveConfiguration, CancellationToken.None);
-            }
+            DriveManager.WriteConfiguration(driveConfiguration, CancellationToken.None);
+
+            DefaultTraceSource.TraceInformation("Register: Sample provider registered successfully.");
         }
 
         /// <inheritdoc/>
         public void Unregister()
         {
-            // TODO
+            DefaultTraceSource.TraceInformation("Unregister: Sample provider");
+
+            // TODO: Implement full unregistration
+            // DriveManager.DeleteConfiguration(Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E"), CancellationToken.None);
+            // ProviderManager.UnregisterProvider(providerConfiguration.Id, CancellationToken.None);
         }
     }
 }

@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Configuration.Install" />
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>

@@ -149,6 +149,61 @@ namespace BigDrive.Setup
         }
 
         /// <summary>
+        /// Sets the identity of a COM+ application to "Interactive User".
+        /// This allows the application to run as the currently logged-in user,
+        /// enabling access to user-specific resources like Credential Manager and HKCU.
+        /// </summary>
+        /// <param name="applicationName">The name of the COM+ application.</param>
+        public static void SetApplicationIdentityToInteractiveUser(string applicationName)
+        {
+            Type comAdminType = Type.GetTypeFromProgID("COMAdmin.COMAdminCatalog");
+            if (comAdminType == null)
+            {
+                throw new InvalidOperationException("COMAdminCatalog is not available on this system.");
+            }
+
+            dynamic comAdmin = Activator.CreateInstance(comAdminType);
+            try
+            {
+                dynamic applications = comAdmin.GetCollection("Applications");
+                applications.Populate();
+
+                foreach (dynamic app in applications)
+                {
+                    if (string.Equals((string)app.Name, applicationName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // "Interactive User" is a special value that tells COM+ to run as the logged-in user
+                        app.Value["Identity"] = "Interactive User";
+                        app.Value["Password"] = "";
+                        applications.SaveChanges();
+                        ConsoleExtensions.WriteIndented($"COM+ application '{applicationName}' identity set to 'Interactive User'.");
+                        return;
+                    }
+                }
+
+                ConsoleExtensions.WriteIndented($"COM+ application '{applicationName}' not found (may not be registered yet).");
+            }
+            finally
+            {
+                if (comAdmin != null && Marshal.IsComObject(comAdmin))
+                {
+                    Marshal.ReleaseComObject(comAdmin);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Registers a provider assembly and sets its identity to Interactive User.
+        /// </summary>
+        /// <param name="assemblyPath">The path to the provider assembly.</param>
+        /// <param name="applicationName">The COM+ application name (usually the assembly name without extension).</param>
+        public static void RegisterProviderAsInteractiveUser(string assemblyPath, string applicationName)
+        {
+            RegisterComAssemblyAsUser(assemblyPath);
+            SetApplicationIdentityToInteractiveUser(applicationName);
+        }
+
+        /// <summary>
         /// Calls the IBigDriveSetup.Validate() method on the COM+ Application specified by ComPlusServiceName.
         /// </summary>
         /// <param name="passiIdentifier">Unique identiier to send to the Big Drive Service.</param>

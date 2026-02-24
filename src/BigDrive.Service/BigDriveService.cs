@@ -1,4 +1,4 @@
-// <copyright file="BigDriveConfiguration.cs" company="Wayne Walter Berry">
+// <copyright file="BigDriveService.cs" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 

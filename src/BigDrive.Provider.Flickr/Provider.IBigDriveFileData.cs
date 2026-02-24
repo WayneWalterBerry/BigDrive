@@ -30,6 +30,8 @@ namespace BigDrive.Provider.Flickr
             {
                 DefaultTraceSource.TraceInformation($"GetFileData: driveGuid={driveGuid}, path={path}");
 
+                FlickrClientWrapper flickrClient = GetFlickrClient(driveGuid);
+
                 string photosetName = GetPhotosetNameFromPath(path);
                 string photoName = GetPhotoNameFromPath(path);
 
@@ -39,7 +41,7 @@ namespace BigDrive.Provider.Flickr
                     return unchecked((int)0x80070002);
                 }
 
-                byte[] photoData = FlickrClient.GetPhotoData(photosetName, photoName);
+                byte[] photoData = flickrClient.GetPhotoData(photosetName, photoName);
                 if (photoData != null && photoData.Length > 0)
                 {
                     stream = new ComStream(new MemoryStream(photoData));

@@ -78,6 +78,8 @@ namespace BigDrive.Shell
             RegisterCommand(new HelpCommand(m_commands));
             RegisterCommand(new ExitCommand());
             RegisterCommand(new DrivesCommand());
+            RegisterCommand(new ProvidersCommand());
+            RegisterCommand(new SecretCommand());
             RegisterCommand(new DirCommand());
             RegisterCommand(new CdCommand());
             RegisterCommand(new CopyCommand());
