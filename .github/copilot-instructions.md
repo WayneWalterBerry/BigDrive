@@ -42,3 +42,49 @@
   // Copyright (c) Wayne Walter Berry. All rights reserved.
   // </copyright>
   ```
+
+---
+
+### Documentation Maintenance
+
+When making code changes, keep documentation in sync:
+
+#### Project README Files
+Each project has a `README.md` or `README.txt` for **developers/contributors**:
+- `src/BigDrive.Shell/README.md` — Shell architecture, project structure
+- `src/BigDrive.Provider.Flickr/README.txt` — Provider implementation details
+- `src/ConfigProvider/README.txt` — Registry structure, API reference
+- `src/Interfaces/README.txt` — Interface definitions
+- `src/BigDrive.Setup/README.txt` — Installation internals
+
+**Update when:**
+- Adding/removing/renaming files in the project
+- Changing public APIs or method signatures
+- Modifying architecture or data flow
+- Adding new dependencies
+
+#### User Documentation (`docs/` directory)
+User-facing guides for **end users and contributors**:
+- `docs/BigDrive.Shell.UserGuide.md` — Shell commands for users
+- `docs/ProviderDevelopmentGuide.md` — How to create new providers
+- `docs/architecture/overview.md` — System architecture diagrams
+- `docs/architecture/installation.md` — Setup and registration flow
+
+**Update when:**
+- Adding/removing shell commands
+- Changing command syntax or behavior
+- Adding new interfaces or provider requirements
+- Modifying registry structure or installation process
+
+#### Key Concepts to Document
+- **Providers vs Drives**: Providers define *how* to access storage; Drives are user instances
+- **Registry locations**: `SOFTWARE\BigDrive\Providers\` and `SOFTWARE\BigDrive\Drives\`
+- **COM+ activation**: Providers run out-of-process in `dllhost.exe`
+- **Partial classes**: One file per interface (e.g., `Provider.IBigDriveEnumerate.cs`)
+
+#### Documentation Style
+- Use ASCII diagrams for architecture (works in terminals and GitHub)
+- Include code examples with proper syntax highlighting
+- Keep project READMEs developer-focused (no user tutorials)
+- Keep `docs/` files user-focused (commands, guides, tutorials)
+- Add "See Also" sections linking related documentation

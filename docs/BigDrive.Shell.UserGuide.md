@@ -64,13 +64,15 @@ The `BD>` prompt indicates you're in the BigDrive Shell but no drive is selected
 | Command | Aliases | Description |
 |---------|---------|-------------|
 | `drives` | `list` | List all drives with their assigned letters |
+| `mount` | `register`, `add` | Mount a new BigDrive (like `net use`) |
+| `unmount` | `unregister`, `remove`, `umount` | Unmount a BigDrive |
 
 ### File System Navigation
 
 | Command | Aliases | Description |
 |---------|---------|-------------|
 | `cd` | `chdir` | Change drive or directory (`cd X:` or `cd folder`) |
-| `dir` | `ls` | List files and folders in the current directory |
+| `dir` | `ls` | List drives (at root) or folder contents (in drive) |
 
 ### File Operations
 
@@ -350,28 +352,88 @@ Deleted: Old File.txt
 
 ---
 
+## Mounting and Unmounting Drives
+
+### Mounting a New Drive (Interactive)
+
+Run `mount` without arguments for interactive mode:
+
+```
+BD> mount
+
+Available providers:
+
+  [1] Flickr Provider
+      CLSID: {B3D8F2A1-7C4E-4A9B-8E1F-2C3D4E5F6A7B}
+
+  [2] Sample Provider
+      CLSID: {F8FE2E5A-E8B8-4207-BC04-EA4BCD4C4361}
+
+Select provider number: 1
+Enter drive name: My Flickr Photos
+
+Drive mounted successfully!
+
+  Name:     My Flickr Photos
+  GUID:     {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}
+  Provider: Flickr Provider
+
+Use 'cd Z:' to access the new drive.
+```
+
+### Mounting a Drive (Command Line)
+
+```
+BD> mount 1 "My Flickr Photos"
+
+Drive mounted successfully!
+
+  Name:     My Flickr Photos
+  GUID:     {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}
+  Provider: Flickr Provider
+```
+
+Or use the provider name:
+
+```
+BD> mount "Flickr Provider" "My Flickr Photos"
+```
+
+### Unmounting a Drive
+
+```
+Z:\> unmount Z
+Unmount 'My Flickr Photos' (Z:)? [y/N]: y
+Drive unmounted: My Flickr Photos
+```
+
+> **Note:** Mounting and unmounting requires Administrator privileges.
+
+---
+
 ## Error Messages
 
 ### No Drive Selected
 
 ```
 BD> dir
-No drive selected. Use 'cd X:' to select a BigDrive.
 ```
 
-**Solution:** Run `drives` to list available drives, then `cd X:` to select one.
+At the root, `dir` shows available drives (not an error).
 
 ### No Drives Registered
 
 ```
-BD> drives
-No BigDrive drives registered.
+BD> dir
 
-Local drives:
-  C:, D:, E:
+ Directory of BigDrive
+
+    No BigDrive drives registered.
+
+Run BigDrive.Setup.exe to register providers.
 ```
 
-**Solution:** Run `BigDrive.Setup.exe` as Administrator and register a provider.
+**Solution:** Use `mount` to create a drive, or run `BigDrive.Setup.exe`.
 
 ### Drive Not Found
 
@@ -577,6 +639,9 @@ BD> cd My Folder        ❌ Incorrect (interprets as two arguments)
 │  AT ROOT (BD>)                                                     │
 │    dir / ls            List available BigDrive drives              │
 │    cd X:               Enter BigDrive X                            │
+│    mount               Mount a new drive (interactive)             │
+│    mount <n> <name>    Mount a new drive (command line)            │
+│    unmount X           Unmount drive X                             │
 ├────────────────────────────────────────────────────────────────────┤
 │  INSIDE A DRIVE (X:\>)                                             │
 │    dir [path]          List folder contents                        │
@@ -597,12 +662,13 @@ BD> cd My Folder        ❌ Incorrect (interprets as two arguments)
 ├────────────────────────────────────────────────────────────────────┤
 │  EXAMPLES                                                          │
 │    dir                           List drives (at root)             │
+│    mount                         Mount a new drive                 │
 │    cd Z:                         Enter Flickr drive                │
 │    dir                           List folders (in drive)           │
 │    cd "My Photos"                Enter folder                      │
 │    copy photo.jpg C:\Downloads\  Copy to local                     │
 │    copy photo.jpg Y:\Backups\    Copy to another BigDrive          │
-│    cd Y:                         Switch drives                     │
+│    unmount Y                     Unmount drive Y                   │
 │    exit                          Exit shell                        │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -615,6 +681,7 @@ BD> cd My Folder        ❌ Incorrect (interprets as two arguments)
 - [BigDrive.Shell README](../src/BigDrive.Shell/README.md) — Shell architecture details
 - [BigDrive.Provider.Flickr README](../src/BigDrive.Provider.Flickr/README.txt) — Flickr provider details
 - [BigDrive.Interfaces README](../src/Interfaces/README.txt) — Provider interface definitions
+- [Provider Development Guide](ProviderDevelopmentGuide.md) — Creating new providers
 
 ---
 

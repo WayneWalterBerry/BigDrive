@@ -83,6 +83,8 @@ namespace BigDrive.Shell
             RegisterCommand(new CopyCommand());
             RegisterCommand(new MkdirCommand());
             RegisterCommand(new DelCommand());
+            RegisterCommand(new MountCommand());
+            RegisterCommand(new UnmountCommand());
         }
 
         /// <summary>

@@ -1,100 +1,93 @@
 # BigDrive.Shell
 
-A custom shell for interacting with BigDrive providers. Following Scott Hanselman's taxonomy:
+A custom command-line shell for interacting with BigDrive virtual file systems.
 
-- **Terminal**: Windows Terminal, conhost, or any console host (dumb I/O)
-- **Outer Shell**: PowerShell, cmd.exe (launches BigDrive.Shell)
-- **BigDrive.Shell**: The command interpreter for BigDrive operations
+## Overview
 
-## Usage
+BigDrive.Shell provides a command-line interface for navigating and managing BigDrive
+providers. It assigns drive letters (Z:, Y:, X:...) to registered BigDrives and
+supports cross-drive file operations including mount/unmount of drives.
 
-Run `BigDrive.Shell.exe` from PowerShell or cmd:
+## User Documentation
 
-```powershell
-PS> .\BigDrive.Shell.exe
-BigDrive Shell v1.0
-Type 'help' for available commands, 'exit' to quit.
+For usage instructions, see the **[User Guide](../../docs/BigDrive.Shell.UserGuide.md)**.
 
-BD:\>
-```
+---
 
-## Commands
-
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `help` | `?` | Displays help information |
-| `exit` | `quit`, `q` | Exits the shell |
-| `drives` | `list` | Lists registered BigDrive drives |
-| `select` | `use`, `mount` | Selects a drive to work with |
-| `dir` | `ls` | Lists files and folders |
-| `cd` | `chdir` | Changes the current directory |
-| `copy` | `cp` | Copies files to/from BigDrive |
-| `mkdir` | `md` | Creates a new directory |
-| `del` | `rm`, `delete`, `erase` | Deletes a file or directory |
-
-## Example Session
+## Project Structure
 
 ```
-BD:\> drives
-Registered BigDrive drives:
-
-  [1] Flickr Photos
-      GUID: {12345678-1234-1234-1234-123456789ABC}
-      Provider: {ABCDEFAB-ABCD-ABCD-ABCD-ABCDEFABCDEF}
-
-Use 'select <number>' or 'select <name>' to select a drive.
-
-BD:\> select 1
-Selected drive: Flickr Photos
-
-BD:Flickr Photos\> dir
-
- Directory of BD:Flickr Photos\
-
-    <DIR>    Vacation 2024
-    <DIR>    Family Photos
-    <DIR>    Nature
-
-       3 Dir(s)    0 File(s)
-
-BD:Flickr Photos\> cd "Vacation 2024"
-BD:Flickr Photos\Vacation 2024> dir
-
- Directory of BD:Flickr Photos\Vacation 2024
-
-             Beach.jpg
-             Sunset.jpg
-             Mountains.jpg
-
-       0 Dir(s)    3 File(s)
-
-BD:Flickr Photos\Vacation 2024> copy Beach.jpg C:\Downloads\Beach.jpg
-        1 file(s) copied.
-
-BD:Flickr Photos\Vacation 2024> exit
-Goodbye!
+BigDrive.Shell/
+├── Program.cs                 # Entry point, REPL loop
+├── ShellContext.cs            # Session state (current drive, paths)
+├── DriveLetterManager.cs      # Assigns drive letters, avoids OS conflicts
+├── CommandProcessor.cs        # Parses input, dispatches to commands
+├── ProviderFactory.cs         # COM+ provider activation
+├── PathInfo.cs                # Path parsing utilities
+├── Commands/
+│   ├── ICommand.cs            # Command interface
+│   ├── HelpCommand.cs
+│   ├── ExitCommand.cs
+│   ├── DrivesCommand.cs
+│   ├── DirCommand.cs
+│   ├── CdCommand.cs
+│   ├── CopyCommand.cs
+│   ├── MkdirCommand.cs
+│   ├── DelCommand.cs
+│   ├── MountCommand.cs        # Create new drive (like 'net use')
+│   └── UnmountCommand.cs      # Remove drive
+└── Properties/
+    └── AssemblyInfo.cs
 ```
+
+---
 
 ## Architecture
 
-The shell implements the command pattern with:
+### Key Components
 
-- `ShellContext` - Maintains current drive, path, and session state
-- `CommandProcessor` - Parses input and dispatches to command handlers
-- `ICommand` - Interface for all shell commands
-- `ProviderFactory` - Creates COM+ provider instances via COM activation
+| Component | Responsibility |
+|-----------|----------------|
+| `ShellContext` | Current drive letter, path per drive, session state |
+| `DriveLetterManager` | Assigns drive letters to BigDrives, avoids OS drives |
+| `CommandProcessor` | Parses input, dispatches to command handlers |
+| `ProviderFactory` | Creates COM+ provider instances via COM activation |
+| `ICommand` | Interface implemented by all shell commands |
+
+### Registry Structure
+
+BigDrive uses two registry locations under `HKLM\SOFTWARE\BigDrive`:
+
+```
+SOFTWARE\BigDrive\
+├── Providers\                    ← Registered by regsvcs.exe (COM+ installation)
+│   └── {PROVIDER-CLSID}\
+│       ├── id   = "{CLSID}"
+│       └── name = "Flickr Provider"
+│
+└── Drives\                       ← Created by 'mount' command or setup
+    └── {DRIVE-GUID}\
+        ├── id   = "{DRIVE-GUID}"
+        ├── name = "My Flickr Photos"
+        └── clsid = "{PROVIDER-CLSID}"   ← Points to provider
+```
+
+**Providers** are COM+ components registered during installation. They define *how* to
+access a storage backend (Flickr API, Azure Blob, etc.).
+
+**Drives** are user-created instances that use a provider. Multiple drives can use the
+same provider (e.g., two different Flickr accounts).
 
 ### COM+ Provider Activation
 
 The shell **never directly references provider assemblies**. Instead:
 
-1. **Drive enumeration** uses `BigDrive.ConfigProvider.DriveManager` to read drive
-   configurations from the registry (`HKLM\SOFTWARE\BigDrive\Drives`)
+1. **Configuration** is read from the registry via `DriveManager.ReadConfigurations()`
 
-2. **Provider activation** uses COM interop to instantiate providers hosted in COM+:
+2. **Provider activation** uses COM interop:
    ```csharp
    // Get CLSID from drive configuration (registry)
-   DriveConfiguration config = DriveManager.ReadConfiguration(driveGuid, cancellationToken);
+   DriveConfiguration config = DriveManager.ReadConfiguration(driveGuid, token);
 
    // Activate provider via COM (runs in dllhost.exe under COM+)
    Type providerType = Type.GetTypeFromCLSID(config.CLSID);
@@ -104,28 +97,39 @@ The shell **never directly references provider assemblies**. Instead:
    IBigDriveEnumerate enumerate = provider as IBigDriveEnumerate;
    ```
 
-3. **Process isolation**: Providers run out-of-process in `dllhost.exe` (COM+ surrogate),
-   not in the shell's process space.
+3. **Process isolation**: Providers run out-of-process in `dllhost.exe` (COM+ surrogate)
+
+### Process Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  BigDrive.Shell.exe                                                     │
 │                                                                         │
-│  ┌─────────────────┐    ┌──────────────────┐                            │
-│  │ CommandProcessor│───▶│ ProviderFactory  │                            │
-│  └─────────────────┘    └────────┬─────────┘                            │
-│                                  │                                      │
-│                     CoCreateInstance(CLSID)                             │
-│                                  │                                      │
-└──────────────────────────────────┼──────────────────────────────────────┘
-                                   │ COM Activation
-                                   ▼
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐   │
+│  │DriveLetterManager│───▶│ CommandProcessor │───▶│ ProviderFactory  │   │
+│  │                  │    │                  │    │                  │   │
+│  │ Z: → Drive A     │    │ dir, cd, copy... │    │ CoCreateInstance │   │
+│  │ Y: → Drive B     │    │                  │    │                  │   │
+│  └──────────────────┘    └──────────────────┘    └────────┬─────────┘   │
+│                                                           │             │
+│  References:                                              │             │
+│   - BigDrive.Interfaces (COM interfaces)                  │             │
+│   - BigDrive.ConfigProvider (registry access)             │             │
+│                                                           │             │
+└───────────────────────────────────────────────────────────┼─────────────┘
+                                                            │
+                                          COM Activation (out-of-process)
+                                                            │
+                                                            ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  dllhost.exe (COM+ Surrogate)                                           │
 │                                                                         │
 │  ┌─────────────────────┐  ┌─────────────────────┐                       │
 │  │ Provider.Flickr     │  │ Provider.Sample     │  ...                  │
-│  │ (ServicedComponent) │  │ (ServicedComponent) │                       │
+│  │                     │  │                     │                       │
+│  │ IBigDriveEnumerate  │  │ IBigDriveEnumerate  │                       │
+│  │ IBigDriveFileData   │  │ IBigDriveFileData   │                       │
+│  │ IBigDriveFileInfo   │  │ IBigDriveFileInfo   │                       │
 │  └─────────────────────┘  └─────────────────────┘                       │
 │                                                                         │
 │  Identity: BigDriveTrustedInstaller                                     │
@@ -134,7 +138,22 @@ The shell **never directly references provider assemblies**. Instead:
 
 ### Dependencies
 
-- `BigDrive.Interfaces` - COM interface definitions (IBigDriveEnumerate, etc.)
-- `BigDrive.ConfigProvider` - DriveManager for reading drive configurations from registry
+| Assembly | Purpose |
+|----------|---------|
+| `BigDrive.Interfaces` | COM interface definitions (IBigDriveEnumerate, etc.) |
+| `BigDrive.ConfigProvider` | DriveManager, ProviderManager for registry access |
 
-The shell does NOT reference provider assemblies directly (Provider.Flickr, Provider.Sample, etc.)
+The shell does **NOT** reference provider assemblies (Provider.Flickr, Provider.Sample, etc.)
+
+---
+
+## See Also
+
+- [User Guide](../../docs/BigDrive.Shell.UserGuide.md) — Complete command reference
+- [Provider Development Guide](../../docs/ProviderDevelopmentGuide.md) — Creating new providers
+- [BigDrive.Interfaces](../Interfaces/README.txt) — Interface definitions
+- [BigDrive.ConfigProvider](../ConfigProvider/README.txt) — Registry configuration
+
+---
+
+*Copyright © Wayne Walter Berry. All rights reserved.*

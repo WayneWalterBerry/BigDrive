@@ -225,6 +225,31 @@ namespace BigDrive.ConfigProvider
         }
 
         /// <summary>
+        /// Deletes a drive configuration from the registry.
+        /// </summary>
+        /// <param name="driveId">The drive GUID to delete.</param>
+        /// <param name="cancellationToken">Cancellation Token.</param>
+        public static void DeleteConfiguration(Guid driveId, CancellationToken cancellationToken)
+        {
+            if (driveId == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(driveId), "Drive ID cannot be empty.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string subFolderRegistryPath = $@"SOFTWARE\BigDrive\Drives\{{{driveId}}}";
+
+            using (RegistryKey drivesKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\BigDrive\Drives", true))
+            {
+                if (drivesKey != null)
+                {
+                    drivesKey.DeleteSubKeyTree($"{{{driveId}}}", false);
+                }
+            }
+        }
+
+        /// <summary>
         /// Serializes a <see cref="DriveConfiguration"/> object to a JSON string.
         /// </summary>
         /// <param name="driveConfg">The <see cref="DriveConfiguration"/> instance to serialize.</param>

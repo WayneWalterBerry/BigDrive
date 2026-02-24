@@ -1,48 +1,150 @@
 # Installation Architecture
 
+## Overview
+
+BigDrive uses a two-phase approach:
+1. **Installation** (requires Administrator) — Registers COM+ providers and shell extensions
+2. **Drive Management** (standard user) — Mount/unmount drives via BigDrive.Shell
+
+---
+
 ## Installation Process
 
 ### BigDrive.Setup.exe
 
-When running `BigDrive.Setup.exe` with elevated permissions (as a local Administrator), the following steps are performed:
+When running `BigDrive.Setup.exe` with elevated permissions (as Administrator):
 
-1. **Create Installer User**  
-   - A local user named `BigDriveInstaller` is created with a temporary password.
-   - The `BigDriveInstaller` user is granted permissions to register registry keys, enabling it to add or remove shell folders later.
-2. **Event Log Creation**  
-   - The BigDrive Event Log is created.
-3. **COM+ Application Installation**  
-   - A COM+ application named `BigDrive.Server` is installed and configured to run under the `BigDriveInstaller` user account.
-4. **Password Handling**  
-   - The password for the `BigDriveInstaller` user is discarded after setup.
-5. **Context Menu Extension**  
-   - A context menu extension (`BigDrive.Extension.dll`) is installed in "This PC" (formerly "My Computer"), allowing local users to invoke the COM+ BigDrive Service to register drives.
+1. **COM+ Provider Registration**
+   - Providers (e.g., `BigDrive.Provider.Flickr.dll`) are registered using `regsvcs.exe`
+   - Each provider is installed as a COM+ Server Application running in `dllhost.exe`
+   - Providers implement `IBigDriveRegistration.Register()` to write to the registry
 
+2. **Service Account Creation**
+   - A local user named `BigDriveTrustedInstaller` is created
+   - COM+ applications run under this identity for process isolation
+   - Password is discarded after setup
 
-#### Notes
+3. **Registry Structure Created**
+   ```
+   HKLM\SOFTWARE\BigDrive\
+   ├── Providers\{CLSID}\          ← One per installed provider
+   │   ├── id = "{CLSID}"
+   │   └── name = "Flickr Provider"
+   │
+   └── Drives\{GUID}\              ← Created later by mount command
+       ├── id = "{DRIVE-GUID}"
+       ├── name = "My Flickr Photos"
+       └── clsid = "{PROVIDER-CLSID}"
+   ```
 
-- **Administrator Rights:**  
-  Elevated permissions are required only for the initial installation, which must be performed by a local administrator. After `BigDrive.Setup.exe` completes, drive registration can be performed by standard users without administrator rights, as the `BigDriveInstaller` account is used for these operations.
+4. **Shell Extension Installation** (optional)
+   - `BigDrive.ShellFolder.dll` registered for Explorer integration
+   - Context menu extension for "This PC"
 
-- **Idempotency:**  
-  `BigDrive.Setup.exe` is idempotent. It can be run multiple times without causing issues. Each execution creates a new `BigDriveInstaller` user and removes any previous instance.
+### Notes
 
-## Drive Registration
-
-After installation, local users can register drives using the BigDrive context menu extension:
-
-1. **Drive Registration via Context Menu**  
-   - The user, running under their own (non-elevated) permissions, uses the context menu extension to register a drive.
-2. **COM+ Server Communication**  
-   - The extension calls the `BigDrive.Server` COM+ application to perform the registration.
-3. **Registry Update**  
-   - The server writes the necessary registry keys to make the drive visible in "This PC".
-4. **Shell Notification**  
-   - The Windows Shell is notified so the new drive appears in "This PC".
+- **Idempotency**: `BigDrive.Setup.exe` can be run multiple times safely
+- **Provider Independence**: Each provider is a separate COM+ application
 
 ---
 
-### Summary
+## Drive Management (Post-Installation)
 
-- **Initial installation** requires administrator rights and sets up all necessary components and permissions.
-- **Drive registration** can be performed by standard users without elevation, thanks to the `BigDriveInstaller` service account and COM+ server.
+After installation, drives are managed via **BigDrive.Shell**:
+
+### Mounting a Drive
+
+```
+BD> mount
+
+Available providers:
+
+  [1] Flickr Provider
+      CLSID: {B3D8F2A1-7C4E-4A9B-8E1F-2C3D4E5F6A7B}
+
+Select provider number: 1
+Enter drive name: My Flickr Photos
+
+Drive mounted successfully!
+Use 'cd Z:' to access the new drive.
+```
+
+This creates a registry entry under `SOFTWARE\BigDrive\Drives\{GUID}`.
+
+### Unmounting a Drive
+
+```
+Z:\> unmount Z
+Unmount 'My Flickr Photos' (Z:)? [y/N]: y
+Drive unmounted: My Flickr Photos
+```
+
+This removes the registry entry.
+
+### No Elevation Required
+
+- BigDrive.Shell writes to `HKLM\SOFTWARE\BigDrive\Drives`
+- Standard users can mount/unmount if registry permissions allow
+- Alternatively, run BigDrive.Shell as Administrator
+
+---
+
+## Component Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Installation (One-time, requires Admin)                                │
+│                                                                         │
+│  BigDrive.Setup.exe                                                     │
+│       │                                                                 │
+│       ├── regsvcs.exe Provider.Flickr.dll                               │
+│       │       └── Creates COM+ Application                              │
+│       │       └── Calls IBigDriveRegistration.Register()                │
+│       │               └── Writes to SOFTWARE\BigDrive\Providers\{CLSID} │
+│       │                                                                 │
+│       ├── regsvcs.exe Provider.Sample.dll                               │
+│       │       └── (same as above)                                       │
+│       │                                                                 │
+│       └── regsvr32 BigDrive.ShellFolder.dll (optional)                  │
+│               └── Explorer integration                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Runtime (Standard user)                                                │
+│                                                                         │
+│  BigDrive.Shell.exe                                                     │
+│       │                                                                 │
+│       ├── mount command                                                 │
+│       │       └── Reads SOFTWARE\BigDrive\Providers\*                   │
+│       │       └── Writes SOFTWARE\BigDrive\Drives\{GUID}                │
+│       │                                                                 │
+│       ├── dir, cd, copy commands                                        │
+│       │       └── Reads SOFTWARE\BigDrive\Drives\*                      │
+│       │       └── CoCreateInstance(CLSID) → dllhost.exe                 │
+│       │       └── Calls IBigDriveEnumerate, IBigDriveFileData, etc.     │
+│       │                                                                 │
+│       └── unmount command                                               │
+│               └── Deletes SOFTWARE\BigDrive\Drives\{GUID}               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Registry Permissions
+
+For standard users to mount/unmount drives:
+
+```
+HKLM\SOFTWARE\BigDrive\Drives
+    → Grant "Users" group: Full Control
+```
+
+Or require BigDrive.Shell to run as Administrator.
+
+---
+
+## See Also
+
+- [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) — mount/unmount commands
+- [Provider Development Guide](../ProviderDevelopmentGuide.md) — Creating providers
+- [BigDrive.Setup README](../../src/BigDrive.Setup/README.txt) — Setup internals

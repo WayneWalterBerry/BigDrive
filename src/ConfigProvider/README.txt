@@ -89,6 +89,9 @@ DriveManager.cs
   - WriteConfiguration(DriveConfiguration, CancellationToken)
       Creates or updates a drive configuration.
 
+  - DeleteConfiguration(Guid, CancellationToken)
+      Removes a drive configuration from the registry.
+
   - ReadConfigurationFromJson(string, CancellationToken) -> DriveConfiguration
       Deserializes a drive configuration from JSON.
 
@@ -97,6 +100,12 @@ DriveManager.cs
 
 ProviderManager.cs
   Static class for provider registration:
+
+  - ReadProviders(CancellationToken) -> IEnumerable<ProviderConfiguration>
+      Enumerates all registered providers.
+
+  - ReadProvider(string, CancellationToken) -> ProviderConfiguration
+      Reads a specific provider's configuration.
 
   - RegisterProvider(ProviderConfiguration, CancellationToken)
       Registers a provider in the registry.
@@ -111,23 +120,58 @@ Extensions/
     - ToJson() extension method for DriveConfiguration
     - Provides compact JSON serialization
 
+PROVIDERS VS DRIVES
+--------------------------------------------------------------------------------
+Understanding the distinction between Providers and Drives is critical:
+
+PROVIDERS (SOFTWARE\BigDrive\Providers\{CLSID})
+  - Registered automatically when COM+ component is installed (regsvcs.exe)
+  - Define HOW to access a storage backend (API client, auth, etc.)
+  - Have a CLSID (COM Class ID) for activation
+  - Examples: "Flickr Provider", "Azure Blob Provider"
+
+DRIVES (SOFTWARE\BigDrive\Drives\{DRIVE-GUID})
+  - Created by users via BigDrive.Shell 'mount' command or setup
+  - Define WHAT storage to access (specific account, container, etc.)
+  - Reference a Provider via CLSID
+  - Multiple drives can use the same provider
+  - Examples: "My Flickr Photos", "Work Azure Storage", "Personal Azure Storage"
+
+Relationship:
+  ┌─────────────────────┐
+  │ Drive: "My Photos"  │──┐
+  │ GUID: {DRIVE-1}     │  │
+  └─────────────────────┘  │    ┌──────────────────────────┐
+                           ├───▶│ Provider: Flickr Provider │
+  ┌─────────────────────┐  │    │ CLSID: {PROVIDER-CLSID}  │
+  │ Drive: "Work Photos"│──┘    └──────────────────────────┘
+  │ GUID: {DRIVE-2}     │
+  └─────────────────────┘
+
 DATA FLOW
 --------------------------------------------------------------------------------
 
-Provider Registration Flow:
+Provider Registration Flow (Installation):
   1. Provider's COM+ PostBuild runs regsvcs.exe
-  2. Provider's Register() method is called
-  3. Provider calls ProviderManager.RegisterProvider()
-  4. ProviderManager writes to SOFTWARE\BigDrive\Providers\{CLSID}
-  5. Provider optionally calls DriveManager.WriteConfiguration()
-  6. DriveManager writes to SOFTWARE\BigDrive\Drives\{DriveId}
+  2. Provider's IProcessInitializer.Startup() is called
+  3. Provider's IBigDriveRegistration.Register() is called
+  4. Provider calls ProviderManager.RegisterProvider()
+  5. ProviderManager writes to SOFTWARE\BigDrive\Providers\{CLSID}
 
-Shell Extension Discovery Flow:
-  1. BigDrive.ShellFolder loads in explorer.exe
-  2. Shell extension reads SOFTWARE\BigDrive\Drives\*
+Drive Creation Flow (User mounts a drive):
+  1. User runs BigDrive.Shell and types 'mount'
+  2. Shell calls ProviderManager.ReadProviders() to list available providers
+  3. User selects a provider and names the drive
+  4. Shell calls DriveManager.WriteConfiguration()
+  5. DriveManager writes to SOFTWARE\BigDrive\Drives\{DriveId}
+  6. DriveLetterManager assigns a drive letter (Z:, Y:, etc.)
+
+Shell/Explorer Discovery Flow:
+  1. BigDrive.Shell or BigDrive.ShellFolder starts
+  2. DriveManager.ReadConfigurations() enumerates all drives
   3. For each drive, reads the CLSID to identify the provider
-  4. Shell extension creates COM+ instance using the CLSID
-  5. Shell extension calls provider interfaces for enumeration
+  4. COM+ instance created using CoCreateInstance(CLSID)
+  5. Provider interfaces called for enumeration/file operations
 
 REFLECTION-BASED SERIALIZATION
 --------------------------------------------------------------------------------
@@ -189,7 +233,13 @@ Required for compatibility with:
 USAGE EXAMPLES
 --------------------------------------------------------------------------------
 
-Registering a Provider:
+Listing Available Providers:
+  foreach (var provider in ProviderManager.ReadProviders(CancellationToken.None))
+  {
+      Console.WriteLine($"Provider: {provider.Name}, CLSID: {provider.Id}");
+  }
+
+Registering a Provider (called from provider's Register() method):
   var config = new ProviderConfiguration
   {
       Id = Provider.CLSID,
@@ -197,20 +247,29 @@ Registering a Provider:
   };
   ProviderManager.RegisterProvider(config, CancellationToken.None);
 
-Creating a Drive:
+Creating a Drive (called from BigDrive.Shell 'mount' command):
   var driveConfig = new DriveConfiguration
   {
       Id = Guid.NewGuid(),
       Name = "My Virtual Drive",
-      CLSID = Provider.CLSID
+      CLSID = selectedProvider.Id  // CLSID of the provider
   };
   DriveManager.WriteConfiguration(driveConfig, CancellationToken.None);
+
+Deleting a Drive (called from BigDrive.Shell 'unmount' command):
+  DriveManager.DeleteConfiguration(driveId, CancellationToken.None);
 
 Reading All Drives:
   foreach (var drive in DriveManager.ReadConfigurations(CancellationToken.None))
   {
-      Console.WriteLine($"Drive: {drive.Name}, Provider: {drive.CLSID}");
+      Console.WriteLine($"Drive: {drive.Name}, Provider CLSID: {drive.CLSID}");
   }
+
+SEE ALSO
+--------------------------------------------------------------------------------
+  - docs/BigDrive.Shell.UserGuide.md - Shell commands including mount/unmount
+  - docs/ProviderDevelopmentGuide.md - Creating new providers
+  - src/BigDrive.Shell/README.md - Shell architecture
 
 ================================================================================
                     Copyright (c) Wayne Walter Berry. All rights reserved.
