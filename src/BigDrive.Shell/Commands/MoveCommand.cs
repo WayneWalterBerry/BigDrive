@@ -1,4 +1,4 @@
-// <copyright file="CopyCommand.cs" company="Wayne Walter Berry">
+// <copyright file="MoveCommand.cs" company="Wayne Walter Berry">
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
@@ -11,18 +11,18 @@ namespace BigDrive.Shell.Commands
     using BigDrive.Shell.FileStores;
 
     /// <summary>
-    /// Copies files between BigDrive drives and local drives.
-    /// Supports: Local to BigDrive, BigDrive to Local, BigDrive to BigDrive.
-    /// Supports wildcard patterns (* and ?) for source files.
+    /// Moves files between BigDrive drives and local drives.
+    /// Supports: BigDrive to BigDrive, Local to BigDrive, BigDrive to Local.
+    /// Supports wildcard patterns (* and ?) for moving multiple files.
     /// </summary>
-    public class CopyCommand : ICommand
+    public class MoveCommand : ICommand
     {
         /// <summary>
         /// Gets the primary name of the command.
         /// </summary>
         public string Name
         {
-            get { return "copy"; }
+            get { return "move"; }
         }
 
         /// <summary>
@@ -30,7 +30,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string[] Aliases
         {
-            get { return new string[] { "cp" }; }
+            get { return new string[] { "mv" }; }
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Description
         {
-            get { return "Copies files between drives (supports wildcards: *, ?)"; }
+            get { return "Moves files between drives (supports wildcards: *, ?)"; }
         }
 
         /// <summary>
@@ -46,22 +46,22 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Usage
         {
-            get { return "copy <source> [destination]  |  copy *.txt c:\\temp\\  |  copy X:\\*.jpg Y:\\backup\\"; }
+            get { return "move <source> [destination]  |  move *.txt archive\\"; }
         }
 
         /// <summary>
-        /// Executes the copy command.
+        /// Executes the move command.
         /// </summary>
         /// <param name="context">The shell context.</param>
         /// <param name="args">The command arguments.</param>
         public void Execute(ShellContext context, string[] args)
         {
-            ShellTrace.Enter("CopyCommand", "Execute", string.Format("args.Length={0}", args.Length));
+            ShellTrace.Enter("MoveCommand", "Execute", string.Format("args.Length={0}", args.Length));
 
             if (args.Length < 1)
             {
                 Console.WriteLine("Usage: " + Usage);
-                ShellTrace.Exit("CopyCommand", "Execute", "insufficient args");
+                ShellTrace.Exit("MoveCommand", "Execute", "insufficient args");
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace BigDrive.Shell.Commands
                 else
                 {
                     Console.WriteLine("No destination specified and no current drive selected.");
-                    ShellTrace.Exit("CopyCommand", "Execute", "no destination");
+                    ShellTrace.Exit("MoveCommand", "Execute", "no destination");
                     return;
                 }
             }
@@ -104,11 +104,6 @@ namespace BigDrive.Shell.Commands
                 destPath.Path = PathInfo.ResolvePath(context.GetPathForDrive(destPath.DriveLetter), destPath.Path);
             }
 
-            ShellTrace.PathResolution(source, sourcePath.GetFullPath(),
-                sourcePath.IsBigDrive ? "BigDrive" : (sourcePath.IsOSDrive ? "OS" : "Unknown"));
-            ShellTrace.PathResolution(destination, destPath.GetFullPath(),
-                destPath.IsBigDrive ? "BigDrive" : (destPath.IsOSDrive ? "OS" : "Unknown"));
-
             ShellTrace.Verbose("Source: DriveLetter={0}, Path=\"{1}\", IsBigDrive={2}, IsOSDrive={3}",
                 sourcePath.DriveLetter, sourcePath.Path, sourcePath.IsBigDrive, sourcePath.IsOSDrive);
             ShellTrace.Verbose("Dest: DriveLetter={0}, Path=\"{1}\", IsBigDrive={2}, IsOSDrive={3}",
@@ -121,74 +116,61 @@ namespace BigDrive.Shell.Commands
             if (sourceStore == null)
             {
                 Console.WriteLine("No drive selected. Use 'cd X:' to select a drive first.");
-                ShellTrace.Exit("CopyCommand", "Execute", "no source store");
+                ShellTrace.Exit("MoveCommand", "Execute", "no source store");
                 return;
             }
 
             if (destStore == null)
             {
                 Console.WriteLine("Destination drive not found.");
-                ShellTrace.Exit("CopyCommand", "Execute", "no dest store");
+                ShellTrace.Exit("MoveCommand", "Execute", "no dest store");
                 return;
             }
 
             if (!sourceStore.SupportsFileOperations)
             {
                 Console.WriteLine("Source does not support file operations.");
-                ShellTrace.Exit("CopyCommand", "Execute", "source no file ops");
+                ShellTrace.Exit("MoveCommand", "Execute", "source no file ops");
                 return;
             }
 
             if (!destStore.SupportsFileOperations)
             {
                 Console.WriteLine("Destination does not support file operations.");
-                ShellTrace.Exit("CopyCommand", "Execute", "dest no file ops");
+                ShellTrace.Exit("MoveCommand", "Execute", "dest no file ops");
                 return;
             }
 
             // Handle wildcards
             if (WildcardMatcher.ContainsWildcard(sourcePath.Path))
             {
-                CopyWithWildcard(sourceStore, sourcePath.Path, destStore, destPath.Path);
-                ShellTrace.Exit("CopyCommand", "Execute", "wildcard complete");
+                MoveWithWildcard(sourceStore, sourcePath.Path, destStore, destPath.Path);
+                ShellTrace.Exit("MoveCommand", "Execute", "wildcard complete");
                 return;
             }
 
-            // Single file copy
-            if (!sourceStore.FileExists(sourcePath.Path))
-            {
-                Console.WriteLine("Source file not found: " + source);
-                ShellTrace.Exit("CopyCommand", "Execute", "source not found");
-                return;
-            }
-
+            // Single file move
             string destFilePath = FileTransferService.ResolveDestinationFilePath(sourcePath.Path, destPath.Path);
 
-            FileTransferService.CopyFile(sourceStore, sourcePath.Path, destStore, destFilePath);
-            Console.WriteLine("        1 file(s) copied.");
-            ShellTrace.Exit("CopyCommand", "Execute", "complete");
+            FileTransferService.MoveFile(sourceStore, sourcePath.Path, destStore, destFilePath);
+            Console.WriteLine("        1 file(s) moved.");
+            ShellTrace.Exit("MoveCommand", "Execute", "complete");
         }
 
         /// <summary>
-        /// Copies multiple files matching a wildcard pattern.
+        /// Moves multiple files matching a wildcard pattern.
         /// </summary>
         /// <param name="sourceStore">The source file store.</param>
         /// <param name="sourcePathWithWildcard">The source path containing wildcard.</param>
         /// <param name="destStore">The destination file store.</param>
         /// <param name="destPath">The destination directory path.</param>
-        private static void CopyWithWildcard(IFileStore sourceStore, string sourcePathWithWildcard, IFileStore destStore, string destPath)
+        private static void MoveWithWildcard(IFileStore sourceStore, string sourcePathWithWildcard, IFileStore destStore, string destPath)
         {
             WildcardMatcher.SplitPathAndPattern(sourcePathWithWildcard, out string dirPart, out string filePattern);
 
             string directoryPath = (dirPart == "\\" || string.IsNullOrEmpty(dirPart)) ? "\\" : dirPart;
 
-            ShellTrace.Verbose("Wildcard copy: directory=\"{0}\", pattern=\"{1}\", dest=\"{2}\"", directoryPath, filePattern, destPath);
-
-            if (!sourceStore.SupportsEnumeration)
-            {
-                Console.WriteLine("Source does not support file enumeration.");
-                return;
-            }
+            ShellTrace.Verbose("Wildcard move: directory=\"{0}\", pattern=\"{1}\", dest=\"{2}\"", directoryPath, filePattern, destPath);
 
             string[] allFiles = sourceStore.EnumerateFiles(directoryPath);
             List<string> matchingFiles = WildcardMatcher.Filter(allFiles, filePattern).ToList();
@@ -210,23 +192,22 @@ namespace BigDrive.Shell.Commands
 
                 try
                 {
-                    FileTransferService.CopyFile(sourceStore, sourceFullPath, destStore, destFullPath);
+                    FileTransferService.MoveFile(sourceStore, sourceFullPath, destStore, destFullPath);
                     successCount++;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error copying {0}: {1}", fileName, ex.Message);
-                    ShellTrace.Error("Failed to copy \"{0}\": {1}", fileName, ex.Message);
+                    Console.WriteLine("Error moving {0}: {1}", fileName, ex.Message);
+                    ShellTrace.Error("Failed to move \"{0}\": {1}", fileName, ex.Message);
                     failCount++;
                 }
             }
 
-            Console.WriteLine("        {0} file(s) copied.", successCount);
+            Console.WriteLine("        {0} file(s) moved.", successCount);
             if (failCount > 0)
             {
                 Console.WriteLine("        {0} file(s) failed.", failCount);
             }
         }
-
-            }
-        }
+    }
+}

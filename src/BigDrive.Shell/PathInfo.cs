@@ -84,7 +84,7 @@ namespace BigDrive.Shell
                     // Extract path after drive letter
                     if (pathString.Length > 2)
                     {
-                        info.Path = pathString.Substring(2).TrimStart('\\', '/');
+                        info.Path = pathString.Substring(2);
                     }
                     else
                     {
@@ -107,6 +107,72 @@ namespace BigDrive.Shell
             }
 
             return info;
+        }
+
+        /// <summary>
+        /// Resolves a relative or absolute path against a current directory,
+        /// normalizing . and .. segments.
+        /// </summary>
+        /// <param name="currentPath">The current directory path.</param>
+        /// <param name="targetPath">The target path (relative or absolute).</param>
+        /// <returns>The resolved normalized absolute path.</returns>
+        public static string ResolvePath(string currentPath, string targetPath)
+        {
+            string combined;
+
+            if (targetPath.StartsWith("\\") || targetPath.StartsWith("/"))
+            {
+                combined = targetPath;
+            }
+            else if (currentPath == "\\" || currentPath == "/")
+            {
+                combined = "\\" + targetPath;
+            }
+            else
+            {
+                combined = currentPath.TrimEnd('\\', '/') + "\\" + targetPath;
+            }
+
+            return NormalizePath(combined);
+        }
+
+        /// <summary>
+        /// Normalizes a path by resolving . and .. segments.
+        /// </summary>
+        /// <param name="path">The path to normalize.</param>
+        /// <returns>The normalized path.</returns>
+        public static string NormalizePath(string path)
+        {
+            string[] parts = path.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var stack = new System.Collections.Generic.Stack<string>();
+
+            foreach (string part in parts)
+            {
+                if (part == "..")
+                {
+                    if (stack.Count > 0)
+                    {
+                        stack.Pop();
+                    }
+                }
+                else if (part != ".")
+                {
+                    stack.Push(part);
+                }
+            }
+
+            if (stack.Count == 0)
+            {
+                return "\\";
+            }
+
+            string[] result = new string[stack.Count];
+            for (int i = stack.Count - 1; i >= 0; i--)
+            {
+                result[i] = stack.Pop();
+            }
+
+            return "\\" + string.Join("\\", result);
         }
     }
 }

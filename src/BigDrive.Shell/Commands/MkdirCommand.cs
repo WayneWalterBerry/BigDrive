@@ -71,31 +71,10 @@ namespace BigDrive.Shell.Commands
                 return;
             }
 
-            string path = ResolvePath(context.CurrentPath, args[0]);
+            string path = PathInfo.ResolvePath(context.CurrentPath, args[0]);
 
             fileOps.CreateDirectory(context.CurrentDriveGuid.Value, path);
             Console.WriteLine("Directory created: " + args[0]);
-        }
-
-        /// <summary>
-        /// Resolves a relative or absolute path.
-        /// </summary>
-        /// <param name="currentPath">The current path.</param>
-        /// <param name="targetPath">The target path.</param>
-        /// <returns>The resolved absolute path.</returns>
-        private static string ResolvePath(string currentPath, string targetPath)
-        {
-            if (targetPath.StartsWith("\\") || targetPath.StartsWith("/"))
-            {
-                return targetPath;
-            }
-
-            if (currentPath == "\\" || currentPath == "/")
-            {
-                return "\\" + targetPath;
-            }
-
-            return currentPath.TrimEnd('\\', '/') + "\\" + targetPath;
         }
     }
 }

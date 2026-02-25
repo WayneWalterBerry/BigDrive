@@ -69,12 +69,19 @@ BigDrive.Shell/
 ├── ShellContext.cs            # Session state (current drive, paths)
 ├── DriveLetterManager.cs      # Assigns drive letters, avoids OS conflicts
 ├── CommandProcessor.cs        # Parses input, dispatches to commands
+├── ScriptRunner.cs            # Non-interactive script mode (-f, -c)
 ├── ProviderFactory.cs         # COM+ provider activation
 ├── PathInfo.cs                # Path parsing utilities
 ├── ShellTrace.cs              # Debug tracing infrastructure (-d/--debug)
 ├── WildcardMatcher.cs         # Wildcard pattern matching (*, ?)
 ├── OAuthHelper.cs             # OAuth 2.0 authentication flows
 ├── OAuth1Helper.cs            # OAuth 1.0a authentication flows (for Flickr)
+├── FileStores/                # Storage abstraction layer
+│   ├── IFileStore.cs          # Storage location interface
+│   ├── LocalFileStore.cs      # Local OS filesystem implementation
+│   ├── BigDriveFileStore.cs   # BigDrive provider implementation
+│   ├── FileStoreFactory.cs    # Creates IFileStore from PathInfo
+│   └── FileTransferService.cs # Copy/Move between any two IFileStore instances
 ├── LineInput/                 # Console line input (Chain of Responsibility)
 │   ├── IKeyHandler.cs         # Key handler interface
 │   ├── LineBuffer.cs          # Buffer state and rendering
@@ -82,7 +89,7 @@ BigDrive.Shell/
 │   ├── CommandHistory.cs      # Shared history data (entries, navigation state)
 │   ├── HistoryNavigationKeyHandler.cs  # Up/Down arrow history
 │   ├── HistorySearchKeyHandler.cs      # F8 prefix search
-│   ├── CompletionKeyHandler.cs # Tab completion
+│   ├── CompletionKeyHandler.cs # Tab completion (local + BigDrive)
 │   ├── NavigationKeyHandler.cs # Left/Right/Home/End
 │   ├── EditingKeyHandler.cs   # Backspace/Delete/Escape
 │   └── CharacterInputHandler.cs # Regular character input
@@ -92,8 +99,10 @@ BigDrive.Shell/
 │   ├── ExitCommand.cs
 │   ├── DrivesCommand.cs
 │   ├── DirCommand.cs          # Supports wildcards
-│   ├── CdCommand.cs
+│   ├── CdCommand.cs           # Case-correcting path resolution
 │   ├── CopyCommand.cs         # Supports wildcards
+│   ├── MoveCommand.cs         # Cross-drive move (copy + delete)
+│   ├── RenameCommand.cs       # Rename within same directory
 │   ├── MkdirCommand.cs
 │   ├── DelCommand.cs          # Supports wildcards
 │   ├── MountCommand.cs        # Create new drive (like 'net use')
@@ -102,6 +111,9 @@ BigDrive.Shell/
 │   ├── LoginCommand.cs        # OAuth authentication
 │   ├── LogoutCommand.cs       # Clear authentication tokens
 │   └── AuthStatusCommand.cs   # Check authentication status
+├── Tests/                     # Golden file test scripts
+│   ├── basic_test.script      # Test script
+│   └── basic_test.expected    # Expected output baseline
 └── Properties/
     └── AssemblyInfo.cs
 ```

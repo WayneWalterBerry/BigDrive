@@ -137,14 +137,14 @@ namespace BigDrive.Shell.Commands
                     }
                     else
                     {
-                        path = ResolvePath(context.CurrentPath, dirPart);
+                        path = PathInfo.ResolvePath(context.CurrentPath, dirPart);
                     }
 
                     ShellTrace.Verbose("Wildcard dir: path=\"{0}\", pattern=\"{1}\"", path, filePattern);
                 }
                 else
                 {
-                    path = ResolvePath(context.CurrentPath, inputPath);
+                    path = PathInfo.ResolvePath(context.CurrentPath, inputPath);
                 }
             }
 
@@ -216,25 +216,5 @@ namespace BigDrive.Shell.Commands
             Console.WriteLine("       {0} Dir(s)    {1} File(s)", displayedFolders, displayedFiles);
         }
 
-        /// <summary>
-        /// Resolves a relative or absolute path.
-        /// </summary>
-        /// <param name="currentPath">The current path.</param>
-        /// <param name="targetPath">The target path.</param>
-        /// <returns>The resolved absolute path.</returns>
-        private static string ResolvePath(string currentPath, string targetPath)
-        {
-            if (targetPath.StartsWith("\\") || targetPath.StartsWith("/"))
-            {
-                return targetPath;
             }
-
-            if (currentPath == "\\" || currentPath == "/")
-            {
-                return "\\" + targetPath;
-            }
-
-            return currentPath.TrimEnd('\\', '/') + "\\" + targetPath;
         }
-    }
-}

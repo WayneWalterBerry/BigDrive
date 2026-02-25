@@ -8,10 +8,10 @@ namespace BigDrive.Shell.Commands
     using System.Collections.Generic;
     using System.Linq;
 
-    using BigDrive.Interfaces;
+    using BigDrive.Shell.FileStores;
 
     /// <summary>
-    /// Deletes files or directories from BigDrive.
+    /// Deletes files or directories from a BigDrive or local drive.
     /// Supports wildcard patterns (* and ?) for deleting multiple files.
     /// </summary>
     public class DelCommand : ICommand
@@ -55,77 +55,74 @@ namespace BigDrive.Shell.Commands
         /// <param name="args">The command arguments.</param>
         public void Execute(ShellContext context, string[] args)
         {
-            if (context.CurrentDriveLetter == '\0' || !context.CurrentDriveGuid.HasValue)
-            {
-                Console.WriteLine("No drive selected. Use 'cd X:' to select a BigDrive.");
-                return;
-            }
+            ShellTrace.Enter("DelCommand", "Execute", string.Format("args.Length={0}", args.Length));
 
             if (args.Length == 0)
             {
                 Console.WriteLine("Usage: " + Usage);
-                return;
-            }
-
-            IBigDriveFileOperations fileOps = ProviderFactory.GetFileOperationsProvider(context.CurrentDriveGuid.Value);
-            if (fileOps == null)
-            {
-                Console.WriteLine("Provider does not support file operations.");
+                ShellTrace.Exit("DelCommand", "Execute", "insufficient args");
                 return;
             }
 
             string inputPath = args[0];
 
-            // Check for wildcard
-            if (WildcardMatcher.ContainsWildcard(inputPath))
+            PathInfo pathInfo = PathInfo.Parse(inputPath, context.DriveLetterManager, context.CurrentDriveLetter);
+
+            // Resolve relative BigDrive paths
+            if (pathInfo.IsRelative && pathInfo.IsBigDrive)
             {
-                DeleteWithWildcard(context, fileOps, inputPath);
+                pathInfo.Path = PathInfo.ResolvePath(context.GetPathForDrive(pathInfo.DriveLetter), pathInfo.Path);
+            }
+
+            IFileStore store = FileStoreFactory.Create(pathInfo, context);
+            if (store == null)
+            {
+                Console.WriteLine("No drive selected. Use 'cd X:' to select a drive first.");
+                ShellTrace.Exit("DelCommand", "Execute", "no store");
+                return;
+            }
+
+            if (!store.SupportsFileOperations)
+            {
+                Console.WriteLine("Drive does not support file operations.");
+                ShellTrace.Exit("DelCommand", "Execute", "no file ops");
+                return;
+            }
+
+            // Handle wildcards
+            if (WildcardMatcher.ContainsWildcard(pathInfo.Path))
+            {
+                DeleteWithWildcard(store, pathInfo.Path);
+                ShellTrace.Exit("DelCommand", "Execute", "wildcard complete");
                 return;
             }
 
             // Single file/folder delete
-            string path = ResolvePath(context.CurrentPath, inputPath);
-            ShellTrace.ComCall("IBigDriveFileOperations", "DeleteFile",
-                string.Format("driveGuid={0}, path=\"{1}\"", context.CurrentDriveGuid.Value, path));
-
-            fileOps.DeleteFile(context.CurrentDriveGuid.Value, path);
-            ShellTrace.ComResult("IBigDriveFileOperations", "DeleteFile", 0);
+            store.DeleteFile(pathInfo.Path);
             Console.WriteLine("Deleted: " + inputPath);
+            ShellTrace.Exit("DelCommand", "Execute", "complete");
         }
 
         /// <summary>
         /// Deletes multiple files matching a wildcard pattern.
         /// </summary>
-        private static void DeleteWithWildcard(ShellContext context, IBigDriveFileOperations fileOps, string inputPath)
+        /// <param name="store">The file store to delete from.</param>
+        /// <param name="pathWithWildcard">The path containing wildcard pattern.</param>
+        private static void DeleteWithWildcard(IFileStore store, string pathWithWildcard)
         {
-            // Split into directory and pattern
-            WildcardMatcher.SplitPathAndPattern(inputPath, out string dirPart, out string filePattern);
+            WildcardMatcher.SplitPathAndPattern(pathWithWildcard, out string dirPart, out string filePattern);
 
-            // Resolve directory
-            string directoryPath;
-            if (dirPart == "\\" || string.IsNullOrEmpty(dirPart))
-            {
-                directoryPath = context.CurrentPath;
-            }
-            else
-            {
-                directoryPath = ResolvePath(context.CurrentPath, dirPart);
-            }
+            string directoryPath = (dirPart == "\\" || string.IsNullOrEmpty(dirPart)) ? "\\" : dirPart;
 
             ShellTrace.Verbose("Wildcard delete: directory=\"{0}\", pattern=\"{1}\"", directoryPath, filePattern);
 
-            // Get enumerate provider to list files
-            IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(context.CurrentDriveGuid.Value);
-            if (enumerate == null)
+            if (!store.SupportsEnumeration)
             {
-                Console.WriteLine("Provider does not support file enumeration.");
+                Console.WriteLine("Drive does not support file enumeration.");
                 return;
             }
 
-            // Get all files in the directory
-            string[] allFiles = enumerate.EnumerateFiles(context.CurrentDriveGuid.Value, directoryPath);
-
-            // Filter by pattern
+            string[] allFiles = store.EnumerateFiles(directoryPath);
             List<string> matchingFiles = WildcardMatcher.Filter(allFiles, filePattern).ToList();
             ShellTrace.Info("Wildcard \"{0}\" matched {1} file(s)", filePattern, matchingFiles.Count);
 
@@ -149,20 +146,16 @@ namespace BigDrive.Shell.Commands
                 }
             }
 
-            // Delete each matching file
             int successCount = 0;
             int failCount = 0;
 
             foreach (string fileName in matchingFiles)
             {
-                string fullPath = CombinePath(directoryPath, fileName);
+                string fullPath = FileTransferService.CombinePath(directoryPath, fileName);
 
                 try
                 {
-                    ShellTrace.ComCall("IBigDriveFileOperations", "DeleteFile",
-                        string.Format("driveGuid={0}, path=\"{1}\"", context.CurrentDriveGuid.Value, fullPath));
-                    fileOps.DeleteFile(context.CurrentDriveGuid.Value, fullPath);
-                    ShellTrace.ComResult("IBigDriveFileOperations", "DeleteFile", 0);
+                    store.DeleteFile(fullPath);
                     successCount++;
                 }
                 catch (Exception ex)
@@ -178,40 +171,6 @@ namespace BigDrive.Shell.Commands
             {
                 Console.WriteLine("        {0} file(s) failed.", failCount);
             }
-        }
-
-        /// <summary>
-        /// Combines two path segments.
-        /// </summary>
-        private static string CombinePath(string basePath, string fileName)
-        {
-            if (string.IsNullOrEmpty(basePath) || basePath == "\\")
-            {
-                return "\\" + fileName;
-            }
-
-            return basePath.TrimEnd('\\') + "\\" + fileName;
-        }
-
-        /// <summary>
-        /// Resolves a relative or absolute path.
-        /// </summary>
-        /// <param name="currentPath">The current path.</param>
-        /// <param name="targetPath">The target path.</param>
-        /// <returns>The resolved absolute path.</returns>
-        private static string ResolvePath(string currentPath, string targetPath)
-        {
-            if (targetPath.StartsWith("\\") || targetPath.StartsWith("/"))
-            {
-                return targetPath;
-            }
-
-            if (currentPath == "\\" || currentPath == "/")
-            {
-                return "\\" + targetPath;
-            }
-
-            return currentPath.TrimEnd('\\', '/') + "\\" + targetPath;
         }
     }
 }

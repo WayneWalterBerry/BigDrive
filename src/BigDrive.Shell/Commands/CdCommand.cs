@@ -143,14 +143,15 @@ namespace BigDrive.Shell.Commands
             // Resolve the path
             string newPath = ResolvePath(context.CurrentPath, targetPath);
 
-            // Verify the folder exists
-            if (!VerifyFolderExists(context, newPath))
+            // Verify the folder exists and get the correctly-cased path
+            string correctedPath = GetCorrectedPath(context, newPath);
+            if (correctedPath == null)
             {
                 Console.WriteLine("The system cannot find the path specified: " + targetPath);
                 return;
             }
 
-            context.CurrentPath = newPath;
+            context.CurrentPath = correctedPath;
         }
 
         /// <summary>
@@ -244,56 +245,65 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Verifies that a folder exists at the specified path.
+        /// Verifies that a folder exists at the specified path and returns the
+        /// correctly-cased path from the provider.
         /// </summary>
         /// <param name="context">The shell context.</param>
         /// <param name="path">The path to verify.</param>
-        /// <returns>True if the folder exists.</returns>
-        private static bool VerifyFolderExists(ShellContext context, string path)
+        /// <returns>The correctly-cased path, or null if the folder does not exist.</returns>
+        private static string GetCorrectedPath(ShellContext context, string path)
         {
             // Root always exists
             if (path == "\\" || path == "/")
             {
-                return true;
+                return "\\";
             }
 
             if (!context.CurrentDriveGuid.HasValue)
             {
-                return false;
+                return null;
             }
 
             IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(context.CurrentDriveGuid.Value);
             if (enumerate == null)
             {
-                return false;
+                return null;
             }
 
-            // Get parent path and folder name
-            string parentPath;
-            string folderName;
+            // Walk each segment of the path and correct casing from the provider
+            string[] segments = path.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string correctedPath = "\\";
 
-            int lastSep = path.TrimEnd('\\', '/').LastIndexOfAny(new char[] { '\\', '/' });
-            if (lastSep <= 0)
+            for (int i = 0; i < segments.Length; i++)
             {
-                parentPath = "\\";
-                folderName = path.TrimStart('\\', '/');
-            }
-            else
-            {
-                parentPath = path.Substring(0, lastSep);
-                folderName = path.Substring(lastSep + 1);
-            }
+                string[] folders = enumerate.EnumerateFolders(context.CurrentDriveGuid.Value, correctedPath);
+                string matchedFolder = null;
 
-            string[] folders = enumerate.EnumerateFolders(context.CurrentDriveGuid.Value, parentPath);
-            foreach (string folder in folders)
-            {
-                if (string.Equals(folder, folderName, StringComparison.OrdinalIgnoreCase))
+                foreach (string folder in folders)
                 {
-                    return true;
+                    if (string.Equals(folder, segments[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedFolder = folder;
+                        break;
+                    }
+                }
+
+                if (matchedFolder == null)
+                {
+                    return null;
+                }
+
+                if (correctedPath == "\\")
+                {
+                    correctedPath = "\\" + matchedFolder;
+                }
+                else
+                {
+                    correctedPath = correctedPath + "\\" + matchedFolder;
                 }
             }
 
-            return false;
+            return correctedPath;
         }
     }
 }

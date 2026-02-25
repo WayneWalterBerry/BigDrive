@@ -68,6 +68,33 @@ Failing to understand these architectural constraints will result in broken code
 
 ---
 
+### Design Principles
+
+#### DRY and Abstraction over Method Proliferation
+- Prefer **interfaces and abstraction layers** over duplicating logic across methods.
+  When multiple commands (e.g., copy, move, del) need to operate on both local drives and
+  BigDrive providers, create a shared interface (e.g., `IFileStore`) and route through it
+  rather than writing separate `*LocalToBigDrive()`, `*BigDriveToLocal()`,
+  `*BigDriveToBigDrive()` methods in every command.
+- **One method that takes an interface** is better than N×M methods for every source/destination
+  combination. Commands should be thin orchestrators, not contain transfer logic.
+- **Shared utility methods** (e.g., `PathInfo.ResolvePath`, `FileTransferService.CombinePath`)
+  should live in one place, not be duplicated as private methods in every command class.
+- Apply DRY pragmatically — don't over-abstract small one-off logic, but when the same
+  pattern appears in 3+ commands, extract it.
+
+#### Existing Abstractions to Use
+- **`IFileStore`** (`FileStores/`): Abstracts local filesystem vs BigDrive provider storage.
+  Use `FileStoreFactory.Create()` to get the right implementation from a `PathInfo`.
+- **`FileTransferService`**: Single `CopyFile()` and `MoveFile()` that work between any two
+  `IFileStore` instances. Handles temp-file intermediary, same-drive optimization, and
+  cross-store copy+delete for moves.
+- **`PathInfo.Parse()`**: Shared path parsing. Don't duplicate `ParsePath()` in commands.
+- **`PathInfo.ResolvePath()`**: Shared relative path resolution with `..`/`.` normalization.
+  Don't write private `ResolvePath()` methods in commands.
+
+---
+
 ### Documentation Maintenance
 
 When making code changes, keep documentation in sync:

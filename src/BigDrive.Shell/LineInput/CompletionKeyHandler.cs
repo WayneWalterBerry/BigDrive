@@ -6,8 +6,10 @@ namespace BigDrive.Shell.LineInput
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
 
+    using BigDrive.ConfigProvider.Model;
     using BigDrive.Interfaces;
     using BigDrive.Shell.Commands;
 
@@ -235,6 +237,7 @@ namespace BigDrive.Shell.LineInput
 
         /// <summary>
         /// Gets path completions (files, folders, and drive letters).
+        /// Supports both BigDrive and local OS drives and paths.
         /// </summary>
         /// <param name="prefix">The current prefix to match.</param>
         /// <returns>Matching paths.</returns>
@@ -242,7 +245,25 @@ namespace BigDrive.Shell.LineInput
         {
             List<string> candidates = new List<string>();
 
-            // Add drive letter completions
+            // Check if prefix targets a specific drive letter (e.g., "c:\tem" or "Z:\fol")
+            if (prefix.Length >= 2 && prefix[1] == ':')
+            {
+                char driveLetter = char.ToUpper(prefix[0]);
+
+                if (m_context.DriveLetterManager.IsOSDrive(driveLetter))
+                {
+                    candidates.AddRange(GetLocalPathCompletions(prefix));
+                    return candidates;
+                }
+
+                if (m_context.DriveLetterManager.IsBigDrive(driveLetter))
+                {
+                    candidates.AddRange(GetBigDrivePathCompletionsForDrive(driveLetter, prefix));
+                    return candidates;
+                }
+            }
+
+            // Add drive letter completions (both BigDrive and OS)
             if (prefix.Length <= 2 && (prefix.Length == 0 || char.IsLetter(prefix[0])))
             {
                 foreach (char letter in m_context.DriveLetterManager.BigDriveLetters.Keys)
@@ -253,43 +274,210 @@ namespace BigDrive.Shell.LineInput
                         candidates.Add(drivePath);
                     }
                 }
+
+                foreach (char letter in m_context.DriveLetterManager.OSDriveLetters)
+                {
+                    string drivePath = letter + ":";
+                    if (string.IsNullOrEmpty(prefix) || drivePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidates.Add(drivePath + "\\");
+                    }
+                }
             }
 
-            // Get file/folder completions from provider
+            // Get file/folder completions from BigDrive provider for current drive
             if (m_context.CurrentDriveGuid.HasValue)
             {
-                try
+                candidates.AddRange(GetBigDrivePathCompletionsForCurrentDrive(prefix));
+            }
+
+            return candidates;
+        }
+
+        /// <summary>
+        /// Gets local filesystem path completions for an OS drive path.
+        /// </summary>
+        /// <param name="prefix">The full path prefix (e.g., "c:\temp\fo").</param>
+        /// <returns>Matching local paths.</returns>
+        private static List<string> GetLocalPathCompletions(string prefix)
+        {
+            List<string> candidates = new List<string>();
+
+            try
+            {
+                string directory;
+                string searchPrefix;
+
+                int lastSeparator = prefix.LastIndexOfAny(new[] { '\\', '/' });
+                if (lastSeparator >= 0)
                 {
-                    IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(m_context.CurrentDriveGuid.Value);
-                    if (enumerate != null)
+                    directory = prefix.Substring(0, lastSeparator + 1);
+                    searchPrefix = prefix.Substring(lastSeparator + 1);
+                }
+                else
+                {
+                    directory = prefix;
+                    searchPrefix = string.Empty;
+                }
+
+                if (!Directory.Exists(directory))
+                {
+                    return candidates;
+                }
+
+                // Add matching directories
+                string[] directories = Directory.GetDirectories(directory);
+                foreach (string dir in directories)
+                {
+                    string dirName = Path.GetFileName(dir);
+                    if (string.IsNullOrEmpty(searchPrefix) || dirName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        ParsePathForCompletion(prefix, out string searchPath, out string searchPrefix);
+                        candidates.Add(dir + "\\");
+                    }
+                }
 
-                        string[] folders = enumerate.EnumerateFolders(m_context.CurrentDriveGuid.Value, searchPath);
-                        foreach (string folder in folders)
+                // Add matching files
+                string[] files = Directory.GetFiles(directory);
+                foreach (string file in files)
+                {
+                    string fileName = Path.GetFileName(file);
+                    if (string.IsNullOrEmpty(searchPrefix) || fileName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidates.Add(file);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors during completion (access denied, etc.)
+            }
+
+            return candidates;
+        }
+
+        /// <summary>
+        /// Gets BigDrive path completions for an explicit drive letter prefix (e.g., "Z:\fol").
+        /// </summary>
+        /// <param name="driveLetter">The BigDrive drive letter.</param>
+        /// <param name="prefix">The full path prefix.</param>
+        /// <returns>Matching BigDrive paths.</returns>
+        private List<string> GetBigDrivePathCompletionsForDrive(char driveLetter, string prefix)
+        {
+            List<string> candidates = new List<string>();
+
+            DriveConfiguration config = m_context.DriveLetterManager.GetDriveConfiguration(driveLetter);
+            if (config == null)
+            {
+                return candidates;
+            }
+
+            try
+            {
+                IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(config.Id);
+                if (enumerate == null)
+                {
+                    return candidates;
+                }
+
+                // Strip drive letter prefix to get BigDrive-relative path
+                string pathPart = prefix.Substring(2);
+                string searchPath;
+                string searchPrefix;
+
+                int lastSeparator = pathPart.LastIndexOfAny(new[] { '\\', '/' });
+                if (lastSeparator >= 0)
+                {
+                    searchPath = pathPart.Substring(0, lastSeparator);
+                    if (string.IsNullOrEmpty(searchPath))
+                    {
+                        searchPath = "\\";
+                    }
+
+                    searchPrefix = pathPart.Substring(lastSeparator + 1);
+                }
+                else
+                {
+                    searchPath = "\\";
+                    searchPrefix = pathPart;
+                }
+
+                string drivePrefix = driveLetter + ":";
+
+                string[] folders = enumerate.EnumerateFolders(config.Id, searchPath);
+                foreach (string folder in folders)
+                {
+                    if (string.IsNullOrEmpty(searchPrefix) || folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        string fullPath = CombinePath(searchPath, folder);
+                        candidates.Add(drivePrefix + fullPath + "\\");
+                    }
+                }
+
+                string[] files = enumerate.EnumerateFiles(config.Id, searchPath);
+                foreach (string file in files)
+                {
+                    if (string.IsNullOrEmpty(searchPrefix) || file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        string fullPath = CombinePath(searchPath, file);
+                        candidates.Add(drivePrefix + fullPath);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors during completion
+            }
+
+            return candidates;
+        }
+
+        /// <summary>
+        /// Gets BigDrive path completions for the current drive (relative paths).
+        /// Completions are built relative to what the user typed, not the resolved absolute path.
+        /// </summary>
+        /// <param name="prefix">The relative path prefix.</param>
+        /// <returns>Matching BigDrive paths.</returns>
+        private List<string> GetBigDrivePathCompletionsForCurrentDrive(string prefix)
+        {
+            List<string> candidates = new List<string>();
+
+            try
+            {
+                IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(m_context.CurrentDriveGuid.Value);
+                if (enumerate != null)
+                {
+                    ParsePathForCompletion(prefix, out string searchPath, out string searchPrefix);
+
+                    // Determine the directory prefix the user actually typed (e.g., "subfolder\" or "")
+                    string userDirPrefix = string.Empty;
+                    int lastSeparator = prefix.LastIndexOfAny(new[] { '\\', '/' });
+                    if (lastSeparator >= 0)
+                    {
+                        userDirPrefix = prefix.Substring(0, lastSeparator + 1);
+                    }
+
+                    string[] folders = enumerate.EnumerateFolders(m_context.CurrentDriveGuid.Value, searchPath);
+                    foreach (string folder in folders)
+                    {
+                        if (string.IsNullOrEmpty(searchPrefix) || folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
                         {
-                            if (string.IsNullOrEmpty(searchPrefix) || folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
-                            {
-                                string fullPath = CombinePath(searchPath, folder);
-                                candidates.Add(StripLeadingSlash(fullPath));
-                            }
+                            candidates.Add(userDirPrefix + folder);
                         }
+                    }
 
-                        string[] files = enumerate.EnumerateFiles(m_context.CurrentDriveGuid.Value, searchPath);
-                        foreach (string file in files)
+                    string[] files = enumerate.EnumerateFiles(m_context.CurrentDriveGuid.Value, searchPath);
+                    foreach (string file in files)
+                    {
+                        if (string.IsNullOrEmpty(searchPrefix) || file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
                         {
-                            if (string.IsNullOrEmpty(searchPrefix) || file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
-                            {
-                                string fullPath = CombinePath(searchPath, file);
-                                candidates.Add(StripLeadingSlash(fullPath));
-                            }
+                            candidates.Add(userDirPrefix + file);
                         }
                     }
                 }
-                catch
-                {
-                    // Ignore errors during completion
-                }
+            }
+            catch
+            {
+                // Ignore errors during completion
             }
 
             return candidates;

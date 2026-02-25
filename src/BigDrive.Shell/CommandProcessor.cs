@@ -6,6 +6,7 @@ namespace BigDrive.Shell
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     using BigDrive.Interfaces;
     using BigDrive.Shell.Commands;
@@ -92,7 +93,38 @@ namespace BigDrive.Shell
             }
             else
             {
-                Console.WriteLine("Unknown command: " + commandName);
+                // Pass unrecognized commands to the host OS shell (cmd.exe)
+                PassThroughToShell(commandLine);
+            }
+        }
+
+        /// <summary>
+        /// Passes an unrecognized command to the host OS shell (cmd.exe /c).
+        /// This allows commands like cls, type, echo, etc. to work transparently.
+        /// </summary>
+        /// <param name="commandLine">The full command line to pass through.</param>
+        private static void PassThroughToShell(string commandLine)
+        {
+            ShellTrace.Verbose("Passing through to cmd.exe: \"{0}\"", commandLine);
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/c " + commandLine,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process process = Process.Start(startInfo))
+                {
+                    process.WaitForExit();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
                 Console.WriteLine("Type 'help' for available commands.");
             }
         }
@@ -157,6 +189,8 @@ namespace BigDrive.Shell
             RegisterCommand(new CopyCommand());
             RegisterCommand(new MkdirCommand());
             RegisterCommand(new DelCommand());
+            RegisterCommand(new MoveCommand());
+            RegisterCommand(new RenameCommand());
             RegisterCommand(new MountCommand());
             RegisterCommand(new UnmountCommand());
         }
