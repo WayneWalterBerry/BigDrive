@@ -126,6 +126,64 @@ All interfaces follow these patterns for cross-language compatibility:
   4. Drive Identification: All methods accept a driveGuid parameter to identify
      which registered drive the operation targets.
 
+PATH FORMAT CONVENTIONS
+--------------------------------------------------------------------------------
+All BigDrive path parameters follow these conventions. Providers MUST handle
+paths in this format:
+
+  Format:
+    - Paths use backslash (\) as the separator
+    - Paths are absolute within the drive (start with \)
+    - Root path is represented as "\" or "\\"
+    - Example: "\FolderName\SubFolder\FileName.txt"
+
+  Path Components:
+    - Root:     "\"
+    - Folder:   "\FolderName" or "\Parent\Child"
+    - File:     "\FolderName\File.txt" or "\File.txt" (file at root)
+
+  Provider Implementation Requirements:
+    1. ALWAYS handle leading backslash - paths like "\File.txt" are valid
+    2. Use path.Trim('\\').Split(new[] { '\\' }, ...) to parse path segments
+    3. EnumerateFolders/EnumerateFiles return NAMES only, not full paths
+    4. File operations receive full paths including the filename
+    5. Case sensitivity is provider-specific (document your behavior)
+
+  Example Path Resolution:
+    Shell Command: copy "A File.txt" c:\temp\
+
+    Shell resolves "A File.txt" (relative) to "\A File.txt" (absolute)
+    Provider receives: bigDriveFilePath = "\A File.txt"
+    Provider parses:   path segments = ["A File.txt"]
+                       directory = "\" (root)
+                       filename = "A File.txt"
+
+  Common Implementation Pattern:
+    ```csharp
+    private Node FindFileByPath(string path)
+    {
+        var segments = path.Trim('\\').Split(
+            new[] { '\\' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length == 0) return null;
+
+        string fileName = segments[segments.Length - 1];
+        Node folder = root;
+
+        // Navigate to parent folder
+        for (int i = 0; i < segments.Length - 1; i++)
+        {
+            folder = folder.Children.FirstOrDefault(
+                c => c.Name == segments[i] && c.IsFolder);
+            if (folder == null) return null;
+        }
+
+        // Find file in folder
+        return folder.Children.FirstOrDefault(
+            c => c.Name == fileName && c.IsFile);
+    }
+    ```
+
 NATIVE C++ COUNTERPARTS
 --------------------------------------------------------------------------------
 The BigDrive.Client project contains C++ header equivalents of these interfaces

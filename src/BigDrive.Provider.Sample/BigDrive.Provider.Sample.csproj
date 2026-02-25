@@ -10,6 +10,7 @@
     <RootNamespace>BigDrive.Provider.Sample</RootNamespace>
     <AssemblyName>BigDrive.Provider.Sample</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
@@ -49,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyResolver.cs" />
     <Compile Include="BigDriveTraceSource.cs" />
     <Compile Include="ComStream.cs" />
     <Compile Include="Provider-IBigDriveFileInfo.cs" />

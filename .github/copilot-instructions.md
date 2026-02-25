@@ -1,3 +1,26 @@
+### Before Making Changes
+
+> **IMPORTANT: Read the Project README First**
+>
+> Before making any code changes to a project, **read and understand the project's README.md** 
+> (or README.txt). Each project has a README that explains its architecture, design principles,
+> and constraints that must be followed.
+
+#### Why This Matters
+
+- **BigDrive.Shell**: Uses out-of-process COM+ activation. Provider assemblies must NEVER be 
+  loaded into the Shell process. See `src/BigDrive.Shell/README.md`.
+
+- **Provider Projects**: Run in `dllhost.exe` via COM+. Must handle assembly resolution for 
+  NuGet dependencies. See individual provider READMEs.
+
+- **BigDrive.Interfaces**: Contains COM interface definitions. Changes affect all providers 
+  and clients. Must maintain COM compatibility.
+
+Failing to understand these architectural constraints will result in broken code.
+
+---
+
 ### Coding Style Preferences
 
 #### C++ Code
@@ -51,11 +74,16 @@ When making code changes, keep documentation in sync:
 
 #### Project README Files
 Each project has a `README.md` or `README.txt` for **developers/contributors**:
-- `src/BigDrive.Shell/README.md` — Shell architecture, project structure
+- `src/BigDrive.Shell/README.md` — Shell architecture, **out-of-process COM+ activation**, provider isolation
 - `src/BigDrive.Provider.Flickr/README.txt` — Provider implementation details
 - `src/ConfigProvider/README.txt` — Registry structure, API reference
 - `src/Interfaces/README.txt` — Interface definitions
 - `src/BigDrive.Setup/README.txt` — Installation internals
+
+**Read BEFORE coding:**
+- Understand the project's architecture and constraints
+- Know what dependencies are allowed
+- Understand process isolation boundaries (Shell vs Provider)
 
 **Update when:**
 - Adding/removing/renaming files in the project

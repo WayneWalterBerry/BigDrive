@@ -184,14 +184,7 @@ namespace BigDrive.Shell.Commands
         {
             try
             {
-                Type providerType = Type.GetTypeFromCLSID(driveConfig.CLSID);
-                if (providerType == null)
-                {
-                    return null;
-                }
-
-                object provider = Activator.CreateInstance(providerType);
-                IBigDriveAuthentication authProvider = provider as IBigDriveAuthentication;
+                IBigDriveAuthentication authProvider = ProviderFactory.GetAuthenticationProvider(driveGuid);
 
                 if (authProvider == null)
                 {

@@ -23,13 +23,13 @@ namespace BigDrive.Provider.Sample
 
             DefaultTraceSource.TraceInformation($"Register: User={identity.Name}, ImpersonationLevel={identity.ImpersonationLevel}");
 
-            ProviderManager.RegisterProvider(providerConfiguration, CancellationToken.None);
+            ProviderManager.RegisterProvider(ProviderConfig, CancellationToken.None);
 
             // Most Providers Will Not Create Their Own Drive, However This One Does For Testing Purposes.
             DriveConfiguration driveConfiguration = new DriveConfiguration
             {
-                CLSID = providerConfiguration.Id,
-                Name = providerConfiguration.Name,
+                CLSID = ProviderConfig.Id,
+                Name = ProviderConfig.Name,
                 Id = Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E")
             };
 
@@ -45,7 +45,7 @@ namespace BigDrive.Provider.Sample
 
             // TODO: Implement full unregistration
             // DriveManager.DeleteConfiguration(Guid.Parse("6369DDE1-9A63-4E3B-B3C0-62A8082ED32E"), CancellationToken.None);
-            // ProviderManager.UnregisterProvider(providerConfiguration.Id, CancellationToken.None);
+            // ProviderManager.UnregisterProvider(ProviderConfig.Id, CancellationToken.None);
         }
     }
 }

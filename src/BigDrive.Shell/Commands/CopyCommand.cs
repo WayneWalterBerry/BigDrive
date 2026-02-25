@@ -5,7 +5,9 @@
 namespace BigDrive.Shell.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.ComTypes;
 
@@ -15,6 +17,7 @@ namespace BigDrive.Shell.Commands
     /// <summary>
     /// Copies files between BigDrive drives and local drives.
     /// Supports: Local to BigDrive, BigDrive to Local, BigDrive to BigDrive.
+    /// Supports wildcard patterns (* and ?) for source files.
     /// </summary>
     public class CopyCommand : ICommand
     {
@@ -39,7 +42,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Description
         {
-            get { return "Copies files between drives"; }
+            get { return "Copies files between drives (supports wildcards: *, ?)"; }
         }
 
         /// <summary>
@@ -47,7 +50,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Usage
         {
-            get { return "copy <source> <destination>  |  copy X:\\file Y:\\file"; }
+            get { return "copy <source> <destination>  |  copy *.txt c:\\temp\\  |  copy X:\\*.jpg Y:\\backup\\"; }
         }
 
         /// <summary>
@@ -57,46 +60,71 @@ namespace BigDrive.Shell.Commands
         /// <param name="args">The command arguments.</param>
         public void Execute(ShellContext context, string[] args)
         {
+            ShellTrace.Enter("CopyCommand", "Execute", string.Format("args.Length={0}", args.Length));
+
             if (args.Length < 2)
             {
                 Console.WriteLine("Usage: " + Usage);
+                ShellTrace.Exit("CopyCommand", "Execute", "insufficient args");
                 return;
             }
 
             string source = args[0];
             string destination = args[1];
 
+            ShellTrace.Verbose("Source argument: \"{0}\"", source);
+            ShellTrace.Verbose("Destination argument: \"{0}\"", destination);
+
             PathInfo sourcePath = ParsePath(source, context);
             PathInfo destPath = ParsePath(destination, context);
+
+            ShellTrace.PathResolution(source, sourcePath.GetFullPath(), 
+                sourcePath.IsBigDrive ? "BigDrive" : (sourcePath.IsOSDrive ? "OS" : "Unknown"));
+            ShellTrace.PathResolution(destination, destPath.GetFullPath(),
+                destPath.IsBigDrive ? "BigDrive" : (destPath.IsOSDrive ? "OS" : "Unknown"));
+
+            ShellTrace.Verbose("Source: DriveLetter={0}, Path=\"{1}\", IsBigDrive={2}, IsOSDrive={3}, IsRelative={4}",
+                sourcePath.DriveLetter, sourcePath.Path, sourcePath.IsBigDrive, sourcePath.IsOSDrive, sourcePath.IsRelative);
+            ShellTrace.Verbose("Dest: DriveLetter={0}, Path=\"{1}\", IsBigDrive={2}, IsOSDrive={3}, IsRelative={4}",
+                destPath.DriveLetter, destPath.Path, destPath.IsBigDrive, destPath.IsOSDrive, destPath.IsRelative);
 
             // Validate source
             if (sourcePath.DriveLetter == '\0' && !sourcePath.IsOSDrive)
             {
                 Console.WriteLine("No drive selected. Use 'cd X:' to select a drive first.");
+                ShellTrace.Exit("CopyCommand", "Execute", "no drive selected");
                 return;
             }
 
             // Route to appropriate copy method
             if (sourcePath.IsOSDrive && destPath.IsBigDrive)
             {
+                ShellTrace.Info("Copy operation: Local => BigDrive");
                 CopyLocalToBigDrive(context, sourcePath, destPath);
             }
             else if (sourcePath.IsBigDrive && destPath.IsOSDrive)
             {
+                ShellTrace.Info("Copy operation: BigDrive => Local");
                 CopyBigDriveToLocal(context, sourcePath, destPath);
             }
             else if (sourcePath.IsBigDrive && destPath.IsBigDrive)
             {
+                ShellTrace.Info("Copy operation: BigDrive => BigDrive");
                 CopyBigDriveToBigDrive(context, sourcePath, destPath);
             }
             else if (sourcePath.IsOSDrive && destPath.IsOSDrive)
             {
                 Console.WriteLine("Use Windows copy for local-to-local operations.");
+                ShellTrace.Exit("CopyCommand", "Execute", "local-to-local not supported");
             }
             else
             {
                 Console.WriteLine("Invalid source or destination path.");
+                ShellTrace.Error("Invalid paths: source.IsOSDrive={0}, source.IsBigDrive={1}, dest.IsOSDrive={2}, dest.IsBigDrive={3}",
+                    sourcePath.IsOSDrive, sourcePath.IsBigDrive, destPath.IsOSDrive, destPath.IsBigDrive);
             }
+
+            ShellTrace.Exit("CopyCommand", "Execute");
         }
 
         /// <summary>
@@ -136,22 +164,20 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Copies a local file to a BigDrive.
+        /// Copies local file(s) to a BigDrive. Supports wildcard patterns.
         /// </summary>
         private static void CopyLocalToBigDrive(ShellContext context, PathInfo source, PathInfo dest)
         {
-            string localPath = source.GetFullPath();
+            ShellTrace.Enter("CopyCommand", "CopyLocalToBigDrive",
+                string.Format("source={0}, dest={1}", source.GetFullPath(), dest.GetFullPath()));
 
-            if (!File.Exists(localPath))
-            {
-                Console.WriteLine("Source file not found: " + localPath);
-                return;
-            }
+            string localPath = source.GetFullPath();
 
             DriveConfiguration destConfig = context.DriveLetterManager.GetDriveConfiguration(dest.DriveLetter);
             if (destConfig == null)
             {
                 Console.WriteLine("Destination drive not found: " + dest.DriveLetter + ":");
+                ShellTrace.Exit("CopyCommand", "CopyLocalToBigDrive", "dest drive not found");
                 return;
             }
 
@@ -159,33 +185,256 @@ namespace BigDrive.Shell.Commands
             if (fileOps == null)
             {
                 Console.WriteLine("Destination provider does not support file operations.");
+                ShellTrace.Exit("CopyCommand", "CopyLocalToBigDrive", "no file operations");
                 return;
             }
 
+            // Check for wildcard in local path
+            if (WildcardMatcher.ContainsWildcard(localPath))
+            {
+                ShellTrace.Info("Wildcard detected in local source path, expanding...");
+                CopyLocalToBigDriveWithWildcard(destConfig, fileOps, localPath, dest.Path);
+                return;
+            }
+
+            // Single file copy
+            if (!File.Exists(localPath))
+            {
+                Console.WriteLine("Source file not found: " + localPath);
+                return;
+            }
+
+            ShellTrace.ComCall("IBigDriveFileOperations", "CopyFileToBigDrive",
+                string.Format("driveGuid={0}, localPath=\"{1}\", destPath=\"{2}\"", destConfig.Id, localPath, dest.Path));
             fileOps.CopyFileToBigDrive(destConfig.Id, localPath, dest.Path);
+            ShellTrace.ComResult("IBigDriveFileOperations", "CopyFileToBigDrive", 0);
             Console.WriteLine("        1 file(s) copied.");
+            ShellTrace.Exit("CopyCommand", "CopyLocalToBigDrive", "complete");
         }
 
         /// <summary>
-        /// Copies a BigDrive file to local storage.
+        /// Copies multiple local files matching a wildcard pattern to BigDrive.
+        /// </summary>
+        private static void CopyLocalToBigDriveWithWildcard(
+            DriveConfiguration destConfig,
+            IBigDriveFileOperations fileOps,
+            string localPathWithWildcard,
+            string bigDriveDestPath)
+        {
+            string directory = Path.GetDirectoryName(localPathWithWildcard);
+            string pattern = Path.GetFileName(localPathWithWildcard);
+
+            if (string.IsNullOrEmpty(directory))
+            {
+                directory = Environment.CurrentDirectory;
+            }
+
+            ShellTrace.Verbose("Local wildcard expansion: directory=\"{0}\", pattern=\"{1}\"", directory, pattern);
+
+            if (!Directory.Exists(directory))
+            {
+                Console.WriteLine("Source directory not found: " + directory);
+                return;
+            }
+
+            // Use Directory.GetFiles which supports wildcards natively
+            string[] matchingFiles;
+            try
+            {
+                matchingFiles = Directory.GetFiles(directory, pattern);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error enumerating files: " + ex.Message);
+                return;
+            }
+
+            ShellTrace.Info("Local wildcard \"{0}\" matched {1} file(s)", pattern, matchingFiles.Length);
+
+            if (matchingFiles.Length == 0)
+            {
+                Console.WriteLine("No files matching '{0}' found.", pattern);
+                return;
+            }
+
+            int successCount = 0;
+            int failCount = 0;
+
+            foreach (string localFile in matchingFiles)
+            {
+                string fileName = Path.GetFileName(localFile);
+                string destFilePath = CombinePath(bigDriveDestPath.TrimEnd('\\', '/'), fileName);
+
+                ShellTrace.Verbose("Copying: \"{0}\" => \"{1}\"", localFile, destFilePath);
+
+                try
+                {
+                    ShellTrace.ComCall("IBigDriveFileOperations", "CopyFileToBigDrive",
+                        string.Format("driveGuid={0}, localPath=\"{1}\", destPath=\"{2}\"", destConfig.Id, localFile, destFilePath));
+                    fileOps.CopyFileToBigDrive(destConfig.Id, localFile, destFilePath);
+                    ShellTrace.ComResult("IBigDriveFileOperations", "CopyFileToBigDrive", 0);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error copying {0}: {1}", fileName, ex.Message);
+                    ShellTrace.Error("Failed to copy \"{0}\": {1}", fileName, ex.Message);
+                    failCount++;
+                }
+            }
+
+            Console.WriteLine("        {0} file(s) copied.", successCount);
+            if (failCount > 0)
+            {
+                Console.WriteLine("        {0} file(s) failed.", failCount);
+            }
+        }
+
+        /// <summary>
+        /// Copies a BigDrive file to local storage. Supports wildcard patterns.
         /// </summary>
         private static void CopyBigDriveToLocal(ShellContext context, PathInfo source, PathInfo dest)
         {
+            ShellTrace.Enter("CopyCommand", "CopyBigDriveToLocal", 
+                string.Format("source={0}, dest={1}", source.GetFullPath(), dest.GetFullPath()));
+
             DriveConfiguration sourceConfig = context.DriveLetterManager.GetDriveConfiguration(source.DriveLetter);
             if (sourceConfig == null)
             {
                 Console.WriteLine("Source drive not found: " + source.DriveLetter + ":");
+                ShellTrace.Error("Drive configuration not found for letter '{0}'", source.DriveLetter);
+                ShellTrace.Exit("CopyCommand", "CopyBigDriveToLocal", "drive not found");
                 return;
             }
 
-            string localPath = dest.GetFullPath();
+            ShellTrace.Verbose("Source drive: Id={0}, Name=\"{1}\", CLSID={2}", 
+                sourceConfig.Id, sourceConfig.Name, sourceConfig.CLSID);
 
+            string localPath = dest.GetFullPath();
+            ShellTrace.Verbose("Destination local path: \"{0}\"", localPath);
+
+            // Check for wildcard pattern
+            if (WildcardMatcher.ContainsWildcard(source.Path))
+            {
+                ShellTrace.Info("Wildcard detected in source path, expanding...");
+                CopyBigDriveToLocalWithWildcard(context, sourceConfig, source, localPath);
+                return;
+            }
+
+            // Single file copy
+            CopySingleBigDriveFileToLocal(sourceConfig, source.Path, localPath);
+            ShellTrace.Exit("CopyCommand", "CopyBigDriveToLocal", "complete");
+        }
+
+        /// <summary>
+        /// Copies multiple BigDrive files matching a wildcard pattern to local storage.
+        /// </summary>
+        private static void CopyBigDriveToLocalWithWildcard(
+            ShellContext context, 
+            DriveConfiguration sourceConfig, 
+            PathInfo source, 
+            string localPath)
+        {
+            // Split path into directory and pattern
+            WildcardMatcher.SplitPathAndPattern(source.Path, out string directoryPath, out string filePattern);
+            ShellTrace.Verbose("Wildcard expansion: directory=\"{0}\", pattern=\"{1}\"", directoryPath, filePattern);
+
+            // Get enumerate provider to list files
+            IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(sourceConfig.Id);
+            if (enumerate == null)
+            {
+                Console.WriteLine("Provider does not support file enumeration.");
+                return;
+            }
+
+            // Get all files in the directory
+            ShellTrace.ComCall("IBigDriveEnumerate", "EnumerateFiles", 
+                string.Format("driveGuid={0}, path=\"{1}\"", sourceConfig.Id, directoryPath));
+            string[] allFiles = enumerate.EnumerateFiles(sourceConfig.Id, directoryPath);
+            ShellTrace.ComResult("IBigDriveEnumerate", "EnumerateFiles", 0, 
+                string.Format("{0} files found", allFiles.Length));
+
+            // Filter by wildcard pattern
+            List<string> matchingFiles = WildcardMatcher.Filter(allFiles, filePattern).ToList();
+            ShellTrace.Info("Wildcard \"{0}\" matched {1} file(s)", filePattern, matchingFiles.Count);
+
+            if (matchingFiles.Count == 0)
+            {
+                Console.WriteLine("No files matching '{0}' found.", filePattern);
+                return;
+            }
+
+            // Ensure destination is a directory for multiple files
+            string destDirectory = localPath;
+            if (matchingFiles.Count > 1)
+            {
+                if (!Directory.Exists(destDirectory.TrimEnd('\\', '/')))
+                {
+                    Console.WriteLine("Destination must be a directory when copying multiple files.");
+                    return;
+                }
+            }
+
+            // Copy each matching file
+            int successCount = 0;
+            int failCount = 0;
+
+            foreach (string fileName in matchingFiles)
+            {
+                string sourceFilePath = CombinePath(directoryPath, fileName);
+                string destFilePath;
+
+                // Determine destination file path
+                if (Directory.Exists(destDirectory.TrimEnd('\\', '/')) || 
+                    destDirectory.EndsWith("\\") || 
+                    destDirectory.EndsWith("/"))
+                {
+                    destFilePath = Path.Combine(destDirectory.TrimEnd('\\', '/'), fileName);
+                }
+                else
+                {
+                    destFilePath = destDirectory;
+                }
+
+                ShellTrace.Verbose("Copying: \"{0}\" => \"{1}\"", sourceFilePath, destFilePath);
+
+                try
+                {
+                    CopySingleBigDriveFileToLocal(sourceConfig, sourceFilePath, destFilePath);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error copying {0}: {1}", fileName, ex.Message);
+                    ShellTrace.Error("Failed to copy \"{0}\": {1}", fileName, ex.Message);
+                    failCount++;
+                }
+            }
+
+            Console.WriteLine("        {0} file(s) copied.", successCount);
+            if (failCount > 0)
+            {
+                Console.WriteLine("        {0} file(s) failed.", failCount);
+            }
+        }
+
+        /// <summary>
+        /// Copies a single BigDrive file to local storage (no wildcard handling).
+        /// </summary>
+        private static void CopySingleBigDriveFileToLocal(
+            DriveConfiguration sourceConfig, 
+            string sourcePath, 
+            string localPath)
+        {
             // Try IBigDriveFileOperations first
             IBigDriveFileOperations fileOps = ProviderFactory.GetFileOperationsProvider(sourceConfig.Id);
             if (fileOps != null)
             {
-                fileOps.CopyFileFromBigDrive(sourceConfig.Id, source.Path, localPath);
-                Console.WriteLine("        1 file(s) copied.");
+                ShellTrace.ComCall("IBigDriveFileOperations", "CopyFileFromBigDrive", 
+                    string.Format("driveGuid={0}, sourcePath=\"{1}\", localPath=\"{2}\"", sourceConfig.Id, sourcePath, localPath));
+
+                fileOps.CopyFileFromBigDrive(sourceConfig.Id, sourcePath, localPath);
+                ShellTrace.ComResult("IBigDriveFileOperations", "CopyFileFromBigDrive", 0);
                 return;
             }
 
@@ -193,19 +442,43 @@ namespace BigDrive.Shell.Commands
             IBigDriveFileData fileData = ProviderFactory.GetFileDataProvider(sourceConfig.Id);
             if (fileData != null)
             {
-                int hr = fileData.GetFileData(sourceConfig.Id, source.Path, out IStream stream);
+                ShellTrace.ComCall("IBigDriveFileData", "GetFileData",
+                    string.Format("driveGuid={0}, path=\"{1}\"", sourceConfig.Id, sourcePath));
+
+                int hr = fileData.GetFileData(sourceConfig.Id, sourcePath, out IStream stream);
+                ShellTrace.ComResult("IBigDriveFileData", "GetFileData", hr, 
+                    stream != null ? "stream returned" : "stream is null");
+
                 if (hr != 0)
                 {
-                    Console.WriteLine("Failed to get file data. HRESULT: 0x" + hr.ToString("X8"));
-                    return;
+                    throw new IOException("Failed to get file data. HRESULT: 0x" + hr.ToString("X8"));
+                }
+
+                // Ensure destination directory exists
+                string destDir = Path.GetDirectoryName(localPath);
+                if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                {
+                    Directory.CreateDirectory(destDir);
                 }
 
                 WriteStreamToFile(stream, localPath);
-                Console.WriteLine("        1 file(s) copied.");
                 return;
             }
 
-            Console.WriteLine("Source provider does not support file operations or file data.");
+            throw new InvalidOperationException("Source provider does not support file operations or file data.");
+        }
+
+        /// <summary>
+        /// Combines two path segments for BigDrive paths.
+        /// </summary>
+        private static string CombinePath(string basePath, string fileName)
+        {
+            if (string.IsNullOrEmpty(basePath) || basePath == "\\")
+            {
+                return "\\" + fileName;
+            }
+
+            return basePath.TrimEnd('\\') + "\\" + fileName;
         }
 
         /// <summary>

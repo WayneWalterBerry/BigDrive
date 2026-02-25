@@ -11,7 +11,20 @@ namespace BigDrive.Interfaces
     /// Interface for performing file operations on BigDrive files and folders.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Provides methods to copy, move, delete, and open files and directories in BigDrive storage.
+    /// </para>
+    /// <para>
+    /// <strong>Path Format:</strong> All BigDrive path parameters (bigDriveFilePath, bigDriveTargetPath, etc.)
+    /// follow these conventions:
+    /// <list type="bullet">
+    ///   <item>Paths use backslash (\) as the separator</item>
+    ///   <item>Paths are absolute within the drive and start with backslash (e.g., "\folder\file.txt")</item>
+    ///   <item>Root is represented as "\" or "\\"</item>
+    ///   <item>Providers should use <c>path.Trim('\\').Split(...)</c> to parse path segments</item>
+    /// </list>
+    /// See the Interfaces README.txt PATH FORMAT CONVENTIONS section for implementation guidance.
+    /// </para>
     /// </remarks>
     [ComVisible(true)]
     [Guid("7BE23F90-8D32-4D88-B4E7-59BFDA941F04")]

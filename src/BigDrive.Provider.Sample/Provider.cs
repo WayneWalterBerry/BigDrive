@@ -31,6 +31,7 @@ namespace BigDrive.Provider.Sample
 
         static Provider()
         {
+            AssemblyResolver.Initialize();
             InitializeTree();
         }
 

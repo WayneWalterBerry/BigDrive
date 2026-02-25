@@ -13,6 +13,7 @@ namespace BigDrive.Shell.Commands
 
     /// <summary>
     /// Lists drives at root, or files and folders when inside a drive.
+    /// Supports wildcard patterns (* and ?) for filtering.
     /// </summary>
     public class DirCommand : ICommand
     {
@@ -37,7 +38,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Description
         {
-            get { return "Lists drives or folder contents"; }
+            get { return "Lists drives or folder contents (supports wildcards: *, ?)"; }
         }
 
         /// <summary>
@@ -45,7 +46,7 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         public string Usage
         {
-            get { return "dir [path]"; }
+            get { return "dir [path]  |  dir *.txt  |  dir folder\\*.doc"; }
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Lists folder contents when inside a drive.
+        /// Lists folder contents when inside a drive. Supports wildcard patterns.
         /// </summary>
         /// <param name="context">The shell context.</param>
         /// <param name="args">Command arguments.</param>
@@ -117,9 +118,34 @@ namespace BigDrive.Shell.Commands
             }
 
             string path = context.CurrentPath;
+            string filePattern = null;
+
             if (args.Length > 0)
             {
-                path = ResolvePath(context.CurrentPath, args[0]);
+                string inputPath = args[0];
+
+                // Check if input contains a wildcard
+                if (WildcardMatcher.ContainsWildcard(inputPath))
+                {
+                    // Split into directory and pattern
+                    WildcardMatcher.SplitPathAndPattern(inputPath, out string dirPart, out filePattern);
+
+                    // Resolve the directory part
+                    if (dirPart == "\\" || string.IsNullOrEmpty(dirPart))
+                    {
+                        path = context.CurrentPath;
+                    }
+                    else
+                    {
+                        path = ResolvePath(context.CurrentPath, dirPart);
+                    }
+
+                    ShellTrace.Verbose("Wildcard dir: path=\"{0}\", pattern=\"{1}\"", path, filePattern);
+                }
+                else
+                {
+                    path = ResolvePath(context.CurrentPath, inputPath);
+                }
             }
 
             IBigDriveEnumerate enumerate = ProviderFactory.GetEnumerateProvider(context.CurrentDriveGuid.Value);
@@ -130,25 +156,64 @@ namespace BigDrive.Shell.Commands
             }
 
             Console.WriteLine();
-            Console.WriteLine(" Directory of {0}:{1}", context.CurrentDriveLetter, path);
+            if (filePattern != null)
+            {
+                Console.WriteLine(" Directory of {0}:{1}  (filter: {2})", context.CurrentDriveLetter, path, filePattern);
+            }
+            else
+            {
+                Console.WriteLine(" Directory of {0}:{1}", context.CurrentDriveLetter, path);
+            }
             Console.WriteLine();
 
-            // List folders
+            // List folders (only if no file pattern specified, or pattern could match folders)
             string[] folders = enumerate.EnumerateFolders(context.CurrentDriveGuid.Value, path);
-            foreach (string folder in folders)
+            int displayedFolders = 0;
+
+            if (filePattern == null)
             {
-                Console.WriteLine("    <DIR>    " + folder);
+                // No pattern - show all folders
+                foreach (string folder in folders)
+                {
+                    Console.WriteLine("    <DIR>    " + folder);
+                    displayedFolders++;
+                }
+            }
+            else
+            {
+                // Filter folders by pattern too
+                foreach (string folder in WildcardMatcher.Filter(folders, filePattern))
+                {
+                    Console.WriteLine("    <DIR>    " + folder);
+                    displayedFolders++;
+                }
             }
 
             // List files
             string[] files = enumerate.EnumerateFiles(context.CurrentDriveGuid.Value, path);
-            foreach (string file in files)
+            int displayedFiles = 0;
+
+            if (filePattern == null)
             {
-                Console.WriteLine("             " + file);
+                // No pattern - show all files
+                foreach (string file in files)
+                {
+                    Console.WriteLine("             " + file);
+                    displayedFiles++;
+                }
+            }
+            else
+            {
+                // Filter files by pattern
+                foreach (string file in WildcardMatcher.Filter(files, filePattern))
+                {
+                    Console.WriteLine("             " + file);
+                    displayedFiles++;
+                }
             }
 
             Console.WriteLine();
-            Console.WriteLine("       {0} Dir(s)    {1} File(s)", folders.Length, files.Length);
+            Console.WriteLine("       {0} Dir(s)    {1} File(s)", displayedFolders, displayedFiles);
         }
 
         /// <summary>

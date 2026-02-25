@@ -55,18 +55,27 @@ namespace BigDrive.Provider.Sample
         /// <param name="localTargetPath">The destination path in local storage.</param>
         public void CopyFileFromBigDrive(Guid driveGuid, string bigDriveFilePath, string localTargetPath)
         {
-            var node = FindNodeByPath(bigDriveFilePath);
+            var node = FindFileByPath(bigDriveFilePath);
             if (node == null || node.Type != NodeType.File)
             {
                 throw new FileNotFoundException("BigDrive file not found.", bigDriveFilePath);
             }
 
+            // Ensure destination is a file path, not just a directory
+            string targetFilePath = localTargetPath;
+            if (Directory.Exists(localTargetPath) || localTargetPath.EndsWith("\\") || localTargetPath.EndsWith("/"))
+            {
+                // Destination is a directory - append the source filename
+                string directory = localTargetPath.TrimEnd('\\', '/');
+                targetFilePath = Path.Combine(directory, node.Name);
+            }
+
             // For the sample, just create an empty file with the correct size
-            using (var fs = new FileStream(localTargetPath, FileMode.Create, FileAccess.Write))
+            using (var fs = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
             {
                 fs.SetLength((long)node.Size);
             }
-            File.SetLastWriteTime(localTargetPath, node.LastModifiedDate);
+            File.SetLastWriteTime(targetFilePath, node.LastModifiedDate);
         }
 
         /// <summary>

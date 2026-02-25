@@ -26,6 +26,14 @@ namespace BigDrive.Shell
         private readonly Dictionary<string, ICommand> m_commands;
 
         /// <summary>
+        /// Gets the registered commands dictionary for tab completion.
+        /// </summary>
+        public Dictionary<string, ICommand> Commands
+        {
+            get { return m_commands; }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
         /// </summary>
         /// <param name="context">The shell context.</param>

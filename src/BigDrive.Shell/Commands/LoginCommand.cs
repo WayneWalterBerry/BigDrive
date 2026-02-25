@@ -125,25 +125,20 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Gets the provider COM object for a drive.
+        /// Gets the provider COM object for a drive using out-of-process activation.
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>
-        /// <returns>The provider instance.</returns>
+        /// <returns>The provider instance, or null if not found.</returns>
         private object GetProviderInstance(Guid driveGuid)
         {
-            DriveConfiguration config = DriveManager.ReadConfiguration(driveGuid, CancellationToken.None);
-            if (config == null)
+            try
+            {
+                return ProviderFactory.GetProviderInstance(driveGuid);
+            }
+            catch
             {
                 return null;
             }
-
-            Type providerType = Type.GetTypeFromCLSID(config.CLSID);
-            if (providerType == null)
-            {
-                return null;
-            }
-
-            return Activator.CreateInstance(providerType);
         }
 
         /// <summary>
