@@ -43,6 +43,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Interfaces (2)", "Interface
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service.Interfaces", "src\BigDrive.Service.Interfaces\BigDrive.Service.Interfaces.csproj", "{988F386B-AED5-9B4A-DF88-2F00347FB765}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Archive", "src\BigDrive.Provider.Archive\BigDrive.Provider.Archive.csproj", "{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -245,6 +247,18 @@ Global
 		{988F386B-AED5-9B4A-DF88-2F00347FB765}.Release|x64.Build.0 = Release|Any CPU
 		{988F386B-AED5-9B4A-DF88-2F00347FB765}.Release|x86.ActiveCfg = Release|Any CPU
 		{988F386B-AED5-9B4A-DF88-2F00347FB765}.Release|x86.Build.0 = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|x64.Build.0 = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Debug|x86.Build.0 = Debug|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|x64.ActiveCfg = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|x64.Build.0 = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|x86.ActiveCfg = Release|Any CPU
+		{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

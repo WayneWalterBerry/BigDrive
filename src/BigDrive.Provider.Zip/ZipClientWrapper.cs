@@ -50,6 +50,34 @@ namespace BigDrive.Provider.Zip
         {
             _driveGuid = driveGuid;
             _zipFilePath = DriveManager.ReadDriveProperty(driveGuid, ZipFilePathProperty, CancellationToken.None);
+            EnsureZipFileExists();
+        }
+
+        /// <summary>
+        /// Ensures the ZIP file exists, creating an empty archive if it doesn't.
+        /// This allows mounting new ZIP files that will be populated later.
+        /// </summary>
+        private void EnsureZipFileExists()
+        {
+            if (string.IsNullOrEmpty(_zipFilePath))
+            {
+                return;
+            }
+
+            if (File.Exists(_zipFilePath))
+            {
+                return;
+            }
+
+            string directory = Path.GetDirectoryName(_zipFilePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using (ZipArchive archive = ZipFile.Open(_zipFilePath, ZipArchiveMode.Create))
+            {
+            }
         }
 
         /// <summary>
@@ -258,6 +286,156 @@ namespace BigDrive.Provider.Zip
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Adds a file to the ZIP archive from a local file path.
+        /// </summary>
+        /// <param name="localFilePath">The local file path to add.</param>
+        /// <param name="normalizedPath">The normalized path within the archive (forward slashes).</param>
+        public void AddFile(string localFilePath, string normalizedPath)
+        {
+            if (string.IsNullOrEmpty(_zipFilePath) || !File.Exists(_zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found: " + _zipFilePath);
+            }
+
+            if (!File.Exists(localFilePath))
+            {
+                throw new FileNotFoundException("Local file not found: " + localFilePath);
+            }
+
+            using (ZipArchive archive = ZipFile.Open(_zipFilePath, ZipArchiveMode.Update))
+            {
+                ZipArchiveEntry existingEntry = archive.GetEntry(normalizedPath);
+                if (existingEntry != null)
+                {
+                    existingEntry.Delete();
+                }
+
+                archive.CreateEntryFromFile(localFilePath, normalizedPath, CompressionLevel.Optimal);
+            }
+        }
+
+        /// <summary>
+        /// Deletes an entry (file or directory) from the ZIP archive.
+        /// </summary>
+        /// <param name="normalizedPath">The normalized path within the archive (forward slashes).</param>
+        public void DeleteEntry(string normalizedPath)
+        {
+            if (string.IsNullOrEmpty(_zipFilePath) || !File.Exists(_zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found: " + _zipFilePath);
+            }
+
+            using (ZipArchive archive = ZipFile.Open(_zipFilePath, ZipArchiveMode.Update))
+            {
+                ZipArchiveEntry entry = FindEntry(archive, normalizedPath);
+                if (entry == null)
+                {
+                    throw new FileNotFoundException("Entry not found in ZIP: " + normalizedPath);
+                }
+
+                entry.Delete();
+
+                string dirPrefix = normalizedPath.TrimEnd('/') + "/";
+                List<ZipArchiveEntry> childEntries = archive.Entries
+                    .Where(e => e.FullName.Replace('\\', '/').StartsWith(dirPrefix, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                foreach (ZipArchiveEntry childEntry in childEntries)
+                {
+                    childEntry.Delete();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a directory entry in the ZIP archive.
+        /// </summary>
+        /// <param name="normalizedPath">The normalized directory path (forward slashes).</param>
+        public void CreateDirectory(string normalizedPath)
+        {
+            if (string.IsNullOrEmpty(_zipFilePath) || !File.Exists(_zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found: " + _zipFilePath);
+            }
+
+            string dirPath = normalizedPath.TrimEnd('/') + "/";
+
+            using (ZipArchive archive = ZipFile.Open(_zipFilePath, ZipArchiveMode.Update))
+            {
+                ZipArchiveEntry existingEntry = archive.GetEntry(dirPath);
+                if (existingEntry != null)
+                {
+                    return;
+                }
+
+                archive.CreateEntry(dirPath);
+            }
+        }
+
+        /// <summary>
+        /// Moves/renames an entry within the ZIP archive.
+        /// </summary>
+        /// <param name="sourceNormalizedPath">The source normalized path.</param>
+        /// <param name="destNormalizedPath">The destination normalized path.</param>
+        public void MoveEntry(string sourceNormalizedPath, string destNormalizedPath)
+        {
+            if (string.IsNullOrEmpty(_zipFilePath) || !File.Exists(_zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found: " + _zipFilePath);
+            }
+
+            using (ZipArchive archive = ZipFile.Open(_zipFilePath, ZipArchiveMode.Update))
+            {
+                ZipArchiveEntry sourceEntry = FindEntry(archive, sourceNormalizedPath);
+                if (sourceEntry == null)
+                {
+                    throw new FileNotFoundException("Source entry not found: " + sourceNormalizedPath);
+                }
+
+                bool isDirectory = sourceEntry.FullName.EndsWith("/");
+
+                if (isDirectory)
+                {
+                    string srcPrefix = sourceNormalizedPath.TrimEnd('/') + "/";
+                    string destPrefix = destNormalizedPath.TrimEnd('/') + "/";
+
+                    List<ZipArchiveEntry> allEntries = archive.Entries
+                        .Where(e => e.FullName.Replace('\\', '/').StartsWith(srcPrefix, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    foreach (ZipArchiveEntry entry in allEntries)
+                    {
+                        string oldFullName = entry.FullName.Replace('\\', '/');
+                        string newFullName = destPrefix + oldFullName.Substring(srcPrefix.Length);
+
+                        ZipArchiveEntry newEntry = archive.CreateEntry(newFullName);
+                        using (Stream oldStream = entry.Open())
+                        using (Stream newStream = newEntry.Open())
+                        {
+                            oldStream.CopyTo(newStream);
+                        }
+
+                        entry.Delete();
+                    }
+
+                    archive.CreateEntry(destPrefix);
+                }
+                else
+                {
+                    ZipArchiveEntry newEntry = archive.CreateEntry(destNormalizedPath);
+                    using (Stream oldStream = sourceEntry.Open())
+                    using (Stream newStream = newEntry.Open())
+                    {
+                        oldStream.CopyTo(newStream);
+                    }
+
+                    newEntry.LastWriteTime = sourceEntry.LastWriteTime;
+                    sourceEntry.Delete();
+                }
+            }
         }
 
         /// <summary>

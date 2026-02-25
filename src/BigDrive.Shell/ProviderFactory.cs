@@ -107,6 +107,31 @@ namespace BigDrive.Shell
         }
 
         /// <summary>
+        /// Creates an IBigDriveDriveInfo instance for the specified provider CLSID.
+        /// Used before a drive exists to query what parameters the provider requires.
+        /// </summary>
+        /// <param name="providerClsid">The provider CLSID.</param>
+        /// <returns>The IBigDriveDriveInfo interface, or null if not supported by the provider.</returns>
+        /// <remarks>
+        /// Returns null if the provider does not implement IBigDriveDriveInfo.
+        /// This is expected — providers that don't require custom parameters
+        /// will not implement this interface.
+        /// </remarks>
+        public static IBigDriveDriveInfo GetDriveInfoProvider(Guid providerClsid)
+        {
+            try
+            {
+                object provider = GetProviderInstanceByClsid(providerClsid);
+                return provider as IBigDriveDriveInfo;
+            }
+            catch
+            {
+                // Provider creation failed — return null to indicate no drive info support
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets the raw provider instance for a drive using out-of-process COM+ activation.
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>
@@ -130,21 +155,36 @@ namespace BigDrive.Shell
 
             ShellTrace.Verbose("Drive config: Name=\"{0}\", CLSID={1}", config.Name, config.CLSID);
 
+            object provider = GetProviderInstanceByClsid(config.CLSID);
+
+            ShellTrace.Exit("ProviderFactory", "GetProviderInstance", "success");
+            return provider;
+        }
+
+        /// <summary>
+        /// Creates a provider COM object by CLSID using out-of-process COM+ activation.
+        /// </summary>
+        /// <param name="clsid">The CLSID of the provider COM class.</param>
+        /// <returns>The provider COM object running in dllhost.exe.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if CoCreateInstance fails.</exception>
+        private static object GetProviderInstanceByClsid(Guid clsid)
+        {
+            ShellTrace.Enter("ProviderFactory", "GetProviderInstanceByClsid", string.Format("clsid={0}", clsid));
+
             // IUnknown IID
             Guid iidUnknown = new Guid("00000000-0000-0000-C000-000000000046");
-            Guid clsid = config.CLSID;
+            Guid clsidCopy = clsid;
 
             ShellTrace.Info("CoCreateInstance: CLSID={0}, Context=CLSCTX_LOCAL_SERVER", clsid);
 
             object provider;
-            int hr = CoCreateInstance(ref clsid, null, CLSCTX_LOCAL_SERVER, ref iidUnknown, out provider);
+            int hr = CoCreateInstance(ref clsidCopy, null, CLSCTX_LOCAL_SERVER, ref iidUnknown, out provider);
 
-            ShellTrace.ComResult("CoCreateInstance", "CreateProvider", hr, 
+            ShellTrace.ComResult("CoCreateInstance", "CreateProvider", hr,
                 provider != null ? "provider created" : "provider is null");
 
             if (hr < 0)
             {
-                // Provide a more helpful error message
                 string errorMessage = string.Format(
                     "Failed to create provider instance via COM+. CLSID: {0}, HRESULT: 0x{1:X8}. " +
                     "Ensure the provider is registered with regsvcs.exe and COM+ is configured for activation.",
@@ -156,10 +196,10 @@ namespace BigDrive.Shell
             if (provider == null)
             {
                 ShellTrace.Error("Provider is null after successful CoCreateInstance");
-                throw new InvalidOperationException("Failed to create provider instance for CLSID: " + config.CLSID);
+                throw new InvalidOperationException("Failed to create provider instance for CLSID: " + clsid);
             }
 
-            ShellTrace.Exit("ProviderFactory", "GetProviderInstance", "success");
+            ShellTrace.Exit("ProviderFactory", "GetProviderInstanceByClsid", "success");
             return provider;
         }
     }

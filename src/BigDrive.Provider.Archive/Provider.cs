@@ -2,7 +2,7 @@
 // Copyright (c) Wayne Walter Berry. All rights reserved.
 // </copyright>
 
-namespace BigDrive.Provider.Zip
+namespace BigDrive.Provider.Archive
 {
     using System;
     using System.EnterpriseServices;
@@ -11,17 +11,30 @@ namespace BigDrive.Provider.Zip
     using BigDrive.Interfaces;
 
     /// <summary>
-    /// BigDrive provider for browsing ZIP file contents as a virtual file system.
-    /// Exposes the directory structure and files inside a local ZIP archive.
+    /// BigDrive provider for browsing archive file contents as a virtual file system.
+    /// Supports multiple archive formats: ZIP, TAR, TAR.GZ, TAR.BZ2, 7z, RAR (read-only).
+    /// Uses SharpCompress library for multi-format archive support.
     /// </summary>
     /// <remarks>
     /// This provider supports drive-specific configuration. Each drive points to a
-    /// different ZIP file on the local file system via the ZipFilePath drive property.
+    /// different archive file on the local file system via the ArchiveFilePath drive property.
     ///
     /// Drive-specific properties (stored in registry under each drive):
-    /// - ZipFilePath: The full path to the local ZIP file to browse.
+    /// - ArchiveFilePath: The full path to the local archive file to browse.
+    ///
+    /// Supported archive formats:
+    /// - ZIP (.zip)
+    /// - TAR (.tar)
+    /// - TAR.GZ (.tar.gz, .tgz)
+    /// - TAR.BZ2 (.tar.bz2, .tbz, .tbz2)
+    /// - 7-Zip (.7z)
+    /// - RAR (.rar) - read-only
+    /// - GZIP (.gz) - single file
+    /// - BZIP2 (.bz2) - single file
+    ///
+    /// Write operations (copy to archive) only supported for writable formats (ZIP, TAR).
     /// </remarks>
-    [Guid("C7A1B2D3-E4F5-6789-AB01-CD23EF456789")]
+    [Guid("A9B8C7D6-5E4F-3A2B-1C0D-9E8F7A6B5C4D")]
     [ClassInterface(ClassInterfaceType.None)]
     [ComVisible(true)]
     public partial class Provider : ServicedComponent,
@@ -52,6 +65,17 @@ namespace BigDrive.Provider.Zip
         }
 
         /// <summary>
+        /// Gets the provider configuration for registry registration.
+        /// </summary>
+        private static BigDrive.ConfigProvider.Model.ProviderConfiguration ProviderConfig
+        {
+            get
+            {
+                return ProviderConfigurationFactory.Create();
+            }
+        }
+
+        /// <summary>
         /// Called automatically by regsvcs.exe during COM registration.
         /// Sets the COM+ application identity to Interactive User and registers the provider.
         /// </summary>
@@ -62,7 +86,7 @@ namespace BigDrive.Provider.Zip
             DefaultTraceSource.TraceInformation($"ComRegister: Registering provider {type.FullName}");
 
             // Set COM+ application identity to Interactive User
-            SetApplicationIdentityToInteractiveUser("BigDrive.Provider.Zip");
+            SetApplicationIdentityToInteractiveUser("BigDrive.Provider.Archive");
 
             // Create an instance and call Register()
             Provider provider = new Provider();
@@ -132,13 +156,13 @@ namespace BigDrive.Provider.Zip
         }
 
         /// <summary>
-        /// Gets the Zip client wrapper for a specific drive.
+        /// Gets the Archive client wrapper for a specific drive.
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>
-        /// <returns>A ZipClientWrapper configured for the drive.</returns>
-        private static ZipClientWrapper GetZipClient(Guid driveGuid)
+        /// <returns>An ArchiveClientWrapper configured for the drive.</returns>
+        private static ArchiveClientWrapper GetArchiveClient(Guid driveGuid)
         {
-            return ZipClientWrapper.GetForDrive(driveGuid);
+            return ArchiveClientWrapper.GetForDrive(driveGuid);
         }
     }
 }

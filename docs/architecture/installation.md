@@ -146,5 +146,6 @@ Or require BigDrive.Shell to run as Administrator.
 ## See Also
 
 - [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) — mount/unmount commands
+- [Mount Command Handshake](mount-handshake.md) — Detailed drive creation protocol
 - [Provider Development Guide](../ProviderDevelopmentGuide.md) — Creating providers
 - [BigDrive.Setup README](../../src/BigDrive.Setup/README.txt) — Setup internals

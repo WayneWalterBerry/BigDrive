@@ -11,9 +11,9 @@ namespace BigDrive.Service
 
     public partial class BigDriveService
     {
-        public void Create(Guid driveGuid)
+        public void Mount(Guid driveGuid)
         {
-            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for drive: {0}", driveGuid);
+            DefaultTraceSource.TraceInformation("BigDriveProvision::Mount() called for drive: {0}", driveGuid);
 
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
@@ -39,11 +39,11 @@ namespace BigDrive.Service
         /// data, including a unique GUID and other required properties.</param>
         /// <exception cref="ArgumentException">Thrown if <paramref name="jsonConfiguration"/> is null, empty, or contains invalid JSON data.</exception>
         /// <exception cref="InvalidOperationException">Thrown if a drive with the GUID specified in the configuration already exists.</exception>
-        public void CreateFromConfiguration(string jsonConfiguration)
+        public void Mount(string jsonConfiguration)
         {
             System.Diagnostics.Debugger.Launch();
 
-            DefaultTraceSource.TraceInformation("BigDriveConfiguration::GetConfiguration() called for configuration: {0}", jsonConfiguration);
+            DefaultTraceSource.TraceInformation("BigDriveProvision::Mount() called for configuration: {0}", jsonConfiguration);
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
             // Parse the JSON configuration to create a DriveConfiguration object

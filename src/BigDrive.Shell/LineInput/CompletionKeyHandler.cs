@@ -392,6 +392,10 @@ namespace BigDrive.Shell.LineInput
                     {
                         searchPath = "\\";
                     }
+                    else
+                    {
+                        searchPath = PathInfo.NormalizePath(searchPath);
+                    }
 
                     searchPrefix = pathPart.Substring(lastSeparator + 1);
                 }
@@ -504,11 +508,11 @@ namespace BigDrive.Shell.LineInput
 
                 if (dirPart.StartsWith("\\") || dirPart.StartsWith("/"))
                 {
-                    searchPath = dirPart;
+                    searchPath = PathInfo.NormalizePath(dirPart);
                 }
                 else
                 {
-                    searchPath = CombinePath(m_context.CurrentPath, dirPart);
+                    searchPath = PathInfo.ResolvePath(m_context.CurrentPath, dirPart);
                 }
             }
             else

@@ -132,20 +132,6 @@ namespace BigDrive.Shell.Commands
                 return;
             }
 
-            if (!sourceStore.SupportsFileOperations)
-            {
-                Console.WriteLine("Source does not support file operations.");
-                ShellTrace.Exit("CopyCommand", "Execute", "source no file ops");
-                return;
-            }
-
-            if (!destStore.SupportsFileOperations)
-            {
-                Console.WriteLine("Destination does not support file operations.");
-                ShellTrace.Exit("CopyCommand", "Execute", "dest no file ops");
-                return;
-            }
-
             // Handle wildcards
             if (WildcardMatcher.ContainsWildcard(sourcePath.Path))
             {

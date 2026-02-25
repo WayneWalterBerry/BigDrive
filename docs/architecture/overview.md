@@ -328,10 +328,11 @@ Providers run out-of-process for:
 
 ## See Also
 
-- [Installation Architecture](architecture/installation.md) — Setup and registration
-- [Provider Development Guide](ProviderDevelopmentGuide.md) — Creating new providers
-- [BigDrive.Shell User Guide](BigDrive.Shell.UserGuide.md) — Shell commands
-- [Drag and Drop Scenarios](scenarios/drag_files.md) — Virtual file transfers
+- [Installation Architecture](installation.md) — Setup and registration
+- [Mount Command Handshake](mount-handshake.md) — Drive creation protocol and COM interactions
+- [Provider Development Guide](../ProviderDevelopmentGuide.md) — Creating new providers
+- [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) — Shell commands
+- [Drag and Drop Scenarios](../scenarios/drag_files.md) — Virtual file transfers
 
 ---
 

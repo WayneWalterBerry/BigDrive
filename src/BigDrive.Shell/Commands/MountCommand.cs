@@ -6,11 +6,14 @@ namespace BigDrive.Shell.Commands
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Text.Json;
     using System.Threading;
 
     using BigDrive.ConfigProvider;
     using BigDrive.ConfigProvider.Model;
+    using BigDrive.Interfaces;
 
     /// <summary>
     /// Mounts a new BigDrive by creating a drive configuration.
@@ -197,8 +200,12 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Creates a new drive configuration.
+        /// Creates a new drive configuration. Queries the provider for required parameters
+        /// via <see cref="IBigDriveDriveInfo"/> and prompts the user for each value.
         /// </summary>
+        /// <param name="context">The shell context.</param>
+        /// <param name="provider">The selected provider configuration.</param>
+        /// <param name="driveName">The user-specified drive name.</param>
         private static void CreateDrive(ShellContext context, ProviderConfiguration provider, string driveName)
         {
             try
@@ -212,6 +219,17 @@ namespace BigDrive.Shell.Commands
                     Name = driveName,
                     CLSID = provider.Id
                 };
+
+                // Query the provider for required drive parameters
+                Dictionary<string, string> properties = QueryDriveParameters(provider.Id);
+                if (properties == null)
+                {
+                    // User cancelled
+                    Console.WriteLine("Mount cancelled.");
+                    return;
+                }
+
+                driveConfig.Properties = properties;
 
                 DriveManager.WriteConfiguration(driveConfig, CancellationToken.None);
 
@@ -245,6 +263,360 @@ namespace BigDrive.Shell.Commands
             {
                 Console.WriteLine("Failed to mount drive: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Queries the provider for required drive parameters via <see cref="IBigDriveDriveInfo"/>
+        /// and prompts the user for each value.
+        /// </summary>
+        /// <param name="providerClsid">The CLSID of the provider to query.</param>
+        /// <returns>
+        /// A dictionary of parameter name/value pairs collected from the user,
+        /// or null if the user cancelled.
+        /// </returns>
+        private static Dictionary<string, string> QueryDriveParameters(Guid providerClsid)
+        {
+            Dictionary<string, string> properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            IBigDriveDriveInfo driveInfo = ProviderFactory.GetDriveInfoProvider(providerClsid);
+            if (driveInfo == null)
+            {
+                // Provider does not require custom parameters
+                return properties;
+            }
+
+            string json = driveInfo.GetDriveParameters();
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return properties;
+            }
+
+            JsonElement[] parameters;
+            try
+            {
+                parameters = JsonSerializer.Deserialize<JsonElement[]>(json);
+            }
+            catch (JsonException)
+            {
+                Console.WriteLine("Warning: Provider returned invalid parameter definitions.");
+                return properties;
+            }
+
+            if (parameters == null || parameters.Length == 0)
+            {
+                return properties;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("This provider requires the following parameters:");
+            Console.WriteLine();
+
+            foreach (JsonElement param in parameters)
+            {
+                string name = string.Empty;
+                string description = string.Empty;
+                string type = "string";
+
+                if (param.TryGetProperty("name", out JsonElement nameElement))
+                {
+                    name = nameElement.GetString();
+                }
+
+                if (param.TryGetProperty("description", out JsonElement descElement))
+                {
+                    description = descElement.GetString();
+                }
+
+                if (param.TryGetProperty("type", out JsonElement typeElement))
+                {
+                    type = typeElement.GetString() ?? "string";
+                }
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    Console.WriteLine("  {0}", description);
+                }
+
+                Console.Write("  {0}: ", name);
+
+                string value;
+                if (string.Equals(type, "existing-file", StringComparison.OrdinalIgnoreCase))
+                {
+                    value = ReadLineWithFileCompletion();
+                    if (!string.IsNullOrWhiteSpace(value) && !File.Exists(value))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("  Error: File does not exist: {0}", value);
+                        return null;
+                    }
+                }
+                else if (string.Equals(type, "filepath", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(type, "file", StringComparison.OrdinalIgnoreCase))
+                {
+                    value = ReadLineWithFileCompletion();
+                }
+                else
+                {
+                    value = Console.ReadLine();
+                }
+
+                if (value == null)
+                {
+                    // User pressed Ctrl+C or input stream closed
+                    return null;
+                }
+
+                properties[name] = value.Trim();
+            }
+
+            return properties;
+        }
+
+        /// <summary>
+        /// Reads a line of input from the console with Tab file-path completion.
+        /// Pressing Tab cycles through matching files and directories on the local filesystem.
+        /// </summary>
+        /// <returns>The input line, or null if the input stream was closed.</returns>
+        private static string ReadLineWithFileCompletion()
+        {
+            List<char> buffer = new List<char>();
+            int cursorPos = 0;
+
+            List<string> completionCandidates = new List<string>();
+            int completionIndex = 0;
+            string textBeforeCompletion = null;
+
+            while (true)
+            {
+                ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    return new string(buffer.ToArray());
+                }
+
+                if (keyInfo.Key == ConsoleKey.Tab)
+                {
+                    string currentText = new string(buffer.ToArray());
+
+                    if (textBeforeCompletion == null)
+                    {
+                        // Start new completion cycle
+                        textBeforeCompletion = currentText;
+                        completionCandidates = GetLocalFileCompletions(textBeforeCompletion);
+                        completionIndex = 0;
+                    }
+                    else
+                    {
+                        // Cycle to next candidate
+                        if (completionCandidates.Count > 0)
+                        {
+                            bool reverse = (keyInfo.Modifiers & ConsoleModifiers.Shift) != 0;
+                            if (reverse)
+                            {
+                                completionIndex--;
+                                if (completionIndex < 0)
+                                {
+                                    completionIndex = completionCandidates.Count - 1;
+                                }
+                            }
+                            else
+                            {
+                                completionIndex++;
+                                if (completionIndex >= completionCandidates.Count)
+                                {
+                                    completionIndex = 0;
+                                }
+                            }
+                        }
+                    }
+
+                    if (completionCandidates.Count > 0)
+                    {
+                        string completion = completionCandidates[completionIndex];
+
+                        // Erase current text on screen
+                        RedrawInput(buffer, cursorPos, string.Empty);
+
+                        buffer.Clear();
+                        buffer.AddRange(completion);
+                        cursorPos = buffer.Count;
+
+                        // Draw new text
+                        Console.Write(completion);
+                    }
+
+                    continue;
+                }
+
+                // Any non-Tab key resets completion state
+                textBeforeCompletion = null;
+                completionCandidates.Clear();
+
+                if (keyInfo.Key == ConsoleKey.Backspace)
+                {
+                    if (cursorPos > 0)
+                    {
+                        buffer.RemoveAt(cursorPos - 1);
+                        cursorPos--;
+
+                        // Redraw from cursor position
+                        Console.Write("\b");
+                        string remaining = new string(buffer.ToArray(), cursorPos, buffer.Count - cursorPos);
+                        Console.Write(remaining + " ");
+                        Console.Write(new string('\b', remaining.Length + 1));
+                    }
+
+                    continue;
+                }
+
+                if (keyInfo.Key == ConsoleKey.Escape)
+                {
+                    RedrawInput(buffer, cursorPos, string.Empty);
+                    buffer.Clear();
+                    cursorPos = 0;
+                    continue;
+                }
+
+                if (keyInfo.Key == ConsoleKey.LeftArrow)
+                {
+                    if (cursorPos > 0)
+                    {
+                        cursorPos--;
+                        Console.Write("\b");
+                    }
+
+                    continue;
+                }
+
+                if (keyInfo.Key == ConsoleKey.RightArrow)
+                {
+                    if (cursorPos < buffer.Count)
+                    {
+                        Console.Write(buffer[cursorPos]);
+                        cursorPos++;
+                    }
+
+                    continue;
+                }
+
+                if (keyInfo.KeyChar >= 32)
+                {
+                    buffer.Insert(cursorPos, keyInfo.KeyChar);
+                    cursorPos++;
+
+                    // Write char and any text after cursor
+                    string tail = new string(buffer.ToArray(), cursorPos - 1, buffer.Count - cursorPos + 1);
+                    Console.Write(tail);
+                    if (tail.Length > 1)
+                    {
+                        Console.Write(new string('\b', tail.Length - 1));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets local filesystem path completions matching the given prefix.
+        /// Returns matching files and directories sorted alphabetically.
+        /// </summary>
+        /// <param name="prefix">The current path prefix to complete.</param>
+        /// <returns>List of matching file and directory paths.</returns>
+        private static List<string> GetLocalFileCompletions(string prefix)
+        {
+            List<string> candidates = new List<string>();
+
+            try
+            {
+                string directory;
+                string searchPrefix;
+
+                int lastSeparator = prefix.LastIndexOfAny(new[] { '\\', '/' });
+                if (lastSeparator >= 0)
+                {
+                    directory = prefix.Substring(0, lastSeparator + 1);
+                    searchPrefix = prefix.Substring(lastSeparator + 1);
+                }
+                else
+                {
+                    directory = ".\\";
+                    searchPrefix = prefix;
+                }
+
+                // Normalize the directory path to resolve .. and . segments
+                try
+                {
+                    if (!string.IsNullOrEmpty(directory))
+                    {
+                        directory = Path.GetFullPath(directory);
+                    }
+                }
+                catch
+                {
+                    // If normalization fails, use original path
+                }
+
+                if (!Directory.Exists(directory))
+                {
+                    return candidates;
+                }
+
+                foreach (string dir in Directory.GetDirectories(directory))
+                {
+                    string dirName = Path.GetFileName(dir);
+                    if (string.IsNullOrEmpty(searchPrefix) || dirName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidates.Add(dir + "\\");
+                    }
+                }
+
+                foreach (string file in Directory.GetFiles(directory))
+                {
+                    string fileName = Path.GetFileName(file);
+                    if (string.IsNullOrEmpty(searchPrefix) || fileName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidates.Add(file);
+                    }
+                }
+
+                candidates.Sort(StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                // Ignore errors during completion (access denied, etc.)
+            }
+
+            return candidates;
+        }
+
+        /// <summary>
+        /// Erases the current buffer text on screen and optionally writes replacement text.
+        /// </summary>
+        /// <param name="buffer">The current buffer characters.</param>
+        /// <param name="cursorPos">The current cursor position within the buffer.</param>
+        /// <param name="replacement">The replacement text to write (empty to just erase).</param>
+        private static void RedrawInput(List<char> buffer, int cursorPos, string replacement)
+        {
+            // Move cursor to start of input
+            if (cursorPos > 0)
+            {
+                Console.Write(new string('\b', cursorPos));
+            }
+
+            // Overwrite with spaces
+            Console.Write(new string(' ', buffer.Count));
+
+            // Move back to start
+            Console.Write(new string('\b', buffer.Count));
+
+            // Write replacement
+            Console.Write(replacement);
         }
     }
 }

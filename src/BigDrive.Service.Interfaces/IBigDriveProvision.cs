@@ -23,16 +23,16 @@ namespace BigDrive.Service.Interfaces
     public interface IBigDriveProvision
     {
         /// <summary>
-        /// Creates a new drive with the specified GUID.
+        /// Mounts a new drive with the specified GUID.
         /// </summary>
-        /// <param name="driveGuid">The GUID of the drive to create.</param>
-        void Create(Guid driveGuid);
+        /// <param name="driveGuid">The GUID of the drive to mount.</param>
+        void Mount(Guid driveGuid);
 
         /// <summary>
-        /// Creates a new drive with the specified JSON configuration.
+        /// Mounts a new drive from the specified JSON configuration.
         /// </summary>
         /// <param name="jsonConfiguration">A JSON-formatted string representing the drive configuration.</param>
-        void CreateFromConfiguration(string jsonConfiguration);
+        void Mount(string jsonConfiguration);
 
         /// <summary>
         /// Unmounts a drive by removing its configuration from the registry,

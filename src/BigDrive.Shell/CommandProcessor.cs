@@ -114,7 +114,7 @@ namespace BigDrive.Shell
                     FileName = "cmd.exe",
                     Arguments = "/c " + commandLine,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = false
                 };
 
                 using (Process process = Process.Start(startInfo))
