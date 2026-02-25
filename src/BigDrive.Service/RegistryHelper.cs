@@ -123,5 +123,42 @@ namespace BigDrive.Service
                 }
             }
         }
+
+        /// <summary>
+        /// Unregisters the shell folder for the specified drive by removing all registry keys
+        /// that were created during registration (CLSID, namespace, component category, icon).
+        /// </summary>
+        /// <param name="guidDrive">The GUID of the drive shell folder to unregister.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public static void UnregisterShellFolder(Guid guidDrive, CancellationToken cancellationToken)
+        {
+            if (guidDrive == Guid.Empty)
+            {
+                throw new ArgumentException("The drive GUID cannot be empty.", nameof(guidDrive));
+            }
+
+            string guidString = guidDrive.ToString("B");
+
+            // Remove the namespace entry
+            cancellationToken.ThrowIfCancellationRequested();
+            string namespacePath = $@"Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{guidString}";
+            Registry.LocalMachine.DeleteSubKeyTree(namespacePath, false);
+
+            // Remove the component category entry
+            cancellationToken.ThrowIfCancellationRequested();
+            string componentCategoryPath = $@"Component Categories\{{00021493-0000-0000-C000-000000000046}}\Implementations";
+            using (RegistryKey catKey = Registry.ClassesRoot.OpenSubKey(componentCategoryPath, true))
+            {
+                if (catKey != null)
+                {
+                    catKey.DeleteSubKeyTree(guidString, false);
+                }
+            }
+
+            // Remove the CLSID entry (includes InprocServer32, Implemented Categories, ShellFolder, DefaultIcon)
+            cancellationToken.ThrowIfCancellationRequested();
+            string clsidPath = $@"CLSID\{guidString}";
+            Registry.ClassesRoot.DeleteSubKeyTree(clsidPath, false);
+        }
     }
 }

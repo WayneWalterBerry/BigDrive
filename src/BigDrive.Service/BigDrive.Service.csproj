@@ -90,9 +90,6 @@
     <Compile Include="BigDriveService-IBigDriveSetup.cs" />
     <Compile Include="BigDriveService.cs" />
     <Compile Include="BigDriveTraceSource.cs" />
-    <Compile Include="Interfaces\IBigDriveConfiguration.cs" />
-    <Compile Include="Interfaces\IBigDriveSetup.cs" />
-    <Compile Include="Interfaces\IBigDriveProvision.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RegistryHelper.cs" />
     <Compile Include="ShellHelper.cs" />
@@ -102,6 +99,10 @@
     <None Include="..\..\..\BigDrive.snk" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Service.Interfaces\BigDrive.Service.Interfaces.csproj">
+      <Project>{988f386b-aed5-9b4a-df88-2f00347fb765}</Project>
+      <Name>BigDrive.Service.Interfaces</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj">
       <Project>{5ece5398-2c9b-4c69-87ed-3358f5722c0f}</Project>
       <Name>BigDrive.ConfigProvider</Name>
@@ -110,6 +111,9 @@
       <Project>{28e4adaf-11b9-4afb-920e-f8384426e8d1}</Project>
       <Name>BigDrive.Interfaces</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

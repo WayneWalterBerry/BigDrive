@@ -58,7 +58,7 @@ namespace BigDrive.Setup
             ComRegistrationManager.SetApplicationIdentityToThisUser(
                 applicationName: ComRegistrationManager.ComPlusServiceName,
                 username: UserManager.BigDriveTrustedInstallerUserName,
-                password: password.ToString());
+                password: UserManager.SecureStringToString(password));
 
             // =============================================================================
             // Validate the installation

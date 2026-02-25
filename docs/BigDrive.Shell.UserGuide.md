@@ -440,7 +440,14 @@ Unmount 'My Flickr Photos' (Z:)? [y/N]: y
 Drive unmounted: My Flickr Photos
 ```
 
-> **Note:** Mounting and unmounting requires Administrator privileges.
+The unmount command calls BigDrive.Service via COM+ (`IBigDriveProvision.UnmountDrive`)
+to remove the drive configuration, unregister the shell folder, and refresh Explorer.
+The Shell does not require Administrator privileges because BigDrive.Service runs
+under the **BigDriveInstaller** identity, which has write access to HKCR and the
+HKLM shell namespace.
+
+> **Note:** Mounting and unmounting requires BigDrive.Service to be registered with COM+
+> (done automatically by `BigDrive.Setup.exe` or the Service's PostBuild `regsvcs.exe` step).
 
 ---
 

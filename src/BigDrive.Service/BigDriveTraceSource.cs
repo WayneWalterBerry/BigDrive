@@ -18,8 +18,19 @@ namespace BigDrive.Service
 
         static BigDriveTraceSource()
         {
-            EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
-            Instance.Listeners.Add(eventLogListener);
+            try
+            {
+                EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
+                Instance.Listeners.Add(eventLogListener);
+            }
+            catch (System.Security.SecurityException)
+            {
+                // EventLogTraceListener requires permission to read all event logs
+                // (including Security) to verify source uniqueness. When running under
+                // BigDriveInstaller or other non-admin identity in dllhost.exe, this
+                // check fails. Fall back to default listeners only.
+            }
+
             Instance.Switch = new SourceSwitch("BigDriveSwitch", "All");
 
             Instance.TraceInformation($"{SourceName} Trace Source Initialized");

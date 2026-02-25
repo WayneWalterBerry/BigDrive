@@ -26,12 +26,19 @@ Windows Explorer:
                         BigDrive.Interfaces
 
 Key Benefits:
-  - Process Isolation: Providers run outside explorer.exe, preventing crashes
-    from affecting the Windows shell.
+  - Process Isolation: Providers run outside explorer.exe in dllhost.exe,
+    preventing crashes from affecting the Windows shell. Provider assemblies
+    must NEVER be loaded into the shell extension process.
   - Language Flexibility: Providers can be written in C# or any COM-compatible
     language.
   - Extensibility: Third-party developers implement these interfaces to create
     custom virtual drives.
+
+Important: This project contains ONLY provider interfaces. Interfaces for
+BigDrive.Service (IBigDriveProvision, IBigDriveConfiguration, IBigDriveSetup)
+are in the separate BigDrive.Service.Interfaces project. BigDrive.Service is
+NOT a provider — it manages providers and drives under the BigDriveInstaller
+identity with elevated registry permissions. Providers run as Interactive User.
 
 INTERFACE DEFINITIONS
 --------------------------------------------------------------------------------
@@ -81,6 +88,11 @@ IBigDriveAuthentication (7E8F9A0B-1C2D-3E4F-5A6B-7C8D9E0F1A2B)
     This interface is optional. Providers that don't require OAuth don't need
     to implement it. When implemented, BigDrive Shell can perform generic OAuth
     flows and store tokens in Windows Credential Manager.
+
+  Note on BigDrive.Service Interfaces:
+    Interfaces exposed by BigDrive.Service (IBigDriveProvision, IBigDriveConfiguration,
+    IBigDriveSetup) are defined in the separate BigDrive.Service.Interfaces project.
+    See src/BigDrive.Service.Interfaces/README.md for details.
 
 EXCEPTION TYPES
 --------------------------------------------------------------------------------

@@ -331,7 +331,7 @@ hr = ::CoCreateInstance(
 This ensures:
 - Provider code runs in dllhost.exe, not explorer.exe
 - Provider crash doesn't crash Explorer
-- Provider runs with BigDriveInstaller credentials, not user credentials
+- Provider runs as Interactive User (logged-in user) for Credential Manager access
 
 ### Interface Call Flow
 

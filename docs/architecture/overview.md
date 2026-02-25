@@ -20,41 +20,41 @@ Explorer or BigDrive.Shell.
 │  │                       │         │                       │                │
 │  │  BigDrive.ShellFolder │         │  Command-line shell   │                │
 │  │  (Shell Extension)    │         │  dir, cd, copy, mount │                │
-│  └───────────┬───────────┘         └───────────┬───────────┘                │
-│              │                                 │                            │
-│              │ IShellFolder                    │ IBigDriveEnumerate         │
-│              │ IEnumIDList                     │ IBigDriveFileData          │
-│              │                                 │ IBigDriveFileOperations    │
-│              └─────────────────┬───────────────┘                            │
-│                                │                                            │
-│                    CoCreateInstance(CLSID)                                  │
-│                                │                                            │
-└────────────────────────────────┼────────────────────────────────────────────┘
-                                 │
-                    COM Activation (out-of-process)
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          COM+ SURROGATE (dllhost.exe)                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  │
-│  │ Provider.Flickr     │  │ Provider.AzureBlob  │  │ Provider.Sample     │  │
-│  │                     │  │                     │  │                     │  │
-│  │ ServicedComponent   │  │ ServicedComponent   │  │ ServicedComponent   │  │
-│  │ IBigDriveEnumerate  │  │ IBigDriveEnumerate  │  │ IBigDriveEnumerate  │  │
-│  │ IBigDriveFileData   │  │ IBigDriveFileData   │  │ IBigDriveFileData   │  │
-│  │ IBigDriveFileInfo   │  │ IBigDriveFileInfo   │  │ IBigDriveFileInfo   │  │
-│  └─────────┬───────────┘  └─────────┬───────────┘  └─────────┬───────────┘  │
-│            │                        │                        │              │
-│  Identity: BigDriveTrustedInstaller                                         │
-└────────────┼────────────────────────┼────────────────────────┼──────────────┘
-             │                        │                        │
-             ▼                        ▼                        ▼
-┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│   Flickr API        │  │   Azure Blob API    │  │   Local File System │
-│   (HTTPS)           │  │   (HTTPS)           │  │   (for testing)     │
-└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
+│  └───────────┬───────────┘         └────┬─────────────┬────┘                │
+│              │                          │             │                     │
+│              │ IShellFolder             │ IBigDrive*  │ IBigDriveProvision  │
+│              │ IEnumIDList              │ (providers) │ (service)           │
+│              │                          │             │                     │
+│              └──────────┬───────────────┘             │                     │
+│                         │                             │                     │
+│           CoCreateInstance(CLSID)        CoCreateInstance(CLSID)           │
+│                         │                             │                     │
+└─────────────────────────┼─────────────────────────────┼─────────────────────┘
+                          │                             │
+              COM+ Activation               COM+ Activation
+              (out-of-process)              (out-of-process)
+                          │                             │
+                          ▼                             ▼
+┌──────────────────────────────────┐ ┌────────────────────────────────┐
+│  COM+ APPLICATION (dllhost.exe)  │ │  COM+ APPLICATION (dllhost.exe)│
+│  Providers                       │ │  BigDrive.Service              │
+├──────────────────────────────────┤ ├────────────────────────────────┤
+│                                  │ │                                │
+│ ┌────────────────────┐           │ │  IBigDriveProvision            │
+│ │ Provider.Flickr    │  ...      │ │  ├── Create()                  │
+│ │ IBigDriveEnumerate │           │ │  ├── CreateFromConfiguration() │
+│ │ IBigDriveFileData  │           │ │  └── UnmountDrive()            │
+│ └────────┬───────────┘           │ │                                │
+│          │                       │ │  Writes to HKCR, HKLM shell   │
+│ Identity: Interactive User       │ │  namespace, and HKLM\BigDrive. │
+└──────────┼───────────────────────┘ │  Refreshes Explorer.           │
+           │                         │                                │
+           ▼                         │ Identity: BigDriveInstaller    │
+┌─────────────────────┐              │ (elevated local service acct)  │
+│   Flickr API        │              └────────────────────────────────┘
+│   Flickr API        │
+│   (HTTPS)           │  ...other cloud APIs
+└─────────────────────┘
 ```
 
 ---
@@ -143,8 +143,25 @@ public string[] EnumerateFolders(Guid driveGuid, string path)
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `BigDrive.Interfaces.dll` | .NET Assembly | COM interface definitions |
+| `BigDrive.Interfaces.dll` | .NET Assembly | COM interface definitions for provider implementations |
+| `BigDrive.Service.Interfaces.dll` | .NET Assembly | COM interface definitions for BigDrive.Service |
 | `BigDrive.ConfigProvider.dll` | .NET Assembly | Registry read/write for drives and providers |
+
+### Service (COM+ Component)
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| `BigDrive.Service.dll` | ServicedComponent | Drive provisioning/deprovisioning with elevated registry access |
+
+`BigDrive.Service` runs in its own COM+ application in `dllhost.exe` under the
+**BigDriveInstaller** identity (a local service account created during setup).
+It has write access to HKCR (COM class registration), HKLM shell namespace
+(MyComputer\\NameSpace), and HKLM\\SOFTWARE\\BigDrive. The Shell activates it
+via COM+ and calls `IBigDriveProvision` to create or unmount drives.
+The Shell must **never** write to the registry directly.
+
+This is distinct from providers, which run as **Interactive User** in their
+own separate COM+ applications.
 
 ### Providers (COM+ Components)
 
@@ -194,6 +211,22 @@ IProcessInitializer          ← COM+ lifecycle (Startup/Shutdown)
     ├── Register()
     └── Unregister()
 ```
+
+BigDrive.Service implements this interface from `BigDrive.Service.Interfaces`:
+
+```
+IBigDriveProvision           ← Drive provisioning (implemented by BigDrive.Service)
+├── Create()                 ← Create a drive from existing registry config
+├── CreateFromConfiguration()← Create a drive from JSON
+└── UnmountDrive()           ← Remove drive config, shell folder, refresh Explorer
+```
+
+The Shell calls `IBigDriveProvision` via COM+ out-of-process activation
+(`ServiceFactory.GetProvisionService()`). The Shell must never write to the
+registry directly. BigDrive.Service runs under the **BigDriveInstaller** identity
+which has the permissions needed to write to HKCR and HKLM. Both the Shell and
+the Service reference `BigDrive.Service.Interfaces` for the interface types —
+neither takes a direct project dependency on the other.
 
 ---
 

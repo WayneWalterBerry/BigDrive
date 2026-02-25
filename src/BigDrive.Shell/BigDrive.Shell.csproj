@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Interfaces\BigDrive.Interfaces.csproj" />
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj" />
+    <ProjectReference Include="..\BigDrive.Service.Interfaces\BigDrive.Service.Interfaces.csproj" />
   </ItemGroup>
 
 </Project>

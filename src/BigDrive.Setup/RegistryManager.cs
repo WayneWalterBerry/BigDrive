@@ -302,7 +302,7 @@ namespace BigDrive.Setup
                 bool loggedOn = LogonUser(
                     userName,
                     domain,
-                    password.ToString(),
+                    UserManager.SecureStringToString(password),
                     LOGON32_LOGON_INTERACTIVE,
                     LOGON32_PROVIDER_DEFAULT,
                     out userToken);

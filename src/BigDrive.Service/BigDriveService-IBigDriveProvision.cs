@@ -6,7 +6,6 @@ namespace BigDrive.Service
 {
     using System;
     using System.Threading;
-    using BigDrive.Service;
     using global::BigDrive.ConfigProvider;
     using global::BigDrive.ConfigProvider.Model;
 
@@ -26,7 +25,7 @@ namespace BigDrive.Service
             var driveConfiguration = DriveManager.ReadConfiguration(driveGuid, cancellationTokenSource.Token);
             RegistryHelper.RegisterShellFolder(guidDrive: driveGuid, displayName: driveConfiguration.Name, cancellationTokenSource.Token);
 
-            ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
+            BigDrive.Service.ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
         }
 
         /// <summary>
@@ -67,6 +66,44 @@ namespace BigDrive.Service
             RegistryHelper.RegisterShellFolder(guidDrive: driveConfiguration.Id, displayName: driveConfiguration.Name, cancellationTokenSource.Token);
 
             ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
+        }
+
+        /// <summary>
+        /// Unmounts a drive by removing its configuration from the registry,
+        /// unregistering its shell folder, and refreshing Explorer.
+        /// </summary>
+        /// <param name="driveGuid">The GUID of the drive to unmount.</param>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="driveGuid"/> is <see cref="Guid.Empty"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the drive does not exist.</exception>
+        public void UnmountDrive(Guid driveGuid)
+        {
+            DefaultTraceSource.TraceInformation("BigDriveProvision::UnmountDrive() called for drive: {0}", driveGuid);
+
+            if (driveGuid == Guid.Empty)
+            {
+                throw new ArgumentException("Drive GUID cannot be empty.", nameof(driveGuid));
+            }
+
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+            if (!DriveManager.DriveExists(driveGuid, cancellationTokenSource.Token))
+            {
+                throw new InvalidOperationException($"Drive with GUID {driveGuid} does not exist.");
+            }
+
+            // Unregister the shell folder (CLSID, namespace, component category)
+            DefaultTraceSource.TraceInformation("BigDriveProvision::UnmountDrive() unregistering shell folder for drive: {0}", driveGuid);
+            RegistryHelper.UnregisterShellFolder(guidDrive: driveGuid, cancellationToken: cancellationTokenSource.Token);
+
+            // Remove the drive configuration from the registry
+            DefaultTraceSource.TraceInformation("BigDriveProvision::UnmountDrive() deleting configuration for drive: {0}", driveGuid);
+            DriveManager.DeleteConfiguration(driveGuid, cancellationTokenSource.Token);
+
+            // Refresh Explorer to reflect the removal
+            DefaultTraceSource.TraceInformation("BigDriveProvision::UnmountDrive() refreshing Explorer for drive: {0}", driveGuid);
+            ShellHelper.RefreshMyPC(cancellationTokenSource.Token);
+
+            DefaultTraceSource.TraceInformation("BigDriveProvision::UnmountDrive() completed for drive: {0}", driveGuid);
         }
     }
 }

@@ -14,6 +14,33 @@ namespace BigDrive.Setup
         public const string BigDriveTrustedInstallerUserName = "BigDriveInstaller";
 
         /// <summary>
+        /// Converts a <see cref="SecureString"/> to a plain-text string.
+        /// </summary>
+        /// <param name="secureString">The <see cref="SecureString"/> to convert.</param>
+        /// <returns>The plain-text representation of the secure string.</returns>
+        internal static string SecureStringToString(SecureString secureString)
+        {
+            if (secureString == null)
+            {
+                throw new ArgumentNullException(nameof(secureString));
+            }
+
+            IntPtr ptr = IntPtr.Zero;
+            try
+            {
+                ptr = Marshal.SecureStringToBSTR(secureString);
+                return Marshal.PtrToStringBSTR(ptr);
+            }
+            finally
+            {
+                if (ptr != IntPtr.Zero)
+                {
+                    Marshal.ZeroFreeBSTR(ptr);
+                }
+            }
+        }
+
+        /// <summary>
         /// Creates a local user account named "BigDriveTrustedInstaller" on the local machine.
         /// </summary>
         /// <returns>
@@ -56,7 +83,7 @@ namespace BigDrive.Setup
                         UserCannotChangePassword = true
                     };
 
-                    user.SetPassword(password.ToString());
+                    user.SetPassword(SecureStringToString(password));
                     user.Save();
                 }
             }

@@ -4,11 +4,11 @@
 
 namespace BigDrive.Setup
 {
-    using BigDrive.Service.Interfaces;
     using System;
     using System.Diagnostics;
     using System.Runtime.InteropServices;
     using static System.Net.Mime.MediaTypeNames;
+    using BigDrive.Service.Interfaces;
 
     public static class ComRegistrationManager
     {

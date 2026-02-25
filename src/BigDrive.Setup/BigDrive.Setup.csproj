@@ -60,6 +60,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BigDrive.Service.Interfaces\BigDrive.Service.Interfaces.csproj">
+      <Project>{988f386b-aed5-9b4a-df88-2f00347fb765}</Project>
+      <Name>BigDrive.Service.Interfaces</Name>
+    </ProjectReference>
     <ProjectReference Include="..\BigDrive.Service\BigDrive.Service.csproj">
       <Project>{73aa6057-5c8a-4e0f-a6d2-6223173fe83c}</Project>
       <Name>BigDrive.Service</Name>
