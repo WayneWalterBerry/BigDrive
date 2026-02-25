@@ -8,11 +8,23 @@ and the BigDrive.Service COM+ component.
 
 ## Architectural Role
 
+> **CRITICAL: No In-Process COM in the Shell**
+>
+> The Shell must **always** activate `BigDrive.Service` out-of-process using
+> `CLSCTX_LOCAL_SERVER` via `CoCreateInstance`. **Never** use `CLSCTX_INPROC_SERVER`,
+> `Type.GetTypeFromCLSID`, or `Activator.CreateInstance` from the Shell — these
+> risk loading the Service assembly (and its NuGet dependencies) into the Shell
+> process, which will fail and violates process isolation.
+>
+> This is the same rule that applies to provider COM+ components. See
+> `ServiceFactory.cs` and `ProviderFactory.cs` for the correct activation pattern.
+
 ```
 BigDrive.Shell (client)              BigDrive.Service (COM+ dllhost.exe)
         │                            Identity: BigDriveInstaller
         │                                       │
-        │  COM+ out-of-process activation       │
+        │  CoCreateInstance                     │
+        │  CLSCTX_LOCAL_SERVER                  │
         ├──────────────────────────────────────►│
         │                                       │
         │  IBigDriveProvision.UnmountDrive()    │
@@ -43,8 +55,8 @@ Drive provisioning and deprovisioning.
 
 | Method | Purpose |
 |--------|---------|
-| `Create(driveGuid)` | Create a drive from existing registry config |
-| `CreateFromConfiguration(json)` | Create a drive from JSON configuration |
+| `Mount(driveGuid)` | Mount a drive from existing registry config |
+| `Mount(json)` | Mount a drive from JSON configuration |
 | `UnmountDrive(driveGuid)` | Remove drive config, shell folder, refresh Explorer |
 
 ### IBigDriveConfiguration (D3F5A1B2-4C6E-4F8A-9D3E-1A2B3C4D5E6F)

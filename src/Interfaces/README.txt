@@ -70,6 +70,36 @@ IBigDriveFileData (0F471AE9-1787-437F-B230-60CA6717DD04)
   Methods:
     - GetFileData(driveGuid, path, out IStream stream) -> HRESULT
 
+IBigDriveDriveInfo (3A2B1C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D)
+  Purpose: Declare custom parameter requirements for mounting a drive.
+  Methods:
+    - GetDriveParameters() -> string (JSON array of name/description/type objects)
+
+  Supporting Types:
+    - DriveParameterDefinition (Model/DriveParameterDefinition.cs):
+        Serializable class representing a single parameter definition.
+        Properties: Name, Description, Type (defaults to "string").
+        Providers construct an array, call JsonSerializer.Serialize(), and
+        return the resulting string from GetDriveParameters().
+
+  Notes:
+    This interface is optional. Providers that do not require custom parameters
+    do not need to implement it. The Shell queries this interface before creating
+    a drive so it can prompt the user for the required values. The collected values
+    are sent as Properties in the DriveConfiguration JSON passed to
+    IBigDriveProvision.Mount(string jsonConfiguration).
+
+    Each parameter object has these fields:
+      - name:        The property key stored in DriveConfiguration.Properties.
+      - description: User-facing text shown before the prompt.
+      - type:        "string" (default) or "file". When "file", the Shell enables
+                     Tab file-path completion during input.
+
+    Example JSON return value:
+      [
+        { "name": "ZipFilePath", "description": "Full path to the ZIP file.", "type": "file" }
+      ]
+
 IBigDriveAuthentication (7E8F9A0B-1C2D-3E4F-5A6B-7C8D9E0F1A2B)
   Purpose: Describe OAuth authentication requirements for BigDrive Shell.
   Methods:
@@ -222,6 +252,7 @@ To create a custom BigDrive provider:
        - IBigDriveFileOperations (optional)
        - IBigDriveFileData (optional)
        - IBigDriveAuthentication (optional - for OAuth-enabled providers)
+       - IBigDriveDriveInfo (optional - for providers requiring custom drive parameters)
   4. Register the COM+ application with the BigDrive service.
 
 Example: See BigDrive.Provider.Sample for a complete implementation.

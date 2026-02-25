@@ -29,7 +29,8 @@ namespace BigDrive.Provider.Zip
         IBigDriveRegistration,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
-        IBigDriveFileData
+        IBigDriveFileData,
+        IBigDriveDriveInfo
     {
         /// <summary>
         /// The trace source for logging.

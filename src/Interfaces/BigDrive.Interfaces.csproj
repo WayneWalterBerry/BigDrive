@@ -39,6 +39,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Text.Json, Version=9.0.0.11, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -49,11 +50,13 @@
   <ItemGroup>
     <Compile Include="BigDriveAuthenticationRequiredException.cs" />
     <Compile Include="IBigDriveAuthentication.cs" />
+    <Compile Include="IBigDriveDriveInfo.cs" />
     <Compile Include="IBigDriveFileInfo.cs" />
     <Compile Include="IBigDriveFileOperations.cs" />
     <Compile Include="IBigDriveRegistration.cs" />
     <Compile Include="IBigDriveEnumerate.cs" />
     <Compile Include="IBigDriveFileData.cs" />
+    <Compile Include="Model\DriveParameterDefinition.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

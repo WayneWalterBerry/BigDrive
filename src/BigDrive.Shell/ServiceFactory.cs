@@ -11,20 +11,18 @@ namespace BigDrive.Shell
 
     /// <summary>
     /// Factory for activating BigDriveService via COM+ out-of-process.
-    /// Uses CoCreateInstance with CLSCTX_INPROC_SERVER to activate the service.
-    /// COM+ intercepts the in-proc activation because the application has
-    /// [ApplicationActivation(ActivationOption.Server)] and redirects to dllhost.exe.
+    /// Uses CoCreateInstance with CLSCTX_LOCAL_SERVER to ensure the service
+    /// always runs in dllhost.exe, never in the Shell process.
     /// </summary>
     /// <remarks>
     /// The Shell must never reference BigDrive.Service directly. This factory
     /// activates the service out-of-process via COM+ and casts to the
     /// <see cref="IBigDriveProvision"/> interface defined in BigDrive.Service.Interfaces.
     ///
-    /// Why CLSCTX_INPROC_SERVER and not CLSCTX_LOCAL_SERVER:
-    ///   COM+ ServicedComponents are registered as InprocServer32 (mscoree.dll).
-    ///   There is no LocalServer32 key, so CLSCTX_LOCAL_SERVER returns 0x80040154.
-    ///   COM+ intercepts CLSCTX_INPROC_SERVER and redirects to dllhost.exe when
-    ///   the application is configured for server activation.
+    /// Why CLSCTX_LOCAL_SERVER:
+    ///   The Shell must never load COM objects in-process. All COM+ activation
+    ///   from the Shell uses CLSCTX_LOCAL_SERVER so the component runs in
+    ///   dllhost.exe. This is the same approach used by ProviderFactory.
     ///
     /// Why not Type.GetTypeFromCLSID + Activator.CreateInstance:
     ///   The .NET CLR short-circuits COM interop for managed-to-managed calls,
@@ -34,10 +32,10 @@ namespace BigDrive.Shell
     public static class ServiceFactory
     {
         /// <summary>
-        /// CLSCTX_INPROC_SERVER - COM+ intercepts and redirects to dllhost.exe
-        /// for applications configured with ActivationOption.Server.
+        /// CLSCTX_LOCAL_SERVER - Activates the COM object out-of-process in dllhost.exe.
+        /// The Shell must never use CLSCTX_INPROC_SERVER; all COM activation is remote.
         /// </summary>
-        private const uint CLSCTX_INPROC_SERVER = 0x1;
+        private const uint CLSCTX_LOCAL_SERVER = 0x4;
 
         /// <summary>
         /// The CLSID of BigDriveService (from BigDrive.Service assembly).
@@ -87,9 +85,8 @@ namespace BigDrive.Shell
         }
 
         /// <summary>
-        /// Creates a BigDriveService instance via COM+ CoCreateInstance (CLSCTX_INPROC_SERVER).
-        /// COM+ intercepts the activation and redirects to dllhost.exe because
-        /// BigDrive.Service is configured with [ApplicationActivation(ActivationOption.Server)].
+        /// Creates a BigDriveService instance via COM+ CoCreateInstance (CLSCTX_LOCAL_SERVER).
+        /// The service runs out-of-process in dllhost.exe under the BigDriveInstaller identity.
         /// </summary>
         /// <returns>The COM object instance.</returns>
         /// <exception cref="InvalidOperationException">Thrown if CoCreateInstance fails.</exception>
@@ -98,10 +95,10 @@ namespace BigDrive.Shell
             Guid clsid = BigDriveServiceCLSID;
             Guid iidUnknown = new Guid("00000000-0000-0000-C000-000000000046"); // IUnknown
 
-            ShellTrace.Info("CoCreateInstance: BigDriveService CLSID={0}, Context=CLSCTX_INPROC_SERVER (COM+ redirects to dllhost.exe)", clsid);
+            ShellTrace.Info("CoCreateInstance: BigDriveService CLSID={0}, Context=CLSCTX_LOCAL_SERVER (out-of-process in dllhost.exe)", clsid);
 
             object service;
-            int hr = CoCreateInstance(ref clsid, null, CLSCTX_INPROC_SERVER, ref iidUnknown, out service);
+            int hr = CoCreateInstance(ref clsid, null, CLSCTX_LOCAL_SERVER, ref iidUnknown, out service);
 
             ShellTrace.ComResult("CoCreateInstance", "BigDriveService", hr,
                 service != null ? "service created" : "service is null");
