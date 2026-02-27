@@ -127,7 +127,7 @@ See [Components](components.md) for complete component breakdown.
 ## Quick Start References
 
 - **Users**: See [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) for command usage
-- **Provider Developers**: See [Provider Development Guide](../ProviderDevelopmentGuide.md) for creating new providers
+- **Provider Developers**: See [Provider Development Guide](../provider-development/README.md) for creating new providers
 - **Contributors**: Read individual project READMEs (e.g., `src/BigDrive.Shell/README.md`) before making changes
 
 ---

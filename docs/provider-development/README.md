@@ -30,34 +30,40 @@ A BigDrive provider is a **COM+ ServicedComponent** that:
 | Document | Description | Read If... |
 |----------|-------------|-----------|
 | **[Getting Started](getting-started.md)** | Project setup, naming conventions, architecture overview | You're creating a new provider |
+| **[Architecture](architecture.md)** | **Provider architecture, COM+ model, process lifecycle** | **You need to understand how providers work** |
+| **[Full Development Guide](guide.md)** | Complete reference guide with all interfaces, patterns, and registration details | You need comprehensive implementation details |
+| **[Development Practices](practices.md)** | Build-register-test workflow, debugging, DLL locking solutions | You're developing and testing providers |
 | **[Interfaces Reference](interfaces.md)** | All interface definitions and signatures | You need to know which interfaces to implement |
 | **[NuGet Dependencies](nuget-dependencies.md)** | AssemblyResolver, app.config, static constructor setup | Your provider uses NuGet packages (CRITICAL!) |
 | **[OAuth Authentication](oauth-authentication.md)** | OAuth 2.0, Device Code, OAuth 1.0a flows | Your provider connects to cloud services |
-| **[Examples](examples.md)** | Complete code examples and patterns | You want working code to copy from |
 | **[Troubleshooting](troubleshooting.md)** | Common errors and solutions | Your provider isn't working |
 
 ---
 
 ## Quick Start Path
 
-### For Local File Providers (ISO, Archive, Database)
+### For Local File Providers (ISO, VirtualDisk, Archive, Database)
 
 1. ✅ **[Getting Started](getting-started.md)** - Create project and configure AssemblyInfo.cs
-2. ✅ **[Interfaces Reference](interfaces.md)** - Implement required interfaces
-3. ✅ **[NuGet Dependencies](nuget-dependencies.md)** - Setup AssemblyResolver (CRITICAL!)
-4. ✅ **[Examples](examples.md)** - Copy ISO provider as template
-5. ✅ **[Troubleshooting](troubleshooting.md)** - If registration fails
+2. ✅ **[Architecture](architecture.md)** - Understand provider process model
+3. ✅ **[Interfaces Reference](interfaces.md)** - Implement required interfaces
+4. ✅ **[NuGet Dependencies](nuget-dependencies.md)** - Setup AssemblyResolver (CRITICAL!)
+5. ✅ **Study existing providers** - See VirtualDisk or ISO provider source code
+6. ✅ **[Development Practices](practices.md)** - Build-register-test workflow
+7. ✅ **[Troubleshooting](troubleshooting.md)** - If registration fails
 
 **Estimated time:** 2-4 hours
 
 ### For Cloud API Providers (OneDrive, Google Drive, Azure)
 
 1. ✅ **[Getting Started](getting-started.md)** - Create project and configure AssemblyInfo.cs
-2. ✅ **[OAuth Authentication](oauth-authentication.md)** - Implement IBigDriveAuthentication
-3. ✅ **[Interfaces Reference](interfaces.md)** - Implement required interfaces
-4. ✅ **[NuGet Dependencies](nuget-dependencies.md)** - Setup AssemblyResolver (CRITICAL!)
-5. ✅ **[Examples](examples.md)** - Copy Flickr provider pattern
-6. ✅ **[Troubleshooting](troubleshooting.md)** - If authentication or registration fails
+2. ✅ **[Architecture](architecture.md)** - Understand Interactive User identity
+3. ✅ **[OAuth Authentication](oauth-authentication.md)** - Implement IBigDriveAuthentication
+4. ✅ **[Interfaces Reference](interfaces.md)** - Implement required interfaces
+5. ✅ **[NuGet Dependencies](nuget-dependencies.md)** - Setup AssemblyResolver (CRITICAL!)
+6. ✅ **Study Flickr provider** - Reference implementation for OAuth and cloud APIs
+7. ✅ **[Development Practices](practices.md)** - Build-register-test workflow
+8. ✅ **[Troubleshooting](troubleshooting.md)** - If authentication or registration fails
 
 **Estimated time:** 4-8 hours
 
@@ -408,20 +414,20 @@ public int GetFileData(Guid driveGuid, string path, out IStream stream)
 
 | I Want To... | Read This |
 |--------------|-----------|
-| Create my first provider | [Getting Started](getting-started.md) → [Examples](examples.md) |
+| Create my first provider | [Getting Started](getting-started.md) → Study existing provider source code |
 | Add OAuth login | [OAuth Authentication](oauth-authentication.md) |
 | Fix "Could not load assembly" error | [NuGet Dependencies](nuget-dependencies.md) → [Troubleshooting](troubleshooting.md) |
 | Understand interface signatures | [Interfaces Reference](interfaces.md) |
-| See working code | [Examples](examples.md) |
-| Debug registration issues | [Troubleshooting](troubleshooting.md) |
+| See working code | Open provider source: `src/BigDrive.Provider.Iso/` or `src/BigDrive.Provider.VirtualDisk/` |
+| Debug registration issues | [Development Practices](practices.md) → [Troubleshooting](troubleshooting.md) |
 
 ### By Provider Type
 
 | Provider Type | Recommended Reading Order |
 |---------------|---------------------------|
-| **Local File** (ISO, Archive) | Getting Started → Interfaces → NuGet Dependencies → Examples (ISO) |
-| **Cloud API** (OneDrive, Google) | Getting Started → OAuth Authentication → Interfaces → NuGet Dependencies → Examples (Flickr) |
-| **Database** (SQLite, Access) | Getting Started → Interfaces → NuGet Dependencies → Examples (Archive) |
+| **Local File** (ISO, VirtualDisk) | Getting Started → Interfaces → NuGet Dependencies → Study ISO source code |
+| **Cloud API** (OneDrive, Google) | Getting Started → OAuth Authentication → Interfaces → NuGet Dependencies → Study Flickr source code |
+| **Database** (SQLite, Access) | Getting Started → Interfaces → NuGet Dependencies → Study Archive source code |
 
 ---
 
@@ -585,20 +591,37 @@ Look for:
 
 The best way to learn is by studying existing providers:
 
-| Provider | Best For Learning | Source Path |
-|----------|-------------------|-------------|
-| **Iso** | Simplest working provider | `src/BigDrive.Provider.Iso/` |
-| **Archive** | NuGet integration patterns | `src/BigDrive.Provider.Archive/` |
-| **Zip** | Write operations | `src/BigDrive.Provider.Zip/` |
-| **Flickr** | OAuth and cloud APIs | `src/BigDrive.Provider.Flickr/` |
+| Provider | Best For Learning | Capabilities | Source Path |
+|----------|-------------------|--------------|-------------|
+| **VirtualDisk** | Read-write operations, multi-format support | VHD/VHDX/VMDK/VDI, Write/Delete/Mkdir | `src/BigDrive.Provider.VirtualDisk/` |
+| **Iso** | Simplest read-only provider | ISO disc images, Read-only | `src/BigDrive.Provider.Iso/` |
+| **Archive** | NuGet integration patterns | ZIP/TAR/7z/RAR, Read-only | `src/BigDrive.Provider.Archive/` |
+| **Zip** | Write operations on archives | ZIP archives, Read-write | `src/BigDrive.Provider.Zip/` |
+| **Flickr** | OAuth and cloud APIs | OAuth 1.0a, Caching, Cloud API | `src/BigDrive.Provider.Flickr/` |
+
+### Provider Comparison Matrix
+
+| Feature | VirtualDisk | Iso | Archive | Zip | Flickr |
+|---------|------------|-----|---------|-----|--------|
+| **Complexity** | ⭐⭐⭐ Medium | ⭐⭐ Simple | ⭐⭐⭐ Medium | ⭐⭐ Simple | ⭐⭐⭐⭐ Complex |
+| **Lines of Code** | ~400 | ~250 | ~400 | ~300 | ~800 |
+| **Read Files** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Write Files** | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Delete Files** | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Create Folders** | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **OAuth** | ❌ | ❌ | ❌ | ❌ | ✅ OAuth 1.0a |
+| **Formats** | 4 formats | ISO/UDF | 4 formats | ZIP only | Cloud API |
+| **AssemblyResolver** | ✅ Required | ✅ Required | ✅ Required | ✅ Required | ✅ Required |
+| **Best Template For** | VM disks, Read-write | Disc images, Read-only | Archives, Multi-format | Archives, Simple | Cloud APIs, OAuth |
 
 ### Documentation Links
 
 - [Getting Started](getting-started.md) - Project setup and architecture
+- [Full Development Guide](guide.md) - Complete reference with all details
+- [Development Practices](practices.md) - Build-register-test workflow
 - [Interfaces Reference](interfaces.md) - All interface definitions
 - [NuGet Dependencies](nuget-dependencies.md) - Critical! AssemblyResolver setup
 - [OAuth Authentication](oauth-authentication.md) - Cloud service authentication
-- [Examples](examples.md) - Complete code examples
 - [Troubleshooting](troubleshooting.md) - Common errors and solutions
 
 ---

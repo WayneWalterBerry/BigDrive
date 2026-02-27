@@ -1,3 +1,4 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11512.155
@@ -37,6 +38,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Archive", "src\BigDrive.Provider.Archive\BigDrive.Provider.Archive.csproj", "{23C5C3A2-E049-E2F4-A42D-154278EA7EA7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Iso", "src\BigDrive.Provider.Iso\BigDrive.Provider.Iso.csproj", "{248367FA-1A18-AA16-2F28-BC382941106B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.VirtualDisk", "src\BigDrive.Provider.VirtualDisk\BigDrive.Provider.VirtualDisk.csproj", "{47BA476A-59EA-53EE-2F27-07D7EE33CD81}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -264,6 +269,18 @@ Global
 		{248367FA-1A18-AA16-2F28-BC382941106B}.Release|x64.Build.0 = Release|Any CPU
 		{248367FA-1A18-AA16-2F28-BC382941106B}.Release|x86.ActiveCfg = Release|Any CPU
 		{248367FA-1A18-AA16-2F28-BC382941106B}.Release|x86.Build.0 = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|x64.Build.0 = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Debug|x86.Build.0 = Debug|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|x64.ActiveCfg = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|x64.Build.0 = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|x86.ActiveCfg = Release|Any CPU
+		{47BA476A-59EA-53EE-2F27-07D7EE33CD81}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

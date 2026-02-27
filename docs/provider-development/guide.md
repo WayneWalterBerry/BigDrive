@@ -1,128 +1,38 @@
 # BigDrive Provider Development Guide
 
-> **⚠️ This document has been reorganized!**
->
-> The Provider Development Guide has been split into focused, topic-specific documents
-> for easier navigation and maintenance.
+This is the **complete reference guide** for creating BigDrive providers. For a quicker overview, see [Provider Development README](README.md).
 
 ---
 
-## 📚 New Documentation Structure
+## 📚 Provider Development Documentation
 
-The provider development documentation is now located in **`docs/provider-development/`**:
+### Quick Navigation
 
-### **→ [Start Here: Provider Development README](provider-development/README.md)**
-
-### Core Guides
-
-| Document | Description |
-|----------|-------------|
-| **[Getting Started](provider-development/getting-started.md)** | Project setup, naming conventions, architecture |
-| **[Interfaces Reference](provider-development/interfaces.md)** | All interface definitions and implementation examples |
-| **[NuGet Dependencies](provider-development/nuget-dependencies.md)** | **CRITICAL!** AssemblyResolver, app.config, static constructor |
-| **[OAuth Authentication](provider-development/oauth-authentication.md)** | OAuth 2.0, Device Code, OAuth 1.0a implementation |
-| **[Examples](provider-development/examples.md)** | Complete working code examples |
-| **[Troubleshooting](provider-development/troubleshooting.md)** | Common errors and solutions |
-
----
-
-## Quick Links
-
-### I want to...
-
-- **Create a new provider** → [Getting Started](provider-development/getting-started.md)
-- **Fix "Could not load assembly" error** → [NuGet Dependencies](provider-development/nuget-dependencies.md)
-- **Add OAuth login** → [OAuth Authentication](provider-development/oauth-authentication.md)
-- **See working code** → [Examples](provider-development/examples.md)
-- **Debug registration issues** → [Troubleshooting](provider-development/troubleshooting.md)
-
-### By Provider Type
-
-- **Local file provider** (ISO, Archive) → [Getting Started](provider-development/getting-started.md) → [Examples - ISO Provider](provider-development/examples.md#example-1-read-only-local-file-provider-iso)
-- **Cloud API provider** (OneDrive, Flickr) → [OAuth Authentication](provider-development/oauth-authentication.md) → [Examples - Flickr Provider](provider-development/examples.md#example-3-cloud-provider-with-oauth-flickr)
+| Document | Purpose |
+|----------|---------|
+| **[README](README.md)** | Overview and quick start paths |
+| **[Architecture](architecture.md)** | **NEW!** Provider architecture & COM+ model |
+| **[Getting Started](getting-started.md)** | Project setup, naming conventions |
+| **[This Guide](guide.md)** | **Complete reference** with all details |
+| **[Development Practices](practices.md)** | Build-register-test workflow |
+| **[Interfaces Reference](interfaces.md)** | Interface definitions |
+| **[NuGet Dependencies](nuget-dependencies.md)** | **CRITICAL!** AssemblyResolver setup |
+| **[OAuth Authentication](oauth-authentication.md)** | OAuth 2.0/1.0a flows |
+| **[Troubleshooting](troubleshooting.md)** | Common errors |
 
 ---
-
-## Why the Change?
-
-The original guide grew to **1,260+ lines** and became difficult to navigate. The new structure:
-
-✅ **Focused topics** - Each file covers one concept (~200-400 lines)  
-✅ **Easy navigation** - Table of contents and cross-links  
-✅ **Better maintenance** - Update specific sections without affecting others  
-✅ **Improved searchability** - Find answers faster  
-
----
-
-## Migration Note
-
-If you have bookmarks or links to this file, please update them to:
-- **`docs/provider-development/README.md`** (main entry point)
-
-All content from the original guide has been preserved and organized into the new structure.
-
----
-
-**→ [Go to New Documentation](provider-development/README.md)**
-
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Windows Explorer / BigDrive.Shell                                     │
-│                                                                         │
-│  CoCreateInstance(Provider CLSID)                                       │
-│                          │                                              │
-└──────────────────────────┼──────────────────────────────────────────────┘
-                           │ COM Activation
-                           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  dllhost.exe (COM+ Surrogate)                                           │
-│                                                                         │
-│  ┌─────────────────────┐  ┌─────────────────────┐                       │
-│  │ Your.Provider       │  │ Provider.Flickr     │  ...                  │
-│  │ (ServicedComponent) │  │ (ServicedComponent) │                       │
-│  └─────────────────────┘  └─────────────────────┘                       │
-│                                                                         │
-│  Identity: Interactive User (logged-in user)                            │
-│  - Access to user's Credential Manager for secrets                      │
-│  - Access to HKCU registry                                              │
-└─────────────────────────────────────────────────────────────────────────┘
-                           │
-                           │ Your API Calls
-                           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  External Storage (Cloud API, Database, Network Share, etc.)            │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+Providers are COM+ ServicedComponents that run out-of-process in `dllhost.exe` as the Interactive User.
 
----
+**Key Concepts:**
+- ✅ **Out-of-Process** - Runs in dllhost.exe, not explorer.exe (fault isolation)
+- ✅ **Interactive User** - Access to Credential Manager and user's registry
+- ✅ **Self-Registering** - Uses `[ComRegisterFunction]` for automated setup
+- ✅ **Lifecycle Managed** - COM+ handles startup, idle timeout, and shutdown
 
-## Provider Registration Flow
-
-Providers are **self-registering** using the `[ComRegisterFunction]` attribute.
-When you run `regsvcs.exe` (elevated), the following happens automatically:
-
-```
-regsvcs.exe YourProvider.dll (Run As Administrator)
-       │
-       ├─► 1. Create COM+ Application
-       │       - Reads [ApplicationActivation(Server)] attribute
-       │       - Registers CLSIDs in HKCR\CLSID
-       │       - Creates COM+ App: "BigDrive.Provider.YourService"
-       │
-       └─► 2. Call [ComRegisterFunction] method
-               │
-               ├─► SetApplicationIdentityToInteractiveUser()
-               │       - Uses COMAdmin catalog API
-               │       - Sets identity = "Interactive User"
-               │       - Enables access to user's Credential Manager
-               │
-               └─► Provider.Register()
-                       - ProviderManager.RegisterProvider()
-                       - DriveManager.WriteConfiguration()
-```
+**→ Full details:** [Provider Architecture](architecture.md)
 
 ---
 
