@@ -83,6 +83,20 @@ namespace BigDrive.Shell
         }
 
         /// <summary>
+        /// Creates an IBigDriveFileInfo instance for the specified drive.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <returns>The IBigDriveFileInfo interface, or null if not available.</returns>
+        public static IBigDriveFileInfo GetFileInfoProvider(Guid driveGuid)
+        {
+            ShellTrace.Verbose("GetFileInfoProvider(driveGuid={0})", driveGuid);
+            object provider = GetProviderInstance(driveGuid);
+            IBigDriveFileInfo fileInfo = provider as IBigDriveFileInfo;
+            ShellTrace.Verbose("IBigDriveFileInfo: {0}", fileInfo != null ? "available" : "not supported");
+            return fileInfo;
+        }
+
+        /// <summary>
         /// Creates an IBigDriveAuthentication instance for the specified drive.
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>

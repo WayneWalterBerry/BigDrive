@@ -243,6 +243,270 @@ Z:\Vacation 2024> cd \
 Z:\>
 ```
 
+---
+
+## Advanced Directory Listing (dir Command Switches)
+
+The `dir` command supports a variety of switches for filtering, sorting, and formatting output.
+
+### Filtering Switches
+
+#### List Directories Only (`-ad`)
+
+Show only directories, excluding files:
+
+```
+Z:\> dir -ad
+
+ Directory of Z:\
+
+    <DIR>    Vacation 2024
+    <DIR>    Family Reunion
+    <DIR>    Nature Photography
+    <DIR>    City Skylines
+
+       4 Dir(s)    0 File(s)
+```
+
+#### List Files Only (`-af`)
+
+Show only files, excluding directories:
+
+```
+Z:\Vacation 2024> dir -af
+
+ Directory of Z:\Vacation 2024
+
+             Beach Sunset.jpg
+             Mountain View.jpg
+             Hotel Pool.jpg
+             Local Market.jpg
+             Dinner with Friends.jpg
+
+       0 Dir(s)    5 File(s)
+```
+
+Combine with wildcards to find specific files:
+
+```
+Z:\> dir -af *.jpg
+
+ Directory of Z:\  (filter: *.jpg)
+
+             profile.jpg
+             banner.jpg
+
+       0 Dir(s)    2 File(s)
+```
+
+### Recursive Listing (`-r`)
+
+List all files and directories in the current directory and all subdirectories:
+
+```
+Z:\> dir -r
+
+ Directory of Z:\
+
+    <DIR>    Vacation 2024
+             Beach Sunset.jpg
+             Mountain View.jpg
+    <DIR>    Family Reunion
+             reunion2023.jpg
+             group_photo.jpg
+    <DIR>    Nature Photography
+             forest.jpg
+             sunset.jpg
+
+       3 Dir(s)    6 File(s)
+```
+
+Combine with `-af` to find all files recursively:
+
+```
+Z:\> dir -r -af *.txt
+
+ Directory of Z:\
+
+             readme.txt
+             notes.txt
+             archive\log.txt
+             vacation\itinerary.txt
+
+       0 Dir(s)    4 File(s)
+```
+
+### Display Format Switches
+
+#### Bare Format (`-Name` or `-b`)
+
+Display only the names, without headers or counts (useful for scripting):
+
+```
+Z:\Vacation 2024> dir -Name
+
+Beach Sunset.jpg
+Mountain View.jpg
+Hotel Pool.jpg
+Local Market.jpg
+Dinner with Friends.jpg
+```
+
+Redirect to a file:
+
+```
+Z:\> dir -Name > C:\temp\filelist.txt
+```
+
+#### Wide Format (`-w`)
+
+Display entries in multiple columns for compact viewing:
+
+```
+Z:\> dir -w
+
+ Directory of Z:\
+
+[Vacation 2024]     [Family Reunion]    [Nature Photography]
+[City Skylines]     profile.jpg         banner.jpg
+
+       4 Dir(s)    2 File(s)
+```
+
+### Sorting Switches
+
+#### Sort by Name (`-o:n`)
+
+Sort alphabetically (A-Z):
+
+```
+Z:\> dir -o:n
+
+ Directory of Z:\
+
+    <DIR>    City Skylines
+    <DIR>    Family Reunion
+    <DIR>    Nature Photography
+    <DIR>    Vacation 2024
+
+       4 Dir(s)    0 File(s)
+```
+
+#### Sort by Name Descending (`-o:-n`)
+
+Sort reverse alphabetically (Z-A):
+
+```
+Z:\> dir -o:-n
+
+ Directory of Z:\
+
+    <DIR>    Vacation 2024
+    <DIR>    Nature Photography
+    <DIR>    Family Reunion
+    <DIR>    City Skylines
+
+       4 Dir(s)    0 File(s)
+```
+
+#### Sort by Date (`-o:d`)
+
+Sort by last modified date (oldest first):
+
+```
+Z:\Vacation 2024> dir -af -o:d
+
+ Directory of Z:\Vacation 2024
+
+             Hotel Pool.jpg
+             Beach Sunset.jpg
+             Mountain View.jpg
+             Dinner with Friends.jpg
+             Local Market.jpg
+
+       0 Dir(s)    5 File(s)
+```
+
+> **Note:** Date sorting requires the provider to implement `IBigDriveFileInfo`.
+> Providers that don't support file metadata will ignore this switch.
+
+#### Sort by Size (`-o:s`)
+
+Sort by file size (smallest first):
+
+```
+Z:\Vacation 2024> dir -af -o:s
+
+ Directory of Z:\Vacation 2024
+
+             Hotel Pool.jpg
+             Local Market.jpg
+             Beach Sunset.jpg
+             Mountain View.jpg
+             Dinner with Friends.jpg
+
+       0 Dir(s)    5 File(s)
+```
+
+#### Sort by Extension (`-o:e`)
+
+Sort by file extension:
+
+```
+Z:\> dir -af -o:e
+
+ Directory of Z:\
+
+             readme.txt
+             notes.txt
+             profile.jpg
+             banner.jpg
+             archive.zip
+
+       0 Dir(s)    5 File(s)
+```
+
+### Combining Switches
+
+You can combine multiple switches for powerful filtering:
+
+```
+# Find all JPG files recursively, sorted by name
+Z:\> dir -r -af -o:n *.jpg
+
+# List only directories in wide format
+Z:\> dir -ad -w
+
+# Get bare names of all text files for scripting
+Z:\> dir -af -Name *.txt
+
+# Sort directories by name
+Z:\> dir -ad -o:n
+```
+
+### Switch Summary
+
+| Switch | Long Form | Description |
+|--------|-----------|-------------|
+| `-ad` | `-Directory` | Directories only |
+| `-af` | `-File` | Files only |
+| `-r` | `-Recurse` | Recursive (include subdirectories) |
+| `-Name` | `-b` | Bare format (names only, no headers) |
+| `-w` | | Wide format (multiple columns) |
+| `-o:n` | | Sort by name (A-Z) |
+| `-o:-n` | | Sort by name descending (Z-A) |
+| `-o:d` | | Sort by date (oldest first) |
+| `-o:s` | | Sort by size (smallest first) |
+| `-o:e` | | Sort by extension |
+
+> **Tip:** Use both `-` and `/` as switch prefixes interchangeably (e.g., `dir /ad` or `dir -ad`).
+
+---
+
+### Step 7: Navigate Back
+
+---
+
 ### Step 8: Copy Between BigDrives
 
 Switch to another BigDrive and copy a file from the first:

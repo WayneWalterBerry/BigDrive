@@ -21,6 +21,52 @@ Failing to understand these architectural constraints will result in broken code
 
 ---
 
+### Project Architecture and Build Configurations
+
+#### Platform-Specific vs Platform-Agnostic Projects
+
+**C++ Projects** (Platform-Specific: x86 and x64):
+- **BigDrive.Client** — COM+ client library for managing providers and drives
+- **BigDrive.Extension** — Windows Explorer context menu integration
+- **BigDrive.ShellFolder** — Windows Explorer shell extension (IShellFolder implementation)
+- **BigDrive.Client.Test** — Unit tests for BigDrive.Client
+- **BigDrive.ShellFolder.Test** — Unit tests for BigDrive.ShellFolder
+
+These projects compile to platform-specific binaries because they integrate directly with 
+`explorer.exe` and Windows shell APIs, which are architecture-dependent. Solution 
+configurations must build both x86 and x64 versions for compatibility with 32-bit and 
+64-bit Windows Explorer processes.
+
+**C# Projects** (Any CPU):
+- **BigDrive.Shell** — Command-line shell interface
+- **BigDrive.Service** — COM+ service for drive provisioning
+- **BigDrive.Provider.*** — Storage provider implementations (Flickr, Archive, Zip)
+- **BigDrive.Setup** — Installation and registration
+- **BigDrive.Interfaces** — COM interface definitions
+- **BigDrive.ConfigProvider** — Registry configuration access
+
+These projects target "Any CPU" because they run in COM+ applications (`dllhost.exe`) 
+or as standalone .NET processes. They use COM interop but don't require platform-specific 
+compilation.
+
+#### Solution Configuration Strategy
+
+The solution uses **blended configurations** to handle mixed C++/C# architectures:
+- **Debug|Any CPU** — Builds C# projects in Debug mode; C++ projects use x64 Debug
+- **Release|Any CPU** — Builds C# projects in Release mode; C++ projects use x64 Release
+- **Debug|x86** — Builds C++ projects for 32-bit; C# projects build as Any CPU
+- **Debug|x64** — Builds C++ projects for 64-bit; C# projects build as Any CPU
+- **Release|x86** — Same as Debug|x86 but optimized
+- **Release|x64** — Same as Debug|x64 but optimized
+
+When modifying build configurations:
+- C++ projects **must** specify explicit platform (Win32 or x64)
+- C# projects should remain "Any CPU" unless there's a specific reason
+- Platform toolset for C++ projects: Use v145 (Visual Studio 2027 Preview) or latest available
+- Always test both x86 and x64 builds for shell extensions
+
+---
+
 ### Coding Style Preferences
 
 #### C++ Code

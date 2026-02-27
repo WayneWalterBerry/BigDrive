@@ -2,13 +2,25 @@
 
 ## What is BigDrive?
 
-BigDrive exposes cloud storage services (Flickr, Azure Blob, etc.) as virtual file systems
-in Windows. Users can browse and manage remote files using familiar tools like Windows
-Explorer or BigDrive.Shell.
+BigDrive exposes cloud storage services (Flickr, Azure Blob, etc.) as virtual file systems in Windows. Users can browse and manage remote files using familiar tools like Windows Explorer or BigDrive.Shell (command-line interface).
 
 ---
 
-## System Architecture
+## Table of Contents
+
+This overview provides a high-level introduction to BigDrive's architecture. For detailed information, see:
+
+- **[Components](components.md)** — Detailed breakdown of C++ and C# components, platform architectures, and execution models
+- **[Build Configurations](build-configs.md)** — Platform-specific vs Any CPU projects, solution configurations, and toolset versions
+- **[Registry Structure](registry.md)** — Registry layout, providers vs drives, and configuration hierarchy
+- **[Interface Hierarchy](interfaces.md)** — COM interface definitions, provider contracts, and service interfaces
+- **[Data Flow](data-flow.md)** — Request/response flows for common operations (dir, copy, mount)
+- **[Process Isolation](process-isolation.md)** — COM+ activation, dllhost.exe processes, and security boundaries
+- **[Installation](installation.md)** — Setup process, COM+ registration, and shell integration (existing file)
+
+---
+
+## High-Level Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -59,281 +71,71 @@ Explorer or BigDrive.Shell.
 
 ---
 
-## Key Concepts
+## Key Architectural Principles
+
+### 1. Out-of-Process COM+ Activation
+
+All providers and services run in separate `dllhost.exe` processes via COM+, ensuring:
+- **Process isolation** — Provider crashes don't affect Explorer or the Shell
+- **Security boundaries** — Providers run as Interactive User; Service runs as elevated BigDriveInstaller
+- **Cross-architecture support** — C# components (Any CPU) can be called from C++ components (x86/x64)
+
+### 2. Provider Abstraction
+
+Providers are pluggable COM+ components that implement standard interfaces (`IBigDriveEnumerate`, `IBigDriveFileData`, etc.). New storage backends can be added without modifying core BigDrive components.
+
+### 3. Drive Instances
+
+A single provider (e.g., Flickr) can support multiple drive instances with different configurations (personal account, work account). Each drive has its own GUID and registry configuration.
+
+### 4. Platform-Specific Shell Extensions
+
+C++ shell extensions (`BigDrive.ShellFolder.dll`) must be built for both x86 and x64 to support 32-bit and 64-bit Windows Explorer processes. C# components remain "Any CPU" and run out-of-process.
+
+---
+
+## Core Concepts
 
 ### Providers vs Drives
 
-| Concept | Description | Registry Location |
-|---------|-------------|-------------------|
-| **Provider** | COM+ component that knows *how* to access a storage backend | `SOFTWARE\BigDrive\Providers\{CLSID}` |
-| **Drive** | User-created instance that uses a provider to access *specific* storage | `SOFTWARE\BigDrive\Drives\{GUID}` |
+| Concept | Description | Example |
+|---------|-------------|---------|
+| **Provider** | COM+ component that knows *how* to access a storage backend | "Flickr Provider" |
+| **Drive** | User-created instance using a provider to access *specific* storage | "My Personal Flickr" (drive Z:) |
 
-**Example**: One "Flickr Provider" can be used by multiple drives:
-- "Personal Flickr" → user's personal account (with personal API key)
-- "Work Flickr" → company account (with work API key)
+**Registry Locations:**
+- Providers: `HKLM\SOFTWARE\BigDrive\Providers\{CLSID}`
+- Drives: `HKLM\SOFTWARE\BigDrive\Drives\{GUID}`
 
-### Registry Structure
-
-```
-HKLM\SOFTWARE\BigDrive\
-│
-├── Providers\                         ← Registered by COM+ installation
-│   ├── {B3D8F2A1-...}\               ← Flickr Provider CLSID
-│   │   ├── id   = "{B3D8F2A1-...}"
-│   │   ├── name = "Flickr Provider"
-│   │   ├── FlickrApiKey = "default-api-key"     ← Provider-level defaults
-│   │   └── FlickrApiSecret = "default-secret"
-│   │
-│   └── {F8FE2E5A-...}\               ← Sample Provider CLSID
-│       ├── id   = "{F8FE2E5A-...}"
-│       └── name = "Sample Provider"
-│
-└── Drives\                            ← Created by user (mount command)
-    ├── {6369DDE1-...}\               ← Drive GUID
-    │   ├── id    = "{6369DDE1-...}"
-    │   ├── name  = "My Personal Flickr"
-    │   ├── clsid = "{B3D8F2A1-...}"  ← Points to Flickr Provider
-    │   ├── FlickrApiKey = "personal-key"         ← Drive-specific override
-    │   ├── FlickrOAuthToken = "oauth-token"
-    │   └── FlickrOAuthSecret = "oauth-secret"
-    │
-    └── {A1B2C3D4-...}\               ← Another drive (same provider)
-        ├── id    = "{A1B2C3D4-...}"
-        ├── name  = "Work Flickr"
-        ├── clsid = "{B3D8F2A1-...}"  ← Same provider
-        ├── FlickrApiKey = "work-key"             ← Different credentials
-        ├── FlickrOAuthToken = "work-oauth-token"
-        └── FlickrOAuthSecret = "work-oauth-secret"
-```
-
-### Drive-Specific Configuration
-
-Providers receive the `driveGuid` parameter in all interface methods. This allows
-providers to load drive-specific configuration:
-
-```csharp
-// In provider implementation
-public string[] EnumerateFolders(Guid driveGuid, string path)
-{
-    // Load configuration for this specific drive
-    string apiKey = DriveManager.ReadDriveProperty(driveGuid, "FlickrApiKey", CancellationToken.None);
-
-    // If not found on drive, falls back to provider-level default
-    // ...
-}
-```
-
-**Configuration priority** (highest to lowest):
-1. Drive-specific value (`SOFTWARE\BigDrive\Drives\{GUID}\PropertyName`)
-2. Provider-level default (`SOFTWARE\BigDrive\Providers\{CLSID}\PropertyName`)
-3. Hard-coded default in provider code
+See [Registry Structure](registry.md) for detailed registry layout.
 
 ---
 
-## Component Overview
+## Component Roles
 
-### User-Facing Components
+| Component | Purpose | Process | Platform |
+|-----------|---------|---------|----------|
+| **BigDrive.Shell.exe** | Command-line interface (dir, cd, copy, mount) | Standalone .NET | Any CPU |
+| **BigDrive.ShellFolder.dll** | Windows Explorer integration (namespace extension) | Loads into explorer.exe | x86, x64 |
+| **BigDrive.Service.dll** | Drive provisioning with elevated registry access | COM+ (dllhost.exe) | Any CPU |
+| **Provider.*.dll** | Storage backend implementations (Flickr, Archive, Zip) | COM+ (dllhost.exe) | Any CPU |
 
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `BigDrive.Shell.exe` | .NET Console App | Command-line shell for BigDrive operations |
-| `BigDrive.ShellFolder.dll` | C++ Shell Extension | Explorer integration (namespace extension) |
-
-### Core Libraries
-
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `BigDrive.Interfaces.dll` | .NET Assembly | COM interface definitions for provider implementations |
-| `BigDrive.Service.Interfaces.dll` | .NET Assembly | COM interface definitions for BigDrive.Service |
-| `BigDrive.ConfigProvider.dll` | .NET Assembly | Registry read/write for drives and providers |
-
-### Service (COM+ Component)
-
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `BigDrive.Service.dll` | ServicedComponent | Drive provisioning/deprovisioning with elevated registry access |
-
-`BigDrive.Service` runs in its own COM+ application in `dllhost.exe` under the
-**BigDriveInstaller** identity (a local service account created during setup).
-It has write access to HKCR (COM class registration), HKLM shell namespace
-(MyComputer\\NameSpace), and HKLM\\SOFTWARE\\BigDrive. The Shell activates it
-via COM+ and calls `IBigDriveProvision` to create or unmount drives.
-The Shell must **never** write to the registry directly.
-
-This is distinct from providers, which run as **Interactive User** in their
-own separate COM+ applications.
-
-### Providers (COM+ Components)
-
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `BigDrive.Provider.Flickr.dll` | ServicedComponent | Flickr API integration |
-| `BigDrive.Provider.Sample.dll` | ServicedComponent | Sample/testing provider |
-
-### Setup
-
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `BigDrive.Setup.exe` | .NET Console App | COM+ registration and installation |
+See [Components](components.md) for complete component breakdown.
 
 ---
 
-## Interface Hierarchy
+## Quick Start References
 
-Providers implement these interfaces from `BigDrive.Interfaces`:
-
-```
-IProcessInitializer          ← COM+ lifecycle (Startup/Shutdown)
-│
-├── IBigDriveEnumerate       ← Required: List folders and files
-│   ├── EnumerateFolders()
-│   └── EnumerateFiles()
-│
-├── IBigDriveFileInfo        ← Optional: File metadata
-│   ├── GetFileSize()
-│   └── LastModifiedTime()
-│
-├── IBigDriveFileData        ← Optional: File content streaming
-│   └── GetFileData() → IStream
-│
-├── IBigDriveFileOperations  ← Optional: Write operations
-│   ├── CopyFileToBigDrive()
-│   ├── CopyFileFromBigDrive()
-│   ├── DeleteFile()
-│   └── CreateDirectory()
-│
-├── IBigDriveAuthentication  ← Optional: OAuth support
-│   ├── GetAuthenticationInfo()    → Returns OAuth endpoints, flow type
-│   ├── OnAuthenticationComplete() → Called after successful auth
-│   └── IsAuthenticated()          → Check auth status
-│
-└── IBigDriveRegistration    ← Optional: Setup callbacks
-    ├── Register()
-    └── Unregister()
-```
-
-BigDrive.Service implements this interface from `BigDrive.Service.Interfaces`:
-
-```
-IBigDriveProvision           ← Drive provisioning (implemented by BigDrive.Service)
-├── Create()                 ← Create a drive from existing registry config
-├── CreateFromConfiguration()← Create a drive from JSON
-└── UnmountDrive()           ← Remove drive config, shell folder, refresh Explorer
-```
-
-The Shell calls `IBigDriveProvision` via COM+ out-of-process activation
-(`ServiceFactory.GetProvisionService()`). The Shell must never write to the
-registry directly. BigDrive.Service runs under the **BigDriveInstaller** identity
-which has the permissions needed to write to HKCR and HKLM. Both the Shell and
-the Service reference `BigDrive.Service.Interfaces` for the interface types —
-neither takes a direct project dependency on the other.
-
----
-
-## Data Flow
-
-### Enumeration Flow (dir command)
-
-```
-┌─────────────────┐
-│ User types:     │
-│ Z:\> dir        │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────┐
-│ BigDrive.Shell                                          │
-│                                                         │
-│  1. DriveLetterManager: Z: → DriveGuid {6369DDE1-...}  │
-│  2. DriveManager.ReadConfiguration(DriveGuid)           │
-│     → Returns CLSID {B3D8F2A1-...}                     │
-│  3. ProviderFactory.GetEnumerateProvider(DriveGuid)     │
-│     → CoCreateInstance(CLSID)                           │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-              COM Activation
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│ dllhost.exe                                             │
-│                                                         │
-│  Provider.Flickr                                        │
-│  4. IBigDriveEnumerate.EnumerateFolders(DriveGuid, "\")│
-│     → Calls Flickr API                                  │
-│     → Returns ["Vacation 2024", "Family Photos"]        │
-│                                                         │
-│  5. IBigDriveEnumerate.EnumerateFiles(DriveGuid, "\")  │
-│     → Returns []                                        │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────┐
-│ Output:         │
-│  <DIR> Vacation │
-│  <DIR> Family   │
-└─────────────────┘
-```
-
-### File Copy Flow (copy command)
-
-```
-┌──────────────────────────┐
-│ User types:              │
-│ Z:\> copy photo.jpg C:\  │
-└────────────┬─────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│ BigDrive.Shell                                          │
-│                                                         │
-│  1. Parse source: Z:\photo.jpg → BigDrive file          │
-│  2. Parse dest: C:\ → Local file system                 │
-│  3. Get provider via ProviderFactory                    │
-│  4. Call IBigDriveFileData.GetFileData()                │
-│     → Returns IStream                                   │
-│  5. Write stream to C:\photo.jpg                        │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Process Isolation
-
-Providers run out-of-process for:
-
-1. **Stability**: Provider crash doesn't crash Explorer or Shell
-2. **Security**: Providers run under restricted identity
-3. **Resource Management**: COM+ manages pooling and lifetime
-
-```
-┌───────────────────┐     ┌───────────────────┐
-│ explorer.exe      │     │ BigDrive.Shell.exe│
-│ (User process)    │     │ (User process)    │
-└─────────┬─────────┘     └─────────┬─────────┘
-          │                         │
-          │    COM+ Activation      │
-          └────────────┬────────────┘
-                       │
-                       ▼
-          ┌───────────────────────┐
-          │ dllhost.exe           │
-          │ (COM+ Surrogate)      │
-          │                       │
-          │ Identity:             │
-          │ BigDriveTrustedInstaller
-          └───────────────────────┘
-```
+- **Users**: See [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) for command usage
+- **Provider Developers**: See [Provider Development Guide](../ProviderDevelopmentGuide.md) for creating new providers
+- **Contributors**: Read individual project READMEs (e.g., `src/BigDrive.Shell/README.md`) before making changes
 
 ---
 
 ## See Also
 
-- [Installation Architecture](installation.md) — Setup and registration
-- [Mount Command Handshake](mount-handshake.md) — Drive creation protocol and COM interactions
-- [Provider Development Guide](../ProviderDevelopmentGuide.md) — Creating new providers
-- [BigDrive.Shell User Guide](../BigDrive.Shell.UserGuide.md) — Shell commands
-- [Drag and Drop Scenarios](../scenarios/drag_files.md) — Virtual file transfers
-
----
-
-*Copyright © Wayne Walter Berry. All rights reserved.*
+- [Components Documentation](components.md)
+- [Build Configurations](build-configs.md)
+- [Registry Structure](registry.md)
+- [Interface Hierarchy](interfaces.md)
+- [Installation Flow](installation.md)

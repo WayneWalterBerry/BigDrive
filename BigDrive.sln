@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11512.155
@@ -29,17 +29,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigDrive.ShellFolder", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Flickr", "src\BigDrive.Provider.Flickr\BigDrive.Provider.Flickr.csproj", "{A1B2C3D4-5E6F-7A8B-9C0D-E1F2A3B4C5D6}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConfigProvider", "ConfigProvider", "{B9E62C3C-58C6-36FE-E927-C4144E755683}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Interfaces", "Interfaces", "{63B3D61F-35CB-AE97-AD5F-A6200F8219CD}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Shell", "src\BigDrive.Shell\BigDrive.Shell.csproj", "{0BE4C122-A707-4568-6DB2-CA9A70630B21}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Zip", "src\BigDrive.Provider.Zip\BigDrive.Provider.Zip.csproj", "{DDE6F015-9FFD-4751-BD0D-8854A03E8812}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConfigProvider (2)", "ConfigProvider (2)", "{BE5D5CDF-B444-4C4D-8240-680934AA0FCE}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Interfaces (2)", "Interfaces (2)", "{49B2BF6B-D389-47AF-94E4-AC321E658DC7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Service.Interfaces", "src\BigDrive.Service.Interfaces\BigDrive.Service.Interfaces.csproj", "{988F386B-AED5-9B4A-DF88-2F00347FB765}"
 EndProject
