@@ -1,15 +1,70 @@
 # BigDrive Provider Development Guide
 
-## Overview
-
-This guide explains how to create a new BigDrive provider that exposes external storage
-(cloud services, APIs, databases, etc.) as a virtual file system in Windows Explorer.
-
-BigDrive providers are COM+ ServicedComponents that implement a set of interfaces defined
-in `BigDrive.Interfaces`. Providers run out-of-process in `dllhost.exe` for isolation and
-are activated via COM when the Shell or BigDrive.Shell needs to enumerate files or read data.
+> **⚠️ This document has been reorganized!**
+>
+> The Provider Development Guide has been split into focused, topic-specific documents
+> for easier navigation and maintenance.
 
 ---
+
+## 📚 New Documentation Structure
+
+The provider development documentation is now located in **`docs/provider-development/`**:
+
+### **→ [Start Here: Provider Development README](provider-development/README.md)**
+
+### Core Guides
+
+| Document | Description |
+|----------|-------------|
+| **[Getting Started](provider-development/getting-started.md)** | Project setup, naming conventions, architecture |
+| **[Interfaces Reference](provider-development/interfaces.md)** | All interface definitions and implementation examples |
+| **[NuGet Dependencies](provider-development/nuget-dependencies.md)** | **CRITICAL!** AssemblyResolver, app.config, static constructor |
+| **[OAuth Authentication](provider-development/oauth-authentication.md)** | OAuth 2.0, Device Code, OAuth 1.0a implementation |
+| **[Examples](provider-development/examples.md)** | Complete working code examples |
+| **[Troubleshooting](provider-development/troubleshooting.md)** | Common errors and solutions |
+
+---
+
+## Quick Links
+
+### I want to...
+
+- **Create a new provider** → [Getting Started](provider-development/getting-started.md)
+- **Fix "Could not load assembly" error** → [NuGet Dependencies](provider-development/nuget-dependencies.md)
+- **Add OAuth login** → [OAuth Authentication](provider-development/oauth-authentication.md)
+- **See working code** → [Examples](provider-development/examples.md)
+- **Debug registration issues** → [Troubleshooting](provider-development/troubleshooting.md)
+
+### By Provider Type
+
+- **Local file provider** (ISO, Archive) → [Getting Started](provider-development/getting-started.md) → [Examples - ISO Provider](provider-development/examples.md#example-1-read-only-local-file-provider-iso)
+- **Cloud API provider** (OneDrive, Flickr) → [OAuth Authentication](provider-development/oauth-authentication.md) → [Examples - Flickr Provider](provider-development/examples.md#example-3-cloud-provider-with-oauth-flickr)
+
+---
+
+## Why the Change?
+
+The original guide grew to **1,260+ lines** and became difficult to navigate. The new structure:
+
+✅ **Focused topics** - Each file covers one concept (~200-400 lines)  
+✅ **Easy navigation** - Table of contents and cross-links  
+✅ **Better maintenance** - Update specific sections without affecting others  
+✅ **Improved searchability** - Find answers faster  
+
+---
+
+## Migration Note
+
+If you have bookmarks or links to this file, please update them to:
+- **`docs/provider-development/README.md`** (main entry point)
+
+All content from the original guide has been preserved and organized into the new structure.
+
+---
+
+**→ [Go to New Documentation](provider-development/README.md)**
+
 
 ## Architecture Overview
 
@@ -103,6 +158,8 @@ We use **one partial class file per interface** for maintainability:
 | `BigDriveTraceSource.cs` | Logging/tracing (copy from existing provider) |
 | `ComStream.cs` | IStream wrapper for file streaming (copy from existing provider) |
 | `ProviderConfigurationFactory.cs` | Provider-specific configuration loading |
+| `AssemblyResolver.cs` | **REQUIRED** - NuGet dependency resolution for COM+ (see NuGet Dependencies section) |
+| `app.config` | **REQUIRED** - Assembly binding redirects for version conflicts (see app.config section) |
 
 ---
 
@@ -402,6 +459,16 @@ namespace BigDrive.Provider.YourService
         private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
 
         /// <summary>
+        /// Static constructor to ensure AssemblyResolver is initialized early.
+        /// CRITICAL: This must run before any COM+ registration code executes.
+        /// </summary>
+        static Provider()
+        {
+            // Force AssemblyResolver static constructor to run
+            AssemblyResolver.Initialize();
+        }
+
+        /// <summary>
         /// Your API client wrapper.
         /// </summary>
         private static readonly YourServiceClientWrapper ApiClient = new YourServiceClientWrapper();
@@ -417,6 +484,17 @@ namespace BigDrive.Provider.YourService
                 GuidAttribute guidAttribute = (GuidAttribute)Attribute.GetCustomAttribute(
                     providerType, typeof(GuidAttribute));
                 return Guid.Parse(guidAttribute.Value);
+            }
+        }
+
+        /// <summary>
+        /// Gets the provider configuration for registry registration.
+        /// </summary>
+        private static BigDrive.ConfigProvider.Model.ProviderConfiguration ProviderConfig
+        {
+            get
+            {
+                return ProviderConfigurationFactory.Create();
             }
         }
     }
@@ -763,6 +841,482 @@ Add to your `.csproj`:
 
 ---
 
+## NuGet Dependencies and AssemblyResolver
+
+### Quick Checklist: NuGet Dependencies
+
+If your provider uses **any** NuGet packages, you **MUST** do ALL of the following:
+
+- [x] **1. Add `AssemblyResolver.cs`** to your project (see template below)
+- [x] **2. List all NuGet assemblies** in the `managedAssemblies` array
+- [x] **3. Add static constructor** to `Provider.cs` that calls `AssemblyResolver.Initialize()`
+- [x] **4. Create `app.config`** with binding redirects for version conflicts
+- [x] **5. Add `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>`** to `.csproj`
+
+**Missing ANY of these will cause runtime failures!**
+
+### Why AssemblyResolver Is Required
+
+**CRITICAL:** Providers run in `dllhost.exe` (COM+ surrogate process), which does NOT
+automatically resolve NuGet package dependencies. Without an `AssemblyResolver`, your
+provider will fail at runtime with errors like:
+
+```
+Could not load file or assembly 'System.Text.Json, Version=9.0.0.5' or one of its dependencies.
+```
+
+Even though your project builds successfully, `dllhost.exe` doesn't know where to find
+NuGet packages at runtime because:
+
+1. COM+ applications don't use .deps.json files
+2. `dllhost.exe` doesn't probe NuGet cache directories
+3. Version-forwarding redirects in app.config alone are insufficient (AssemblyResolver is needed too)
+
+### Solution: Custom AssemblyResolver
+
+Every provider that uses NuGet packages **MUST** implement an `AssemblyResolver` class:
+
+```csharp
+// AssemblyResolver.cs
+
+// <copyright file="AssemblyResolver.cs" company="Your Company">
+// Copyright (c) Your Company. All rights reserved.
+// </copyright>
+
+namespace BigDrive.Provider.YourService
+{
+    using System;
+    using System.IO;
+    using System.Reflection;
+
+    /// <summary>
+    /// Provides assembly resolution for NuGet package dependencies.
+    /// This resolves version conflicts when assemblies are loaded by COM+ (regsvcs/dllhost).
+    /// </summary>
+    /// <remarks>
+    /// The static constructor ensures the resolver is registered before any other code runs,
+    /// which is critical for COM+ ServicedComponents where assembly loading happens early.
+    /// </remarks>
+    internal static class AssemblyResolver
+    {
+        /// <summary>
+        /// Static constructor ensures resolver is registered at type load time,
+        /// before any other code in the assembly runs.
+        /// </summary>
+        static AssemblyResolver()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
+        }
+
+        /// <summary>
+        /// Initializes the assembly resolver. Call this method early to ensure
+        /// the static constructor has run.
+        /// </summary>
+        public static void Initialize()
+        {
+            // The static constructor does the work.
+            // This method exists to provide an explicit initialization point.
+        }
+
+        /// <summary>
+        /// Handles assembly resolution by loading assemblies from the same directory
+        /// as the executing assembly, ignoring version mismatches.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="args">The event arguments containing the assembly name.</param>
+        /// <returns>The resolved assembly, or null to let CLR continue resolution.</returns>
+        private static Assembly ResolveAssembly(object sender, ResolveEventArgs args)
+        {
+            // Parse the requested assembly name
+            AssemblyName requestedName = new AssemblyName(args.Name);
+
+            // List of assemblies we handle
+            string[] managedAssemblies = new string[]
+            {
+                // Add YOUR provider's NuGet dependencies here!
+                // Example for a provider using System.Text.Json:
+                "System.Text.Json",
+                "System.Runtime.CompilerServices.Unsafe",
+                "System.Memory",
+                "System.Buffers",
+                "System.Threading.Tasks.Extensions",
+                "System.Text.Encodings.Web",
+                "Microsoft.Bcl.AsyncInterfaces",
+                "System.Numerics.Vectors",
+                "System.ValueTuple"
+            };
+
+            foreach (string assemblyName in managedAssemblies)
+            {
+                if (requestedName.Name.Equals(assemblyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return TryLoadAssembly(assemblyName);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Attempts to load an assembly from the executing assembly's directory.
+        /// </summary>
+        /// <param name="assemblyName">The simple name of the assembly.</param>
+        /// <returns>The loaded assembly, or null if not found.</returns>
+        private static Assembly TryLoadAssembly(string assemblyName)
+        {
+            // First, check if it's already loaded
+            foreach (Assembly loaded in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (loaded.GetName().Name.Equals(assemblyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return loaded;
+                }
+            }
+
+            // Try to load from the same directory as this assembly
+            string executingPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string assemblyPath = Path.Combine(executingPath, assemblyName + ".dll");
+
+            if (File.Exists(assemblyPath))
+            {
+                try
+                {
+                    return Assembly.LoadFrom(assemblyPath);
+                }
+                catch
+                {
+                    // Fall through to return null
+                }
+            }
+
+            return null;
+        }
+    }
+}
+```
+
+### Required .csproj Settings
+
+Add this to your `.csproj` to ensure NuGet assemblies are copied to output:
+
+```xml
+<PropertyGroup>
+  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+</PropertyGroup>
+```
+
+This copies **all** NuGet package DLLs (including transitive dependencies) to your
+output directory, making them available for `AssemblyResolver` to load.
+
+### Why BOTH AssemblyResolver AND app.config Are Needed
+
+**You need BOTH** - they solve different problems:
+
+| Component | Problem It Solves | When It's Used |
+|-----------|-------------------|----------------|
+| **AssemblyResolver** | Finds assemblies not in standard probe paths | When CLR can't locate a DLL at all |
+| **app.config** | Redirects version requests to actual versions | When CLR finds DLL but version doesn't match |
+
+**Example scenario:**
+
+1. Your provider references `System.Text.Json 9.0.5`
+2. ConfigProvider (dependency) was built with `System.Text.Json 9.0.0.11`
+3. At runtime, ConfigProvider asks for version 9.0.0.11
+4. Your bin folder only has version 9.0.5 (from NuGet restore)
+
+**What happens:**
+
+- **Without AssemblyResolver:** CLR can't find the DLL → "Could not load file or assembly"
+- **Without app.config:** CLR finds DLL but rejects it → "manifest definition does not match"
+- **With BOTH:** CLR uses AssemblyResolver to find the DLL, then uses binding redirect to accept the version mismatch
+
+**Bottom line:** Always include both! Copy from an existing provider (Archive, Zip, ISO).
+
+### Examples by Provider Type
+
+#### Archive Provider (SharpCompress + System.Text.Json)
+
+```csharp
+string[] managedAssemblies = new string[]
+{
+    // SharpCompress and its dependencies
+    "SharpCompress",
+    // System.Text.Json for IBigDriveDriveInfo.GetDriveParameters()
+    "System.Text.Json",
+    "System.Runtime.CompilerServices.Unsafe",
+    "System.Memory",
+    "System.Buffers",
+    "System.Threading.Tasks.Extensions",
+    "System.Text.Encodings.Web",
+    "Microsoft.Bcl.AsyncInterfaces",
+    "System.Numerics.Vectors"
+};
+```
+
+#### ISO Provider (DiscUtils + System.Text.Json)
+
+```csharp
+string[] managedAssemblies = new string[]
+{
+    // DiscUtils and its dependencies
+    "DiscUtils.Core",
+    "DiscUtils.Streams",
+    "DiscUtils.Iso9660",
+    // System.Text.Json for IBigDriveDriveInfo.GetDriveParameters()
+    "System.Text.Json",
+    "System.Runtime.CompilerServices.Unsafe",
+    "System.Memory",
+    "System.Buffers",
+    "System.Threading.Tasks.Extensions",
+    "System.Text.Encodings.Web",
+    "Microsoft.Bcl.AsyncInterfaces",
+    "System.Numerics.Vectors",
+    "System.ValueTuple"
+};
+```
+
+#### Cloud Provider (Azure.Storage.Blobs + Newtonsoft.Json)
+
+```csharp
+string[] managedAssemblies = new string[]
+{
+    // Azure SDK dependencies
+    "Azure.Core",
+    "Azure.Storage.Blobs",
+    "Azure.Storage.Common",
+    // Newtonsoft.Json (if using)
+    "Newtonsoft.Json",
+    "System.Text.Json",
+    "System.Memory",
+    "System.Buffers",
+    // ... etc
+};
+```
+
+### How to Find Required Assemblies
+
+1. **Build your project** - NuGet will restore packages
+2. **Check your bin\Debug folder** - Look for all non-Microsoft DLLs
+3. **Run regsvcs.exe** - If registration fails, check Windows Event Log for:
+   ```
+   Could not load file or assembly 'YourPackage, Version=...'
+   ```
+4. **Add missing assemblies** to the `managedAssemblies` array
+
+### Common Dependencies to Include
+
+If your provider uses `IBigDriveDriveInfo.GetDriveParameters()`, you **MUST** include
+System.Text.Json and its dependencies:
+
+```csharp
+// Always include these if you implement IBigDriveDriveInfo
+"System.Text.Json",
+"System.Runtime.CompilerServices.Unsafe",
+"System.Memory",
+"System.Buffers",
+"System.Threading.Tasks.Extensions",
+"System.Text.Encodings.Web",
+"Microsoft.Bcl.AsyncInterfaces"
+```
+
+### Triggering the Static Constructor
+
+**CRITICAL:** The `AssemblyResolver` static constructor **must run BEFORE** COM+ loads
+any types that reference NuGet assemblies. To ensure this, add a static constructor to
+your `Provider` class that explicitly initializes the resolver:
+
+```csharp
+// In Provider.cs, add this static constructor BEFORE any other members:
+
+public partial class Provider : ServicedComponent,
+    IProcessInitializer,
+    IBigDriveRegistration,
+    IBigDriveEnumerate
+{
+    private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+
+    /// <summary>
+    /// Static constructor to ensure AssemblyResolver is initialized early.
+    /// CRITICAL: This must run before any COM+ registration code executes.
+    /// </summary>
+    static Provider()
+    {
+        // Force AssemblyResolver static constructor to run
+        AssemblyResolver.Initialize();
+    }
+
+    // ... rest of your Provider class
+}
+```
+
+**Why this is required:**
+
+- Without explicit initialization, the AssemblyResolver may not register in time
+- During `regsvcs.exe` registration, COM+ loads your Provider class before executing any code
+- If System.Text.Json (or other NuGet dependencies) are needed during type loading, 
+  the resolver must already be registered
+- The static constructor runs **before** any static members are accessed
+
+**Symptoms without this:**
+
+```
+Failed to register assembly 'YourProvider, Version=1.0.0.0'
+Exception has been thrown by the target of an invocation.
+Could not load file or assembly 'System.Text.Json, Version=...'
+```
+
+### Required app.config with Binding Redirects
+
+**CRITICAL:** In addition to AssemblyResolver, you **MUST** add an `app.config` file
+with binding redirects. This tells COM+ which version of assemblies to use when there
+are version conflicts.
+
+Create `app.config` in your provider project root:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <runtime>
+        <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+            <!-- System.Text.Json and dependencies (required for IBigDriveDriveInfo) -->
+            <dependentAssembly>
+                <assemblyIdentity name="System.Text.Json" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-9.0.0.11" newVersion="9.0.0.11" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="System.Runtime.CompilerServices.Unsafe" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-6.0.0.0" newVersion="6.0.0.0" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="System.Memory" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-4.0.5.0" newVersion="4.0.1.2" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="System.Buffers" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-4.0.3.0" newVersion="4.0.3.0" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="System.Threading.Tasks.Extensions" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-4.2.0.1" newVersion="4.2.0.1" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="System.Text.Encodings.Web" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-9.0.0.0" newVersion="9.0.0.0" />
+            </dependentAssembly>
+            <dependentAssembly>
+                <assemblyIdentity name="Microsoft.Bcl.AsyncInterfaces" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+                <bindingRedirect oldVersion="0.0.0.0-9.0.0.0" newVersion="9.0.0.0" />
+            </dependentAssembly>
+        </assemblyBinding>
+    </runtime>
+</configuration>
+```
+
+**Why app.config is required:**
+
+- Different project references may request different versions of System.Text.Json
+  (e.g., ConfigProvider wants 9.0.0.11, your provider references 9.0.0.5)
+- Without binding redirects, `regsvcs.exe` fails with version mismatch errors
+- The binding redirects tell the CLR "use version X for all requests from 0.0.0.0 to Y"
+
+**How to determine the correct version numbers:**
+
+1. Build your project successfully
+2. Look in `bin\Debug\net472\` folder for the actual DLL versions
+3. Use the **highest version present** in your binding redirects
+4. Example: If you have `System.Text.Json.dll` version 9.0.0.11, use `newVersion="9.0.0.11"`
+
+**Common version conflict error during regsvcs.exe:**
+
+```
+Failed to register assembly 'YourProvider'
+Could not load file or assembly 'System.Text.Json, Version=4.0.1.2'
+The located assembly's manifest definition does not match the assembly reference.
+```
+
+**Solution:** Add or update the binding redirect in app.config to redirect the requested
+version (4.0.1.2) to the actual version present in your bin folder (e.g., 9.0.0.11).
+
+### Testing AssemblyResolver
+
+After building, test that assemblies resolve correctly:
+
+```powershell
+# Register the provider (requires elevation)
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe "YourProvider.dll"
+
+# Check Windows Event Log (Application) for errors
+# Source: "BigDrive.Provider.YourService"
+
+# If you see "Could not load file or assembly" errors, add that assembly to managedAssemblies
+```
+
+### Troubleshooting Registration Errors
+
+#### Error: "Access to the registry key 'HKEY_LOCAL_MACHINE\SOFTWARE\BigDrive\Providers\...' is denied"
+
+**Symptom:**
+```
+Failed to register assembly 'YourProvider'
+Exception has been thrown by the target of an invocation.
+Access to the registry key 'HKEY_LOCAL_MACHINE\SOFTWARE\BigDrive\Providers\{GUID}' is denied.
+```
+
+**Cause:** The `regsvcs.exe` PostBuild event needs Administrator privileges to write to
+HKEY_LOCAL_MACHINE registry keys.
+
+**Solution:** Run Visual Studio as Administrator, or manually register:
+
+```powershell
+# Open PowerShell/CMD as Administrator
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe "path\to\YourProvider.dll"
+```
+
+#### Error: "Could not load file or assembly 'System.Text.Json, Version=...'"
+
+**Symptom:**
+```
+Failed to register assembly 'YourProvider'
+Could not load file or assembly 'System.Text.Json, Version=4.0.1.2'
+The located assembly's manifest definition does not match the assembly reference.
+```
+
+**Cause:** Missing or incorrect binding redirects in `app.config`.
+
+**Solution:** Ensure your `app.config` has binding redirects for all NuGet dependencies
+(see "Required app.config with Binding Redirects" section above).
+
+#### Error: Assembly loads but methods fail at runtime
+
+**Symptom:** Provider registers successfully, but when called from BigDrive Shell:
+```
+Method threw exception: Could not load file or assembly 'YourPackage'
+```
+
+**Cause:** Missing assembly in the `AssemblyResolver.managedAssemblies` array.
+
+**Solution:**
+1. Check Windows Event Log (Application log, source "BigDrive.Provider.YourService")
+2. Look for the specific assembly name that failed to load
+3. Add it to the `managedAssemblies` array in `AssemblyResolver.cs`
+4. Rebuild and re-register
+
+#### Error: "Static constructor threw exception"
+
+**Symptom:**
+```
+TypeInitializationException: The type initializer for 'Provider' threw an exception.
+```
+
+**Cause:** Error in the Provider static constructor (usually AssemblyResolver initialization).
+
+**Solution:**
+1. Check Windows Event Log for inner exception details
+2. Ensure `AssemblyResolver.cs` exists and has no syntax errors
+3. Verify the static constructor calls `AssemblyResolver.Initialize()`
+
+---
+
 ## Project Structure
 
 Your provider project should look like this:
@@ -782,6 +1336,8 @@ BigDrive.Provider.YourService/
 ├── BigDriveTraceSource.cs            # Logging (copy from Flickr provider)
 ├── ComStream.cs                      # IStream wrapper (copy from Flickr provider)
 ├── ProviderConfigurationFactory.cs   # Configuration loading
+├── AssemblyResolver.cs               # NuGet dependency resolution (REQUIRED!)
+├── app.config                        # Binding redirects for version conflicts (REQUIRED!)
 └── BigDrive.Provider.YourService.csproj
 ```
 
