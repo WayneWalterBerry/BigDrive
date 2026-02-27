@@ -90,10 +90,10 @@
     <EmbeddedResource Include="Resources\Z File.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>cmd.exe C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe /u "$(TargetPath)"  || exit /b 0</PreBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PostBuildEvent>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe "$(TargetPath)"</PostBuildEvent>
-  </PropertyGroup>
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Stop-Process -Name dllhost -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2&quot;" IgnoreExitCode="true" />
+  </Target>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Start-Process -FilePath 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regsvcs.exe' -ArgumentList '$(TargetPath)' -Verb RunAs -Wait -WindowStyle Hidden&quot;" />
+  </Target>
 </Project>

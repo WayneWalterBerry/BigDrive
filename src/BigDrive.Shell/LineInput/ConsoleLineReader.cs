@@ -86,6 +86,14 @@ namespace BigDrive.Shell.LineInput
             {
                 ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
 
+                // Check for Ctrl+C (cancel current command)
+                if (keyInfo.Key == ConsoleKey.C && (keyInfo.Modifiers & ConsoleModifiers.Control) != 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("^C");
+                    return string.Empty; // Return empty to cancel and go to new prompt
+                }
+
                 // Check for Enter key (line complete)
                 if (keyInfo.Key == ConsoleKey.Enter)
                 {

@@ -80,6 +80,46 @@ namespace BigDrive.Shell
         }
 
         /// <summary>
+        /// Disables PSReadLine tab completion if running within PowerShell.
+        /// This prevents PowerShell from intercepting Tab keys when wildcards are present.
+        /// </summary>
+        private static void DisablePSReadLine()
+        {
+            try
+            {
+                // Check if we're running in PowerShell with PSReadLine loaded
+                var psReadLineType = Type.GetType("Microsoft.PowerShell.PSConsoleReadLine, Microsoft.PowerShell.PSReadLine");
+                if (psReadLineType != null)
+                {
+                    // Get the SetOptions method to disable tab completion
+                    var setOptionsMethod = psReadLineType.GetMethod(
+                        "SetOptions",
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+                    if (setOptionsMethod != null)
+                    {
+                        // Create options object to disable tab completion
+                        var optionsType = Type.GetType("Microsoft.PowerShell.SetPSReadLineOption, Microsoft.PowerShell.PSReadLine");
+                        if (optionsType != null)
+                        {
+                            var options = Activator.CreateInstance(optionsType);
+                            var tabCompletionProp = optionsType.GetProperty("TabCompletion");
+                            if (tabCompletionProp != null)
+                            {
+                                tabCompletionProp.SetValue(options, false);
+                                setOptionsMethod.Invoke(null, new[] { options });
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Silently ignore - PSReadLine might not be loaded or accessible
+            }
+        }
+
+        /// <summary>
         /// Runs the shell in script mode, executing commands from a file.
         /// </summary>
         /// <param name="scriptPath">Path to the script file.</param>
@@ -118,6 +158,12 @@ namespace BigDrive.Shell
         /// <returns>Exit code: always 0.</returns>
         private static int RunInteractiveMode(bool debugMode)
         {
+            DisablePSReadLine();
+
+            // Set up Ctrl+C handler to prevent shell exit
+            // TreatControlCAsInput allows us to handle Ctrl+C in ReadKey
+            Console.TreatControlCAsInput = true;
+
             Console.WriteLine("BigDrive Shell v1.0" + (debugMode ? " [DEBUG MODE]" : string.Empty));
             Console.WriteLine("Type 'help' for available commands, 'exit' to quit.");
             Console.WriteLine();

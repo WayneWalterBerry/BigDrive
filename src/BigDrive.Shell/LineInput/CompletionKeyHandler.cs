@@ -221,11 +221,27 @@ namespace BigDrive.Shell.LineInput
         {
             HashSet<string> uniqueCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            bool hasWildcard = WildcardMatcher.ContainsWildcard(prefix);
+
             foreach (var kvp in m_commands)
             {
                 if (kvp.Key.Equals(kvp.Value.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(prefix) || kvp.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    bool matches = false;
+                    if (string.IsNullOrEmpty(prefix))
+                    {
+                        matches = true;
+                    }
+                    else if (hasWildcard)
+                    {
+                        matches = WildcardMatcher.IsMatch(kvp.Key, prefix);
+                    }
+                    else
+                    {
+                        matches = kvp.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    if (matches)
                     {
                         uniqueCommands.Add(kvp.Key);
                     }
@@ -325,12 +341,17 @@ namespace BigDrive.Shell.LineInput
                     return candidates;
                 }
 
+                bool hasWildcard = WildcardMatcher.ContainsWildcard(searchPrefix);
+
                 // Add matching directories
                 string[] directories = Directory.GetDirectories(directory);
                 foreach (string dir in directories)
                 {
                     string dirName = Path.GetFileName(dir);
-                    if (string.IsNullOrEmpty(searchPrefix) || dirName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                   (hasWildcard ? WildcardMatcher.IsMatch(dirName, searchPrefix) 
+                                                : dirName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                    if (matches)
                     {
                         candidates.Add(dir + "\\");
                     }
@@ -341,7 +362,10 @@ namespace BigDrive.Shell.LineInput
                 foreach (string file in files)
                 {
                     string fileName = Path.GetFileName(file);
-                    if (string.IsNullOrEmpty(searchPrefix) || fileName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                   (hasWildcard ? WildcardMatcher.IsMatch(fileName, searchPrefix)
+                                                : fileName.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                    if (matches)
                     {
                         candidates.Add(file);
                     }
@@ -407,10 +431,15 @@ namespace BigDrive.Shell.LineInput
 
                 string drivePrefix = driveLetter + ":";
 
+                bool hasWildcard = WildcardMatcher.ContainsWildcard(searchPrefix);
+
                 string[] folders = enumerate.EnumerateFolders(config.Id, searchPath);
                 foreach (string folder in folders)
                 {
-                    if (string.IsNullOrEmpty(searchPrefix) || folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                   (hasWildcard ? WildcardMatcher.IsMatch(folder, searchPrefix)
+                                                : folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                    if (matches)
                     {
                         string fullPath = CombinePath(searchPath, folder);
                         candidates.Add(drivePrefix + fullPath + "\\");
@@ -420,7 +449,10 @@ namespace BigDrive.Shell.LineInput
                 string[] files = enumerate.EnumerateFiles(config.Id, searchPath);
                 foreach (string file in files)
                 {
-                    if (string.IsNullOrEmpty(searchPrefix) || file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                    bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                   (hasWildcard ? WildcardMatcher.IsMatch(file, searchPrefix)
+                                                : file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                    if (matches)
                     {
                         string fullPath = CombinePath(searchPath, file);
                         candidates.Add(drivePrefix + fullPath);
@@ -460,10 +492,15 @@ namespace BigDrive.Shell.LineInput
                         userDirPrefix = prefix.Substring(0, lastSeparator + 1);
                     }
 
+                    bool hasWildcard = WildcardMatcher.ContainsWildcard(searchPrefix);
+
                     string[] folders = enumerate.EnumerateFolders(m_context.CurrentDriveGuid.Value, searchPath);
                     foreach (string folder in folders)
                     {
-                        if (string.IsNullOrEmpty(searchPrefix) || folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                        bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                       (hasWildcard ? WildcardMatcher.IsMatch(folder, searchPrefix)
+                                                    : folder.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                        if (matches)
                         {
                             candidates.Add(userDirPrefix + folder);
                         }
@@ -472,7 +509,10 @@ namespace BigDrive.Shell.LineInput
                     string[] files = enumerate.EnumerateFiles(m_context.CurrentDriveGuid.Value, searchPath);
                     foreach (string file in files)
                     {
-                        if (string.IsNullOrEmpty(searchPrefix) || file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
+                        bool matches = string.IsNullOrEmpty(searchPrefix) ||
+                                       (hasWildcard ? WildcardMatcher.IsMatch(file, searchPrefix)
+                                                    : file.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase));
+                        if (matches)
                         {
                             candidates.Add(userDirPrefix + file);
                         }

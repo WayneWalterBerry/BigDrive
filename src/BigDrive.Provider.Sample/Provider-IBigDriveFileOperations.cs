@@ -35,6 +35,13 @@ namespace BigDrive.Provider.Sample
                 throw new DirectoryNotFoundException("Target directory not found in BigDrive: " + parentPath);
             }
 
+            // Check if a file with the same name already exists and remove it (silent overwrite)
+            var existingNode = parentNode.Children.Find(child => child.Name.Equals(fileName, StringComparison.OrdinalIgnoreCase));
+            if (existingNode != null)
+            {
+                parentNode.Children.Remove(existingNode);
+            }
+
             var fileInfo = new FileInfo(localFilePath);
 
             var newNode = new Node(fileInfo.Name)

@@ -86,6 +86,40 @@ namespace BigDrive.Shell.Commands
             // Parse switches and arguments
             CommandLineParser parser = new CommandLineParser(args);
 
+            // Check if user provided a path with a drive letter
+            if (parser.Arguments.Count > 0)
+            {
+                string inputPath = parser.Arguments[0];
+
+                // Check for drive letter (e.g., "Y:" or "Y:\path")
+                if (inputPath.Length >= 2 && inputPath[1] == ':')
+                {
+                    char letter = char.ToUpper(inputPath[0]);
+
+                    if (letter >= 'A' && letter <= 'Z')
+                    {
+                        // Check if it's a BigDrive
+                        if (context.DriveLetterManager.IsBigDrive(letter))
+                        {
+                            // List contents of the specified drive
+                            ListDriveContents(context, parser, letter, inputPath);
+                            return;
+                        }
+                        else if (context.DriveLetterManager.IsOSDrive(letter))
+                        {
+                            Console.WriteLine("Cannot access OS drives from BigDrive Shell.");
+                            return;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Drive not found: {0}:", letter);
+                            Console.WriteLine("Use 'drives' to see available drives.");
+                            return;
+                        }
+                    }
+                }
+            }
+
             // If no drive selected, show available drives (like root of file system)
             if (context.CurrentDriveLetter == '\0')
             {
@@ -131,6 +165,98 @@ namespace BigDrive.Shell.Commands
                 Console.WriteLine("    No BigDrive drives registered.");
                 Console.WriteLine();
                 Console.WriteLine("Run BigDrive.Setup.exe to register providers.");
+            }
+        }
+
+        /// <summary>
+        /// Lists contents of a specific drive when user provides a drive letter argument (e.g., "dir Y:\").
+        /// </summary>
+        /// <param name="context">The shell context.</param>
+        /// <param name="parser">Parsed command-line arguments and switches.</param>
+        /// <param name="driveLetter">The drive letter to list.</param>
+        /// <param name="inputPath">The full input path (e.g., "Y:" or "Y:\folder").</param>
+        private static void ListDriveContents(ShellContext context, CommandLineParser parser, char driveLetter, string inputPath)
+        {
+            // Get the drive configuration
+            DriveConfiguration driveConfig = context.DriveLetterManager.BigDriveLetters[driveLetter];
+            if (driveConfig == null)
+            {
+                Console.WriteLine("Drive not found: {0}:", driveLetter);
+                return;
+            }
+
+            // Create a temporary context for this drive
+            char originalDrive = context.CurrentDriveLetter;
+            string originalPath = context.CurrentPath;
+
+            try
+            {
+                // Temporarily switch to the specified drive
+                context.ChangeDrive(driveLetter);
+
+                // Extract the path part after the drive letter (if any)
+                string pathPart = "\\";
+                if (inputPath.Length > 2)
+                {
+                    pathPart = inputPath.Substring(2);
+                    if (string.IsNullOrEmpty(pathPart))
+                    {
+                        pathPart = "\\";
+                    }
+                }
+
+                // Update the first argument to be the path part (without drive letter)
+                if (!string.IsNullOrEmpty(pathPart) && pathPart != "\\")
+                {
+                    // Create a new parser with the path part
+                    List<string> newArgs = new List<string>();
+
+                    // Add the path part
+                    newArgs.Add(pathPart);
+
+                    // Add remaining arguments (skip the first one which was the drive path)
+                    for (int i = 1; i < parser.Arguments.Count; i++)
+                    {
+                        newArgs.Add(parser.Arguments[i]);
+                    }
+
+                    // Add switches
+                    foreach (string switchStr in parser.Switches)
+                    {
+                        newArgs.Add("-" + switchStr);
+                    }
+
+                    parser = new CommandLineParser(newArgs.ToArray());
+                }
+                else
+                {
+                    // Just list the root of the drive, keep switches
+                    List<string> newArgs = new List<string>();
+                    foreach (string switchStr in parser.Switches)
+                    {
+                        newArgs.Add("-" + switchStr);
+                    }
+
+                    parser = new CommandLineParser(newArgs.ToArray());
+                }
+
+                // List the folder contents
+                ListFolderContents(context, parser);
+            }
+            finally
+            {
+                // Restore original context
+                if (originalDrive != '\0')
+                {
+                    context.ChangeDrive(originalDrive);
+                    context.CurrentPath = originalPath;
+                }
+                else
+                {
+                    // Was not on any drive, clear context
+                    context.CurrentDriveLetter = '\0';
+                    context.CurrentPath = "\\";
+                }
             }
         }
 
