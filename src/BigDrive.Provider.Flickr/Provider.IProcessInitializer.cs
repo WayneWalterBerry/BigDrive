@@ -41,10 +41,12 @@ namespace BigDrive.Provider.Flickr
         /// </param>
         public void Startup(object punkProcessControl)
         {
-            DefaultTraceSource.TraceInformation("Flickr Provider Startup");
+            // Flickr API requires TLS 1.2. The default SecurityProtocol in
+            // .NET Framework 4.7.2 running inside dllhost.exe does not include
+            // TLS 1.2, causing "The underlying connection was closed" errors.
+            System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12;
 
-            // Initialize Flickr client if needed
-            // FlickrClient.Initialize() could be called here if authentication is required at startup
+            DefaultTraceSource.TraceInformation("Flickr Provider Startup");
         }
 
         /// <summary>

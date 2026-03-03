@@ -4,10 +4,9 @@
 
 namespace BigDrive.Provider.Archive
 {
-    using System.Text.Json;
-
     using BigDrive.Interfaces;
     using BigDrive.Interfaces.Model;
+    using BigDrive.Interfaces.Serialization;
 
     /// <summary>
     /// Implementation of <see cref="IBigDriveDriveInfo"/> for the Archive provider.
@@ -30,11 +29,11 @@ namespace BigDrive.Provider.Archive
                 {
                     Name = "ArchiveFilePath",
                     Description = "Full path to the archive file (ZIP, TAR, TAR.GZ, 7z, RAR).",
-                    Type = "existing-file"
+                    Type = DriveParameterType.ExistingFile
                 }
             };
 
-            return JsonSerializer.Serialize(parameters);
+            return DriveParameterSerializer.Serialize(parameters);
         }
     }
 }

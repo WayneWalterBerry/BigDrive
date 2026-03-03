@@ -137,7 +137,10 @@ We use **one partial class file per interface** for maintainability:
 3. **Add project references:**
    - `BigDrive.Interfaces` - COM interface definitions
    - `BigDrive.ConfigProvider` - Registry configuration and DriveManager
-   - `BigDrive.Service` - Shared service utilities
+
+   > **Do not** reference `BigDrive.Service`. Providers and the Service are independent
+   > COM+ applications that communicate only via COM activation. See
+   > [Architecture — Dependency Rules](../architecture/components.md#dependency-rules).
 4. **Add framework references:**
    - `System.EnterpriseServices` - COM+ ServicedComponent base class
 5. **Configure signing:**
@@ -170,7 +173,6 @@ We use **one partial class file per interface** for maintainability:
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BigDrive.Service\BigDrive.Service.csproj" />
     <ProjectReference Include="..\ConfigProvider\BigDrive.ConfigProvider.csproj" />
     <ProjectReference Include="..\Interfaces\BigDrive.Interfaces.csproj" />
   </ItemGroup>
@@ -453,9 +455,34 @@ BigDrive.Provider.YourService/
 └── BigDrive.Provider.YourService.csproj    # Project file
 ```
 
----
+### Event Source Registration
 
-## Required Interfaces
+> **IMPORTANT:** Your provider's `BigDriveTraceSource` writes to the Windows Event Log under
+> the `BigDrive` log with a source name matching your provider (e.g., `BigDrive.Provider.YourService`).
+> This event source **must be registered** by `BigDrive.Setup` before logs will appear in Event Viewer.
+
+Add your provider's event source to `BigDrive.Setup`:
+
+1. **Add a constant** in `src/BigDrive.Setup/Constants.cs`:
+
+   ```csharp
+   public const string EventLogProviderYourService = "Provider.YourService";
+   ```
+
+2. **Register it** in `src/BigDrive.Setup/Program.cs` inside `BootstrapBigDriveEventLogs()`:
+
+   ```csharp
+   BootstrapBigDriveEventLog(Constants.EventLogProviderYourService);
+   ```
+
+3. **Re-run** `BigDrive.Setup.exe` as Administrator to create the event source.
+
+After registration, logs appear in **Event Viewer → Applications and Services Logs → BigDrive**.
+
+Without this step, the `EventLogTraceListener` in `BigDriveTraceSource` will silently fail
+and no trace output will be visible.
+
+---
 
 Every provider **must** implement these interfaces:
 

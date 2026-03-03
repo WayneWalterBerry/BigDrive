@@ -902,6 +902,13 @@ public void Shutdown()
 
 ## Event Log Reference
 
+Provider event logs are written to the **BigDrive** log (not the Application log).
+View them in **Event Viewer → Applications and Services Logs → BigDrive**.
+
+> **Note:** The event source for your provider must be registered by `BigDrive.Setup`
+> before logs will appear. See the [Getting Started](getting-started.md#event-source-registration)
+> guide for instructions.
+
 ### Common Event Log Entries
 
 **Success messages:**
@@ -925,13 +932,13 @@ Message: GetFileData failed: The remote server returned an error: (401) Unauthor
 
 ```powershell
 # Last 10 entries
-Get-EventLog -LogName Application -Source "BigDrive.Provider.YourService" -Newest 10
+Get-WinEvent -LogName "BigDrive" -MaxEvents 10 | Where-Object { $_.ProviderName -eq "BigDrive.Provider.YourService" }
 
 # Errors only
-Get-EventLog -LogName Application -Source "BigDrive.Provider.YourService" -EntryType Error -Newest 10
+Get-WinEvent -LogName "BigDrive" -MaxEvents 10 | Where-Object { $_.ProviderName -eq "BigDrive.Provider.YourService" -and $_.Level -eq 2 }
 
-# Real-time monitoring
-Get-EventLog -LogName Application -Source "BigDrive.Provider.YourService" -Newest 1 -Wait
+# All BigDrive events
+Get-WinEvent -LogName "BigDrive" -MaxEvents 20
 ```
 
 ---

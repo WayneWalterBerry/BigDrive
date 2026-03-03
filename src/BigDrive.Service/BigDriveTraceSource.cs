@@ -16,11 +16,14 @@ namespace BigDrive.Service
 
         public static BigDriveTraceSource Instance => _instance.Value;
 
+        private const string LogName = "BigDrive";
+
         static BigDriveTraceSource()
         {
             try
             {
-                EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
+                EventLog eventLog = new EventLog(LogName, ".", SourceName);
+                EventLogTraceListener eventLogListener = new EventLogTraceListener(eventLog);
                 Instance.Listeners.Add(eventLogListener);
             }
             catch (System.Security.SecurityException)

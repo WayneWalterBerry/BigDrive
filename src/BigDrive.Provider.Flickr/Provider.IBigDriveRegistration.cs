@@ -17,11 +17,6 @@ namespace BigDrive.Provider.Flickr
     public partial class Provider
     {
         /// <summary>
-        /// The unique drive ID for the Flickr provider.
-        /// </summary>
-        private static readonly Guid FlickrDriveId = Guid.Parse("A2B3C4D5-E6F7-8901-A2B3-C4D5E6F78901");
-
-        /// <summary>
         /// Registers the Flickr provider with the BigDrive system.
         /// </summary>
         public void Register()
@@ -32,16 +27,6 @@ namespace BigDrive.Provider.Flickr
 
             // Register the provider
             ProviderManager.RegisterProvider(ProviderConfig, CancellationToken.None);
-
-            // Create a drive configuration for the Flickr provider
-            DriveConfiguration driveConfiguration = new DriveConfiguration
-            {
-                CLSID = ProviderConfig.Id,
-                Name = "Flickr Photos",
-                Id = FlickrDriveId
-            };
-
-            DriveManager.WriteConfiguration(driveConfiguration, CancellationToken.None);
 
             DefaultTraceSource.TraceInformation("Register: Flickr provider registered successfully.");
         }

@@ -95,6 +95,11 @@ namespace BigDrive.Setup
             BootstrapBigDriveEventLog(Constants.EventLogExtension);
             BootstrapBigDriveEventLog(Constants.EventLogClient);
             BootstrapBigDriveEventLog(Constants.EventLogProviderSample);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderFlickr);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderZip);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderIso);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderArchive);
+            BootstrapBigDriveEventLog(Constants.EventLogProviderVirtualDisk);
         }
 
         private static void BootstrapBigDriveEventLog(string application)

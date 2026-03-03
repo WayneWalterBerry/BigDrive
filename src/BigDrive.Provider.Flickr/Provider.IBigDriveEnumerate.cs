@@ -39,6 +39,10 @@ namespace BigDrive.Provider.Flickr
                 // Photosets don't have subfolders
                 return Array.Empty<string>();
             }
+            catch (BigDrive.Interfaces.BigDriveAuthenticationRequiredException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 DefaultTraceSource.TraceError($"EnumerateFolders failed: {ex.Message}");
@@ -76,6 +80,10 @@ namespace BigDrive.Provider.Flickr
 
                 var photos = flickrClient.GetPhotosInPhotoset(photosetName);
                 return photos.Select(p => SanitizeFileName(p.Title) + ".jpg").ToArray();
+            }
+            catch (BigDrive.Interfaces.BigDriveAuthenticationRequiredException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

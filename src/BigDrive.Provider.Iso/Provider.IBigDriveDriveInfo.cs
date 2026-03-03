@@ -4,10 +4,9 @@
 
 namespace BigDrive.Provider.Iso
 {
-    using System.Text.Json;
-
     using BigDrive.Interfaces;
     using BigDrive.Interfaces.Model;
+    using BigDrive.Interfaces.Serialization;
 
     /// <summary>
     /// Implementation of <see cref="IBigDriveDriveInfo"/> for the ISO provider.
@@ -30,11 +29,11 @@ namespace BigDrive.Provider.Iso
                 {
                     Name = "IsoFilePath",
                     Description = "Full path to the ISO file (ISO 9660, Joliet, UDF).",
-                    Type = "existing-file"
+                    Type = DriveParameterType.ExistingFile
                 }
             };
 
-            return JsonSerializer.Serialize(parameters);
+            return DriveParameterSerializer.Serialize(parameters);
         }
     }
 }

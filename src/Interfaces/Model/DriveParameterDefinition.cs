@@ -4,38 +4,33 @@
 
 namespace BigDrive.Interfaces.Model
 {
-    using System.Text.Json.Serialization;
-
     /// <summary>
     /// Represents a single parameter definition that a provider requires
     /// when mounting a new drive. Serialized as part of the JSON array
     /// returned by <see cref="IBigDriveDriveInfo.GetDriveParameters"/>.
     /// </summary>
+    /// <remarks>
+    /// Use <see cref="Serialization.DriveParameterSerializer.Serialize"/> to
+    /// convert an array of definitions to JSON.
+    /// </remarks>
     public class DriveParameterDefinition
     {
         /// <summary>
         /// Gets or sets the parameter key name. This is used as the key in
         /// <c>DriveConfiguration.Properties</c>.
         /// </summary>
-        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the user-facing description shown before the input prompt.
         /// </summary>
-        [JsonPropertyName("description")]
         public string Description { get; set; }
 
         /// <summary>
-        /// Gets or sets the parameter type. Supported values:
-        /// <list type="bullet">
-        /// <item><c>"string"</c> — Plain text input (default)</item>
-        /// <item><c>"existing-file"</c> — Local file path with Tab completion; must exist</item>
-        /// <item><c>"filepath"</c> — Local file path with Tab completion; may be new or existing</item>
-        /// </list>
-        /// Defaults to "string" if not specified.
+        /// Gets or sets the parameter type. Controls how the shell prompts for
+        /// and validates user input.
         /// </summary>
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = "string";
+        /// <seealso cref="DriveParameterType"/>
+        public DriveParameterType Type { get; set; } = DriveParameterType.String;
     }
 }

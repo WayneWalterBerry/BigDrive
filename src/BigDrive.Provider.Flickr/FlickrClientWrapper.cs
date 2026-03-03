@@ -24,6 +24,11 @@ namespace BigDrive.Provider.Flickr
     internal class FlickrClientWrapper
     {
         /// <summary>
+        /// The trace source for logging.
+        /// </summary>
+        private static readonly BigDriveTraceSource DefaultTraceSource = BigDriveTraceSource.Instance;
+
+        /// <summary>
         /// Cache of Flickr clients per drive GUID.
         /// </summary>
         private static readonly ConcurrentDictionary<Guid, FlickrClientWrapper> DriveClients =
@@ -166,14 +171,14 @@ namespace BigDrive.Provider.Flickr
             {
                 throw CreateAuthException(AuthenticationFailureReason.ApiKeyMissing, ex);
             }
-            catch (FlickrApiException)
+            catch (FlickrApiException ex)
             {
-                // Non-auth API errors - return empty list
+                DefaultTraceSource.TraceError("GetPhotosets: FlickrApiException: {0} (Code: {1})", ex.Message, ex.Code);
                 return new List<PhotosetInfo>();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // General errors - return empty list
+                DefaultTraceSource.TraceError("GetPhotosets: {0}: {1}", ex.GetType().Name, ex.Message);
                 return new List<PhotosetInfo>();
             }
         }
@@ -226,12 +231,14 @@ namespace BigDrive.Provider.Flickr
             {
                 throw CreateAuthException(AuthenticationFailureReason.InsufficientPermissions, ex);
             }
-            catch (FlickrApiException)
+            catch (FlickrApiException ex)
             {
+                DefaultTraceSource.TraceError("GetPhotosInPhotoset: FlickrApiException: {0} (Code: {1})", ex.Message, ex.Code);
                 return new List<PhotoInfo>();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DefaultTraceSource.TraceError("GetPhotosInPhotoset: {0}: {1}", ex.GetType().Name, ex.Message);
                 return new List<PhotoInfo>();
             }
         }

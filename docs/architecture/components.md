@@ -162,6 +162,15 @@ These components run in COM+ applications (`dllhost.exe`) or as standalone .NET 
 - Shell must **never** write to registry directly
 - Shell calls service via COM+ out-of-process activation
 
+**Dependency Isolation:**
+- BigDrive.Service is a **standalone** COM+ application — it must **not** reference any
+  provider assemblies, and providers must **not** reference BigDrive.Service
+- Communication between Shell ↔ Service uses `BigDrive.Service.Interfaces` (shared COM
+  interface definitions), not direct project references
+- Communication between Shell/Explorer ↔ Providers uses `BigDrive.Interfaces`
+- This isolation ensures providers and the service can be deployed, updated,
+  and versioned independently
+
 ---
 
 ### Storage Provider Components
@@ -239,6 +248,31 @@ All providers run in separate COM+ applications under the **Interactive User** i
 
 ### Shared Library Components
 
+#### Dependency Rules
+
+The shared libraries enforce strict isolation between components:
+
+```
+Provider.*.dll ──references──► BigDrive.Interfaces.dll
+                ──references──► BigDrive.ConfigProvider.dll
+                ✗ must NOT reference BigDrive.Service.dll
+
+BigDrive.Service.dll ──references──► BigDrive.Interfaces.dll
+                     ──references──► BigDrive.ConfigProvider.dll
+                     ──references──► BigDrive.Service.Interfaces.dll
+                     ✗ must NOT reference any Provider.*.dll
+
+BigDrive.Shell.exe ──references──► BigDrive.Interfaces.dll
+                   ──references──► BigDrive.Service.Interfaces.dll
+                   ──references──► BigDrive.ConfigProvider.dll
+                   ✗ must NOT reference BigDrive.Service.dll
+                   ✗ must NOT reference any Provider.*.dll
+```
+
+All cross-process communication uses **COM+ activation** (`CoCreateInstance`),
+not direct assembly references. This keeps each component independently
+deployable and prevents type-loading issues during COM+ activation.
+
 #### BigDrive.Interfaces.dll
 
 | Property | Value |
@@ -251,7 +285,16 @@ All providers run in separate COM+ applications under the **Interactive User** i
 **Purpose:**
 - COM interface definitions for provider implementations
 - Defines: IBigDriveEnumerate, IBigDriveFileData, IBigDriveFileInfo, IBigDriveFileOperations, IBigDriveAuthentication, IBigDriveRegistration
+- Model types: DriveParameterDefinition, DriveParameterType
+- Zero-dependency JSON serializer: `Serialization/DriveParameterSerializer`
 - Referenced by providers, Shell, and ShellFolder
+
+**Zero External Dependencies:**
+This assembly references **only** `System` and `System.Core` from the .NET Framework.
+It must never depend on NuGet packages (e.g., `System.Text.Json`) because it is loaded
+during COM+ activation before provider assembly resolvers are registered. Any external
+dependency would cause `0x8000FFFF` (Catastrophic failure) during `regsvcs.exe`
+registration or `dllhost.exe` activation.
 
 #### BigDrive.Service.Interfaces.dll
 

@@ -117,21 +117,44 @@ namespace BigDrive.Provider.Flickr
         }
 
         /// <summary>
-        /// Reads a secret from Windows Credential Manager for a drive.
+        /// Reads a secret or configuration value for a drive with the following priority:
+        /// 1. Windows Credential Manager (secure storage for secrets)
+        /// 2. Registry drive-specific property
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>
-        /// <param name="secretName">The secret name.</param>
-        /// <returns>The secret value, or null if not found.</returns>
+        /// <param name="secretName">The secret or property name.</param>
+        /// <returns>The value, or null if not found in either location.</returns>
         private static string GetDriveSecret(Guid driveGuid, string secretName)
         {
+            // First, try Credential Manager (secure storage)
             try
             {
-                return DriveManager.ReadSecretProperty(driveGuid, secretName, CancellationToken.None);
+                string secret = DriveManager.ReadSecretProperty(driveGuid, secretName, CancellationToken.None);
+                if (!string.IsNullOrEmpty(secret))
+                {
+                    return secret;
+                }
             }
             catch
             {
-                return null;
+                // Credential Manager may not be available or no secret stored
             }
+
+            // Fall back to registry drive property
+            try
+            {
+                string property = DriveManager.ReadDriveProperty(driveGuid, secretName, CancellationToken.None);
+                if (!string.IsNullOrEmpty(property))
+                {
+                    return property;
+                }
+            }
+            catch
+            {
+                // Registry property not found
+            }
+
+            return null;
         }
     }
 }

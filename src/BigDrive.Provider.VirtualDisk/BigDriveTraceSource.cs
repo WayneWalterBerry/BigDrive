@@ -36,11 +36,17 @@ namespace BigDrive.Provider.VirtualDisk
         }
 
         /// <summary>
+        /// The name of the event log to write to.
+        /// </summary>
+        private const string LogName = "BigDrive";
+
+        /// <summary>
         /// Static constructor to initialize the trace source.
         /// </summary>
         static BigDriveTraceSource()
         {
-            EventLogTraceListener eventLogListener = new EventLogTraceListener(SourceName);
+            EventLog eventLog = new EventLog(LogName, ".", SourceName);
+            EventLogTraceListener eventLogListener = new EventLogTraceListener(eventLog);
             Instance.Listeners.Add(eventLogListener);
             Instance.Switch = new SourceSwitch("BigDriveVirtualDiskSwitch", "All");
 

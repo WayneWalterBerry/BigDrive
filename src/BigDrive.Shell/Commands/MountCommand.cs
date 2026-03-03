@@ -221,7 +221,8 @@ namespace BigDrive.Shell.Commands
                 };
 
                 // Query the provider for required drive parameters
-                Dictionary<string, string> properties = QueryDriveParameters(provider.Id);
+                Dictionary<string, string> secrets;
+                Dictionary<string, string> properties = QueryDriveParameters(provider.Id, out secrets);
                 if (properties == null)
                 {
                     // User cancelled
@@ -232,6 +233,12 @@ namespace BigDrive.Shell.Commands
                 driveConfig.Properties = properties;
 
                 DriveManager.WriteConfiguration(driveConfig, CancellationToken.None);
+
+                // Store secret parameters in Windows Credential Manager
+                foreach (KeyValuePair<string, string> secret in secrets)
+                {
+                    DriveManager.WriteSecretProperty(driveId, secret.Key, secret.Value, CancellationToken.None);
+                }
 
                 Console.WriteLine();
                 Console.WriteLine("Drive mounted successfully!");
@@ -270,13 +277,18 @@ namespace BigDrive.Shell.Commands
         /// and prompts the user for each value.
         /// </summary>
         /// <param name="providerClsid">The CLSID of the provider to query.</param>
+        /// <param name="secrets">
+        /// Output dictionary of secret parameter name/value pairs that should be stored
+        /// in Windows Credential Manager rather than the registry.
+        /// </param>
         /// <returns>
-        /// A dictionary of parameter name/value pairs collected from the user,
+        /// A dictionary of non-secret parameter name/value pairs collected from the user,
         /// or null if the user cancelled.
         /// </returns>
-        private static Dictionary<string, string> QueryDriveParameters(Guid providerClsid)
+        private static Dictionary<string, string> QueryDriveParameters(Guid providerClsid, out Dictionary<string, string> secrets)
         {
             Dictionary<string, string> properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            secrets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             IBigDriveDriveInfo driveInfo = ProviderFactory.GetDriveInfoProvider(providerClsid);
             if (driveInfo == null)
@@ -344,6 +356,8 @@ namespace BigDrive.Shell.Commands
 
                 Console.Write("  {0}: ", name);
 
+                bool isSecret = string.Equals(type, "secret", StringComparison.OrdinalIgnoreCase);
+
                 string value;
                 if (string.Equals(type, "existing-file", StringComparison.OrdinalIgnoreCase))
                 {
@@ -360,6 +374,11 @@ namespace BigDrive.Shell.Commands
                 {
                     value = ReadLineWithFileCompletion();
                 }
+                else if (isSecret)
+                {
+                    value = ReadMaskedInput();
+                    Console.WriteLine();
+                }
                 else
                 {
                     value = Console.ReadLine();
@@ -371,7 +390,14 @@ namespace BigDrive.Shell.Commands
                     return null;
                 }
 
-                properties[name] = value.Trim();
+                if (isSecret)
+                {
+                    secrets[name] = value.Trim();
+                }
+                else
+                {
+                    properties[name] = value.Trim();
+                }
             }
 
             return properties;
@@ -617,6 +643,42 @@ namespace BigDrive.Shell.Commands
 
             // Write replacement
             Console.Write(replacement);
+        }
+
+        /// <summary>
+        /// Reads input from the console with masked characters (asterisks).
+        /// Each typed character is displayed as '*' to prevent secret values
+        /// from being visible on screen.
+        /// </summary>
+        /// <returns>The entered string.</returns>
+        private static string ReadMaskedInput()
+        {
+            string input = string.Empty;
+
+            while (true)
+            {
+                ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    break;
+                }
+                else if (keyInfo.Key == ConsoleKey.Backspace)
+                {
+                    if (input.Length > 0)
+                    {
+                        input = input.Substring(0, input.Length - 1);
+                        Console.Write("\b \b");
+                    }
+                }
+                else if (!char.IsControl(keyInfo.KeyChar))
+                {
+                    input += keyInfo.KeyChar;
+                    Console.Write("*");
+                }
+            }
+
+            return input;
         }
     }
 }

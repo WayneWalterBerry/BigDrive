@@ -32,6 +32,7 @@ namespace BigDrive.Provider.Flickr
         IProcessInitializer,
         IBigDriveRegistration,
         IBigDriveAuthentication,
+        IBigDriveDriveInfo,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileOperations,

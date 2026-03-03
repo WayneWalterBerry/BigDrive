@@ -39,7 +39,9 @@
     <AssemblyOriginatorKeyFile>..\..\BigDrive.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Text.Json"><Version>4.7.2</Version></PackageReference>
+    <PackageReference Include="System.Text.Json">
+      <Version>4.7.2</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

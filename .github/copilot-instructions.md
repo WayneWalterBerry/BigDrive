@@ -21,6 +21,20 @@ Failing to understand these architectural constraints will result in broken code
 
 ---
 
+### Solution File Management
+
+**CRITICAL: No Solution Folders**
+- When adding projects to the solution, **NEVER create solution folders** (src, test, unit, etc.)
+- All projects must appear at the root level in Solution Explorer
+- Use `dotnet sln add <project.csproj>` to add projects - it adds them correctly without folders
+- **Do not** use `--solution-folder` parameter
+- If solution folders exist, remove them and the `NestedProjects` section
+
+**Why**: The user prefers a flat structure in Solution Explorer for easier navigation, even though 
+physical files are organized in src/test directories on disk.
+
+---
+
 ### Project Architecture and Build Configurations
 
 #### Platform-Specific vs Platform-Agnostic Projects

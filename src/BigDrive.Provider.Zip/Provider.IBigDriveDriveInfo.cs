@@ -4,10 +4,9 @@
 
 namespace BigDrive.Provider.Zip
 {
-    using System.Text.Json;
-
     using BigDrive.Interfaces;
     using BigDrive.Interfaces.Model;
+    using BigDrive.Interfaces.Serialization;
 
     /// <summary>
     /// Implementation of <see cref="IBigDriveDriveInfo"/> for the Zip provider.
@@ -30,11 +29,11 @@ namespace BigDrive.Provider.Zip
                 {
                     Name = "ZipFilePath",
                     Description = "Full path to the ZIP file (existing or new).",
-                    Type = "filepath"
+                    Type = DriveParameterType.FilePath
                 }
             };
 
-            return JsonSerializer.Serialize(parameters);
+            return DriveParameterSerializer.Serialize(parameters);
         }
     }
 }

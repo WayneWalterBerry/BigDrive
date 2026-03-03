@@ -30,6 +30,7 @@ namespace BigDrive.Interfaces
     ///   <item><c>string</c> — A plain text value. The shell prompts with standard input.</item>
     ///   <item><c>existing-file</c> — A local file path that must exist. The shell enables Tab completion and validates existence.</item>
     ///   <item><c>filepath</c> — A local file path that may or may not exist. The shell enables Tab completion but allows non-existent paths (for creating new files).</item>
+    ///   <item><c>secret</c> — A secret value (API key, password, etc.). The shell masks input with asterisk (*) characters.</item>
     /// </list>
     /// If "type" is omitted, "string" is assumed.
     /// </para>

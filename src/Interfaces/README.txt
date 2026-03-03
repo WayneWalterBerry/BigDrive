@@ -77,10 +77,18 @@ IBigDriveDriveInfo (3A2B1C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D)
 
   Supporting Types:
     - DriveParameterDefinition (Model/DriveParameterDefinition.cs):
-        Serializable class representing a single parameter definition.
-        Properties: Name, Description, Type (defaults to "string").
-        Providers construct an array, call JsonSerializer.Serialize(), and
-        return the resulting string from GetDriveParameters().
+        Class representing a single parameter definition.
+        Properties: Name, Description, Type (defaults to DriveParameterType.String).
+    - DriveParameterType (Model/DriveParameterType.cs):
+        Enum controlling how the Shell prompts for user input:
+          String       -> "string"        Standard text input.
+          ExistingFile -> "existing-file"  Tab completion, must exist.
+          FilePath     -> "filepath"       Tab completion, may not exist.
+          Secret       -> "secret"         Input masked with asterisks.
+    - DriveParameterSerializer (Serialization/DriveParameterSerializer.cs):
+        Zero-dependency JSON serializer. Providers construct an array of
+        DriveParameterDefinition and call DriveParameterSerializer.Serialize()
+        to produce the JSON string returned by GetDriveParameters().
 
   Notes:
     This interface is optional. Providers that do not require custom parameters
@@ -92,12 +100,12 @@ IBigDriveDriveInfo (3A2B1C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D)
     Each parameter object has these fields:
       - name:        The property key stored in DriveConfiguration.Properties.
       - description: User-facing text shown before the prompt.
-      - type:        "string" (default) or "file". When "file", the Shell enables
-                     Tab file-path completion during input.
+      - type:        "string" | "existing-file" | "filepath" | "secret".
 
     Example JSON return value:
       [
-        { "name": "ZipFilePath", "description": "Full path to the ZIP file.", "type": "file" }
+        { "name": "ZipFilePath", "description": "Full path to the ZIP file.", "type": "existing-file" },
+        { "name": "ApiSecret", "description": "Your API secret.", "type": "secret" }
       ]
 
 IBigDriveAuthentication (7E8F9A0B-1C2D-3E4F-5A6B-7C8D9E0F1A2B)
@@ -257,6 +265,27 @@ To create a custom BigDrive provider:
 
 Example: See BigDrive.Provider.Sample for a complete implementation.
 Example: See BigDrive.Provider.Flickr for OAuth 1.0a authentication.
+
+DEPENDENCY CONSTRAINTS
+--------------------------------------------------------------------------------
+BigDrive.Interfaces must have ZERO external package dependencies. It references
+only System and System.Core from the .NET Framework.
+
+Why: This assembly is loaded very early during COM+ activation (by regsvcs.exe
+and dllhost.exe), before any provider's AssemblyResolver has been registered.
+If Interfaces depends on a NuGet package (e.g., System.Text.Json), the CLR
+will attempt to load that assembly before the provider can resolve it, causing
+a catastrophic failure (0x8000FFFF) during COM+ activation.
+
+This is why DriveParameterSerializer uses StringBuilder instead of
+System.Text.Json — it produces identical JSON output with no external
+dependencies.
+
+When adding new types to this project:
+  - Use ONLY types from System and System.Core.
+  - Do NOT add NuGet PackageReferences or assembly references to external DLLs.
+  - If serialization is needed, use the zero-dependency pattern in
+    Serialization/DriveParameterSerializer.cs.
 
 TARGET FRAMEWORK
 --------------------------------------------------------------------------------

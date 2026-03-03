@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11512.155
@@ -41,13 +41,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.Iso", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Provider.VirtualDisk", "src\BigDrive.Provider.VirtualDisk\BigDrive.Provider.VirtualDisk.csproj", "{47BA476A-59EA-53EE-2F27-07D7EE33CD81}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F956-CE84-757C-A364CCF449FC}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "unit", "unit", "{05A4E2C6-34EB-452A-C515-50BACA389F66}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDrive.Shell.Test", "test\unit\BigDrive.Shell.Test\BigDrive.Shell.Test.csproj", "{8F4A1D2E-9B3C-4F5E-A7D8-6E9C1B2F4A3D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -303,11 +297,8 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{05A4E2C6-34EB-452A-C515-50BACA389F66} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
-		{8F4A1D2E-9B3C-4F5E-A7D8-6E9C1B2F4A3D} = {05A4E2C6-34EB-452A-C515-50BACA389F66}
-	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ACA5ED12-BFEF-47AD-98F2-0AE008B297B8}
 	EndGlobalSection
 EndGlobal
+

@@ -84,11 +84,24 @@ All providers and services run in separate `dllhost.exe` processes via COM+, ens
 
 Providers are pluggable COM+ components that implement standard interfaces (`IBigDriveEnumerate`, `IBigDriveFileData`, etc.). New storage backends can be added without modifying core BigDrive components.
 
-### 3. Drive Instances
+### 3. Service and Provider Independence
+
+BigDrive.Service and the providers are **completely independent** of each other:
+- Providers must **not** reference `BigDrive.Service.dll` — they only reference
+  `BigDrive.Interfaces` and `BigDrive.ConfigProvider`
+- BigDrive.Service must **not** reference any provider assembly
+- All cross-component communication uses COM+ out-of-process activation
+  (`CoCreateInstance`), never direct assembly references
+
+This isolation ensures each component can be built, deployed, and updated
+independently without affecting the others. See [Components — Dependency Rules](components.md#dependency-rules)
+for the full reference graph.
+
+### 4. Drive Instances
 
 A single provider (e.g., Flickr) can support multiple drive instances with different configurations (personal account, work account). Each drive has its own GUID and registry configuration.
 
-### 4. Platform-Specific Shell Extensions
+### 5. Platform-Specific Shell Extensions
 
 C++ shell extensions (`BigDrive.ShellFolder.dll`) must be built for both x86 and x64 to support 32-bit and 64-bit Windows Explorer processes. C# components remain "Any CPU" and run out-of-process.
 

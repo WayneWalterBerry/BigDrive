@@ -228,12 +228,23 @@ namespace BigDrive.Shell.Commands
         /// </summary>
         private OAuthResult PerformOAuth1Auth(AuthenticationInfo authInfo, CancellationToken cancellationToken)
         {
-            // For OAuth 1.0a, AuthorizationUrl contains the authorize URL
-            // TokenUrl contains the request token URL
-            // DeviceAuthorizationUrl (if set) contains the access token URL
+            // Validate required fields
+            if (string.IsNullOrEmpty(authInfo.ClientId) || string.IsNullOrEmpty(authInfo.ClientSecret))
+            {
+                Console.WriteLine("Error: API credentials are not configured for this drive.");
+                Console.WriteLine("Use 'secret set' to configure the required API key and secret,");
+                Console.WriteLine("or unmount and remount the drive to provide them.");
+                return null;
+            }
 
-            // Parse URLs from authInfo - OAuth 1.0a providers need to pack URLs differently
-            // Format: "requestTokenUrl|authorizeUrl|accessTokenUrl"
+            if (string.IsNullOrEmpty(authInfo.AuthorizationUrl))
+            {
+                Console.WriteLine("Error: OAuth configuration is incomplete (missing authorization URL).");
+                return null;
+            }
+
+            // Parse URLs from authInfo - OAuth 1.0a providers pack URLs as
+            // "requestTokenUrl|authorizeUrl|accessTokenUrl"
             string[] urls = authInfo.AuthorizationUrl.Split('|');
             if (urls.Length < 3)
             {
