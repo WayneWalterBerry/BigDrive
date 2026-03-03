@@ -10,6 +10,7 @@ namespace BigDrive.Shell.Commands
 
     using BigDrive.ConfigProvider.Model;
     using BigDrive.Interfaces;
+    using BigDrive.Interfaces.Model;
     using BigDrive.Shell.FileStores;
 
     /// <summary>
@@ -320,16 +321,22 @@ namespace BigDrive.Shell.Commands
                 return;
             }
 
+            // Query provider capabilities to determine which metadata columns to show.
+            // Uses IBigDriveCapabilities (separate interface with its own IID) so
+            // QueryInterface returns null cleanly for providers that don't implement it.
+            // Providers without IBigDriveCapabilities are assumed to support all metadata.
+            FileInfoCapabilities capabilities = QueryFileInfoCapabilities(context.CurrentDriveGuid.Value);
+
             // Collect all entries
             List<DirEntry> allEntries = new List<DirEntry>();
 
             if (recursive)
             {
-                CollectEntriesRecursive(context.CurrentDriveGuid.Value, path, filePattern, enumerate, allEntries, directoriesOnly, filesOnly, path);
+                CollectEntriesRecursive(context.CurrentDriveGuid.Value, path, filePattern, enumerate, allEntries, directoriesOnly, filesOnly, path, capabilities);
             }
             else
             {
-                CollectEntries(context.CurrentDriveGuid.Value, path, filePattern, enumerate, allEntries, directoriesOnly, filesOnly);
+                CollectEntries(context.CurrentDriveGuid.Value, path, filePattern, enumerate, allEntries, directoriesOnly, filesOnly, capabilities);
             }
 
             // Sort entries
@@ -346,7 +353,7 @@ namespace BigDrive.Shell.Commands
             }
             else
             {
-                DisplayStandardFormat(context, path, filePattern, allEntries);
+                DisplayStandardFormat(context, path, filePattern, allEntries, capabilities);
             }
         }
 
@@ -363,12 +370,49 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Collects entries from a single directory.
+        /// Queries the provider's file-info capabilities via the
+        /// <see cref="IBigDriveCapabilities"/> COM interface.
+        /// Returns <see cref="FileInfoCapabilities.All"/> when the provider does not
+        /// implement the interface (backward compatible with older providers).
         /// </summary>
-        private static void CollectEntries(Guid driveGuid, string path, string filePattern, IBigDriveEnumerate enumerate, List<DirEntry> entries, bool directoriesOnly, bool filesOnly)
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <returns>The provider's capabilities, or <see cref="FileInfoCapabilities.All"/> if not supported.</returns>
+        private static FileInfoCapabilities QueryFileInfoCapabilities(Guid driveGuid)
+        {
+            try
+            {
+                IBigDriveCapabilities caps = ProviderFactory.GetCapabilitiesProvider(driveGuid);
+                if (caps != null)
+                {
+                    int raw = caps.GetFileInfoCapabilities(driveGuid);
+                    FileInfoCapabilities result = (FileInfoCapabilities)raw;
+                    ShellTrace.Verbose("GetFileInfoCapabilities returned: {0} (raw={1})", result, raw);
+                    return result;
+                }
+                else
+                {
+                    ShellTrace.Verbose("GetFileInfoCapabilities: provider does not implement IBigDriveCapabilities, defaulting to All");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShellTrace.Warning("GetFileInfoCapabilities failed ({0}): {1}", ex.GetType().Name, ex.Message);
+            }
+
+            return FileInfoCapabilities.All;
+        }
+
+        /// <summary>
+        /// Collects entries from a single directory.
+        /// Only queries metadata the provider advertises via <paramref name="capabilities"/>.
+        /// </summary>
+        private static void CollectEntries(Guid driveGuid, string path, string filePattern, IBigDriveEnumerate enumerate, List<DirEntry> entries, bool directoriesOnly, bool filesOnly, FileInfoCapabilities capabilities)
         {
             // Get provider for file info (optional)
             IBigDriveFileInfo fileInfo = ProviderFactory.GetFileInfoProvider(driveGuid);
+
+            bool querySize = fileInfo != null && capabilities.HasFlag(FileInfoCapabilities.FileSize);
+            bool queryDate = fileInfo != null && capabilities.HasFlag(FileInfoCapabilities.LastModified);
 
             // Collect folders
             if (!filesOnly)
@@ -403,19 +447,22 @@ namespace BigDrive.Shell.Commands
                     long size = 0;
                     DateTime lastModified = DateTime.MinValue;
 
-                    // Try to get file metadata
-                    if (fileInfo != null)
+                    try
                     {
-                        try
+                        if (querySize)
                         {
                             ulong fileSize = fileInfo.GetFileSize(driveGuid, fullPath);
                             size = fileSize > long.MaxValue ? long.MaxValue : (long)fileSize;
+                        }
+
+                        if (queryDate)
+                        {
                             lastModified = fileInfo.LastModifiedTime(driveGuid, fullPath);
                         }
-                        catch
-                        {
-                            // Ignore errors - provider may not support all operations
-                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors - provider may not support all operations
                     }
 
                     entries.Add(new DirEntry
@@ -433,17 +480,17 @@ namespace BigDrive.Shell.Commands
         /// <summary>
         /// Collects entries recursively from a directory tree.
         /// </summary>
-        private static void CollectEntriesRecursive(Guid driveGuid, string path, string filePattern, IBigDriveEnumerate enumerate, List<DirEntry> entries, bool directoriesOnly, bool filesOnly, string basePath)
+        private static void CollectEntriesRecursive(Guid driveGuid, string path, string filePattern, IBigDriveEnumerate enumerate, List<DirEntry> entries, bool directoriesOnly, bool filesOnly, string basePath, FileInfoCapabilities capabilities)
         {
             // Collect entries in current directory
-            CollectEntries(driveGuid, path, filePattern, enumerate, entries, directoriesOnly, filesOnly);
+            CollectEntries(driveGuid, path, filePattern, enumerate, entries, directoriesOnly, filesOnly, capabilities);
 
             // Recurse into subdirectories
             string[] folders = enumerate.EnumerateFolders(driveGuid, path);
             foreach (string folder in folders)
             {
                 string fullPath = FileTransferService.CombinePath(path, folder);
-                CollectEntriesRecursive(driveGuid, fullPath, filePattern, enumerate, entries, directoriesOnly, filesOnly, basePath);
+                CollectEntriesRecursive(driveGuid, fullPath, filePattern, enumerate, entries, directoriesOnly, filesOnly, basePath, capabilities);
             }
         }
 
@@ -586,38 +633,136 @@ namespace BigDrive.Shell.Commands
         }
 
         /// <summary>
-        /// Displays entries in standard format.
+        /// Format string when all columns are shown: Mode, LastWriteTime, Length, Name.
+        /// Matches PowerShell's Get-ChildItem layout.
         /// </summary>
-        private static void DisplayStandardFormat(ShellContext context, string path, string filePattern, List<DirEntry> entries)
+        private const string FormatAll = "{0,-5}{1,29}{2,15} {3}";
+
+        /// <summary>
+        /// Format string when only date is shown (no Length column): Mode, LastWriteTime, Name.
+        /// </summary>
+        private const string FormatDateOnly = "{0,-5}{1,29} {2}";
+
+        /// <summary>
+        /// Format string when only size is shown (no LastWriteTime column): Mode, Length, Name.
+        /// </summary>
+        private const string FormatSizeOnly = "{0,-5}{1,15} {2}";
+
+        /// <summary>
+        /// Format string when no metadata columns are shown: Mode, Name.
+        /// </summary>
+        private const string FormatNone = "{0,-5} {1}";
+
+        /// <summary>
+        /// Displays entries in standard format matching PowerShell's dir output.
+        /// Dynamically hides columns the provider cannot populate based on
+        /// <paramref name="capabilities"/>.
+        /// </summary>
+        private static void DisplayStandardFormat(ShellContext context, string path, string filePattern, List<DirEntry> entries, FileInfoCapabilities capabilities)
         {
+            bool showDate = capabilities.HasFlag(FileInfoCapabilities.LastModified);
+            bool showSize = capabilities.HasFlag(FileInfoCapabilities.FileSize);
+
             Console.WriteLine();
             if (filePattern != null)
             {
-                Console.WriteLine(" Directory of {0}:{1}  (filter: {2})", context.CurrentDriveLetter, path, filePattern);
+                Console.WriteLine("    Directory: {0}:{1}  (filter: {2})", context.CurrentDriveLetter, path, filePattern);
             }
             else
             {
-                Console.WriteLine(" Directory of {0}:{1}", context.CurrentDriveLetter, path);
+                Console.WriteLine("    Directory: {0}:{1}", context.CurrentDriveLetter, path);
             }
+
             Console.WriteLine();
+
+            // Write header and separator based on which columns are visible
+            if (showDate && showSize)
+            {
+                Console.WriteLine(FormatAll, "Mode", "LastWriteTime", "Length", "Name");
+                Console.WriteLine(FormatAll, "----", "-------------", "------", "----");
+            }
+            else if (showDate)
+            {
+                Console.WriteLine(FormatDateOnly, "Mode", "LastWriteTime", "Name");
+                Console.WriteLine(FormatDateOnly, "----", "-------------", "----");
+            }
+            else if (showSize)
+            {
+                Console.WriteLine(FormatSizeOnly, "Mode", "Length", "Name");
+                Console.WriteLine(FormatSizeOnly, "----", "------", "----");
+            }
+            else
+            {
+                Console.WriteLine(FormatNone, "Mode", "Name");
+                Console.WriteLine(FormatNone, "----", "----");
+            }
+
+            long totalBytes = 0;
 
             foreach (DirEntry entry in entries)
             {
-                if (entry.IsDirectory)
+                string mode = entry.IsDirectory ? "d----" : "-a---";
+
+                if (showDate && showSize)
                 {
-                    Console.WriteLine("    <DIR>    " + entry.Name);
+                    string dateStr = FormatLastWriteTime(entry.LastModified);
+                    string sizeStr = entry.IsDirectory ? string.Empty : entry.Size.ToString();
+                    Console.WriteLine(FormatAll, mode, dateStr, sizeStr, entry.Name);
+                }
+                else if (showDate)
+                {
+                    string dateStr = FormatLastWriteTime(entry.LastModified);
+                    Console.WriteLine(FormatDateOnly, mode, dateStr, entry.Name);
+                }
+                else if (showSize)
+                {
+                    string sizeStr = entry.IsDirectory ? string.Empty : entry.Size.ToString();
+                    Console.WriteLine(FormatSizeOnly, mode, sizeStr, entry.Name);
                 }
                 else
                 {
-                    Console.WriteLine("             " + entry.Name);
+                    Console.WriteLine(FormatNone, mode, entry.Name);
+                }
+
+                if (!entry.IsDirectory)
+                {
+                    totalBytes += entry.Size;
                 }
             }
 
             Console.WriteLine();
 
-            int dirCount = entries.Count(e => e.IsDirectory);
             int fileCount = entries.Count(e => !e.IsDirectory);
-            Console.WriteLine("       {0} Dir(s)    {1} File(s)", dirCount, fileCount);
+            int dirCount = entries.Count(e => e.IsDirectory);
+
+            if (showSize)
+            {
+                Console.WriteLine("{0,16} File(s) {1,14} bytes", fileCount, totalBytes.ToString("N0"));
+            }
+            else
+            {
+                Console.WriteLine("{0,16} File(s)", fileCount);
+            }
+
+            Console.WriteLine("{0,16} Dir(s)", dirCount);
+        }
+
+        /// <summary>
+        /// Formats a DateTime in the same style as PowerShell's Get-ChildItem LastWriteTime column.
+        /// Uses right-aligned short date (10 chars) + two spaces + right-aligned short time (8 chars).
+        /// </summary>
+        /// <param name="dateTime">The date and time to format.</param>
+        /// <returns>A 20-character formatted date/time string, or empty if the date is not set.</returns>
+        private static string FormatLastWriteTime(DateTime dateTime)
+        {
+            if (dateTime == DateTime.MinValue)
+            {
+                return string.Empty;
+            }
+
+            string datePart = dateTime.ToString("d");
+            string timePart = dateTime.ToString("t");
+            return string.Format("{0,10}  {1,8}", datePart, timePart);
         }
 
             }

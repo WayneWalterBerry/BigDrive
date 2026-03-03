@@ -146,6 +146,33 @@ namespace BigDrive.Shell
         }
 
         /// <summary>
+        /// Creates an IBigDriveCapabilities instance for an already-mounted drive.
+        /// Used at runtime to query which file metadata the provider can supply.
+        /// </summary>
+        /// <param name="driveGuid">The drive GUID.</param>
+        /// <returns>The IBigDriveCapabilities interface, or null if not supported by the provider.</returns>
+        /// <remarks>
+        /// Returns null if the provider does not implement IBigDriveCapabilities.
+        /// Callers should assume all capabilities when null is returned (backward compatible
+        /// with providers that predate this interface).
+        /// </remarks>
+        public static IBigDriveCapabilities GetCapabilitiesProvider(Guid driveGuid)
+        {
+            try
+            {
+                ShellTrace.Verbose("GetCapabilitiesProvider(driveGuid={0})", driveGuid);
+                object provider = GetProviderInstance(driveGuid);
+                IBigDriveCapabilities caps = provider as IBigDriveCapabilities;
+                ShellTrace.Verbose("IBigDriveCapabilities: {0}", caps != null ? "available" : "not supported");
+                return caps;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets the raw provider instance for a drive using out-of-process COM+ activation.
         /// </summary>
         /// <param name="driveGuid">The drive GUID.</param>

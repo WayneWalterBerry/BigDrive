@@ -30,6 +30,7 @@ namespace BigDrive.Provider.VirtualDisk
         IProcessInitializer,
         IBigDriveRegistration,
         IBigDriveDriveInfo,
+        IBigDriveCapabilities,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileData,

@@ -34,6 +34,7 @@ namespace BigDrive.Provider.Iso
         IProcessInitializer,
         IBigDriveRegistration,
         IBigDriveDriveInfo,
+        IBigDriveCapabilities,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileData

@@ -191,6 +191,7 @@ namespace BigDrive.Shell
             RegisterCommand(new DelCommand());
             RegisterCommand(new MoveCommand());
             RegisterCommand(new RenameCommand());
+            RegisterCommand(new LabelCommand());
             RegisterCommand(new MountCommand());
             RegisterCommand(new UnmountCommand());
         }

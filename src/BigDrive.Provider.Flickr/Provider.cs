@@ -33,6 +33,7 @@ namespace BigDrive.Provider.Flickr
         IBigDriveRegistration,
         IBigDriveAuthentication,
         IBigDriveDriveInfo,
+        IBigDriveCapabilities,
         IBigDriveEnumerate,
         IBigDriveFileInfo,
         IBigDriveFileOperations,

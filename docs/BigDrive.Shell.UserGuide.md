@@ -66,6 +66,7 @@ The `BD>` prompt indicates you're in the BigDrive Shell but no drive is selected
 | `drives` | `list` | List all drives with their assigned letters |
 | `mount` | `register`, `add` | Mount a new BigDrive (like `net use`) |
 | `unmount` | `unregister`, `remove`, `umount` | Unmount a BigDrive |
+| `label` | | Change the display name of a drive |
 
 ### File System Navigation
 
@@ -712,6 +713,25 @@ HKLM shell namespace.
 
 > **Note:** Mounting and unmounting requires BigDrive.Service to be registered with COM+
 > (done automatically by `BigDrive.Setup.exe` or the Service's PostBuild `regsvcs.exe` step).
+
+### Renaming a Drive
+
+Use the `label` command to change a drive's display name after mounting:
+
+```
+Z:\> label "My Vacation Photos"
+Z: My Flickr Photos => My Vacation Photos
+```
+
+You can also specify the drive letter explicitly:
+
+```
+BD> label Y: "Archived Files"
+Y: Old Name => Archived Files
+```
+
+The name is stored in the registry under `HKLM\SOFTWARE\BigDrive\Drives\{driveGuid}\name`.
+Requires Administrator privileges.
 
 ---
 

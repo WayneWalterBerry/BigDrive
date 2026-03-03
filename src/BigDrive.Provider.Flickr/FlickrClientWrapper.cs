@@ -50,9 +50,22 @@ namespace BigDrive.Provider.Flickr
         private List<PhotosetInfo> _photosetCache;
 
         /// <summary>
-        /// Cache expiration time.
+        /// Cache expiration time for photosets.
         /// </summary>
         private DateTime _cacheExpiration = DateTime.MinValue;
+
+        /// <summary>
+        /// Cache of photos per photoset name to avoid repeated API calls.
+        /// Key is the photoset name (case-insensitive).
+        /// </summary>
+        private readonly ConcurrentDictionary<string, List<PhotoInfo>> _photosCache =
+            new ConcurrentDictionary<string, List<PhotoInfo>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Cache expiration times per photoset name.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, DateTime> _photosCacheExpiration =
+            new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Cache duration in minutes.
@@ -190,6 +203,14 @@ namespace BigDrive.Provider.Flickr
         /// <returns>A list of photo information.</returns>
         public List<PhotoInfo> GetPhotosInPhotoset(string photosetName)
         {
+            // Check cache first
+            if (_photosCache.TryGetValue(photosetName, out List<PhotoInfo> cached) &&
+                _photosCacheExpiration.TryGetValue(photosetName, out DateTime expiration) &&
+                DateTime.Now < expiration)
+            {
+                return cached;
+            }
+
             try
             {
                 var photoset = GetPhotosetByName(photosetName);
@@ -198,14 +219,28 @@ namespace BigDrive.Provider.Flickr
                     return new List<PhotoInfo>();
                 }
 
-                var photos = _flickr.PhotosetsGetPhotos(photoset.Id);
-                return photos.Select(p => new PhotoInfo
+                // Request date and URL extras so the Photo objects contain populated metadata.
+                // Without these flags, DateUploaded/DateTaken/LastUpdated default to DateTime.MinValue.
+                PhotoSearchExtras extras = PhotoSearchExtras.DateUploaded
+                    | PhotoSearchExtras.DateTaken
+                    | PhotoSearchExtras.LastUpdated
+                    | PhotoSearchExtras.LargeUrl
+                    | PhotoSearchExtras.MediumUrl
+                    | PhotoSearchExtras.SmallUrl;
+
+                var photos = _flickr.PhotosetsGetPhotos(photoset.Id, extras);
+                var photoList = photos.Select(p => new PhotoInfo
                 {
                     Id = p.PhotoId,
                     Title = p.Title,
-                    DateUploaded = p.DateUploaded,
+                    DateUploaded = GetBestDate(p.LastUpdated, p.DateTaken, p.DateUploaded),
                     Url = p.LargeUrl ?? p.MediumUrl ?? p.SmallUrl
                 }).ToList();
+
+                _photosCache[photosetName] = photoList;
+                _photosCacheExpiration[photosetName] = DateTime.Now.AddMinutes(CacheDurationMinutes);
+
+                return photoList;
             }
             catch (OAuthException ex)
             {
@@ -417,6 +452,31 @@ namespace BigDrive.Provider.Flickr
         {
             _photosetCache = null;
             _cacheExpiration = DateTime.MinValue;
+            _photosCache.Clear();
+            _photosCacheExpiration.Clear();
+        }
+
+        /// <summary>
+        /// Returns the best available date from the Flickr API, preferring LastUpdated,
+        /// then DateTaken, then DateUploaded. Returns DateTime.MinValue if none are set.
+        /// </summary>
+        /// <param name="lastUpdated">The last updated date from the Flickr API.</param>
+        /// <param name="dateTaken">The date the photo was taken.</param>
+        /// <param name="dateUploaded">The date the photo was uploaded.</param>
+        /// <returns>The best available date.</returns>
+        private static DateTime GetBestDate(DateTime lastUpdated, DateTime dateTaken, DateTime dateUploaded)
+        {
+            if (lastUpdated != DateTime.MinValue)
+            {
+                return lastUpdated;
+            }
+
+            if (dateTaken != DateTime.MinValue)
+            {
+                return dateTaken;
+            }
+
+            return dateUploaded;
         }
 
         /// <summary>

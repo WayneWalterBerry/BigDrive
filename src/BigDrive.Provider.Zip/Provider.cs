@@ -31,7 +31,8 @@ namespace BigDrive.Provider.Zip
         IBigDriveFileInfo,
         IBigDriveFileData,
         IBigDriveFileOperations,
-        IBigDriveDriveInfo
+        IBigDriveDriveInfo,
+        IBigDriveCapabilities
     {
         /// <summary>
         /// The trace source for logging.

@@ -127,6 +127,34 @@ IBigDriveAuthentication (7E8F9A0B-1C2D-3E4F-5A6B-7C8D9E0F1A2B)
     to implement it. When implemented, BigDrive Shell can perform generic OAuth
     flows and store tokens in Windows Credential Manager.
 
+IBigDriveCapabilities (D4E5F6A7-B8C9-4D0E-A1F2-3B4C5D6E7F80)
+  Purpose: Advertise which file metadata the provider can supply at runtime.
+  Methods:
+    - GetFileInfoCapabilities(driveGuid) -> int (FileInfoCapabilities flags)
+
+  Supporting Types:
+    - FileInfoCapabilities (Model/FileInfoCapabilities.cs):
+        Flags enum indicating which IBigDriveFileInfo methods return meaningful
+        data. The Shell uses this to hide unsupported columns in dir output:
+          None         = 0   Provider cannot supply any file metadata.
+          FileSize     = 1   Provider can return file sizes.
+          LastModified = 2   Provider can return last-modified timestamps.
+          All          = 3   Provider supports all file metadata.
+
+  Notes:
+    This interface is optional. Providers that do not implement it are assumed
+    to support all capabilities (backward compatible with older providers).
+
+    The return type is int (not the enum) because enum types do not marshal
+    reliably across out-of-process COM IUnknown boundaries. The Shell casts
+    the returned int to FileInfoCapabilities on the consumer side.
+
+    IMPORTANT: This is a separate interface from IBigDriveDriveInfo because
+    adding methods to an existing COM interface changes the vtable layout,
+    which causes AccessViolationException when the proxy/stub uses a cached
+    (stale) interface definition. Always create a NEW interface with a NEW
+    GUID when adding new capabilities — never modify an existing COM interface.
+
   Note on BigDrive.Service Interfaces:
     Interfaces exposed by BigDrive.Service (IBigDriveProvision, IBigDriveConfiguration,
     IBigDriveSetup) are defined in the separate BigDrive.Service.Interfaces project.
@@ -175,6 +203,48 @@ All interfaces follow these patterns for cross-language compatibility:
      interface for maximum compatibility with C++ clients.
   4. Drive Identification: All methods accept a driveGuid parameter to identify
      which registered drive the operation targets.
+
+OUT-OF-PROCESS COM+ MARSHALING CONSTRAINTS
+--------------------------------------------------------------------------------
+Providers run out-of-process in dllhost.exe (CLSCTX_LOCAL_SERVER). All method
+parameters and return values cross a process boundary via COM marshaling. This
+imposes strict constraints on the types that can appear in interface signatures:
+
+  Allowed Types:
+    - Primitive value types: int, long, ulong, bool, double, DateTime (DATE)
+    - Strings (BSTR): string
+    - GUIDs: Guid (REFGUID)
+    - Byte arrays: byte[]
+    - COM interfaces: IStream, IUnknown
+
+  NOT Allowed (will cause AccessViolationException or corrupt data):
+    - Enum types as parameters or return values — the marshaler does not
+      reliably map managed enums across the IUnknown vtable boundary.
+    - Custom classes or structs — there is no registered proxy/stub or
+      type library to describe their layout to the marshaler.
+    - Generic types (List<T>, Dictionary<K,V>) — not COM-visible.
+    - Arrays of complex types — only primitive arrays are safe.
+
+  Workarounds:
+    - Enums:   Return int and cast to the enum on the consumer side.
+    - Objects: Serialize to a JSON string and deserialize on the consumer side
+               (see IBigDriveDriveInfo.GetDriveParameters() for this pattern).
+    - Lists:   Return string[] for simple lists, or JSON for complex data.
+
+  Example — enum via int:
+
+    // Interface (BigDrive.Interfaces)
+    int GetFileInfoCapabilities(Guid driveGuid);
+
+    // Provider implementation
+    public int GetFileInfoCapabilities(Guid driveGuid)
+    {
+        return (int)FileInfoCapabilities.LastModified;
+    }
+
+    // Shell consumer
+    FileInfoCapabilities caps =
+        (FileInfoCapabilities)driveInfo.GetFileInfoCapabilities(driveGuid);
 
 PATH FORMAT CONVENTIONS
 --------------------------------------------------------------------------------

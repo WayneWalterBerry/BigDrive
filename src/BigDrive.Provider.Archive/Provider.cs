@@ -44,7 +44,8 @@ namespace BigDrive.Provider.Archive
         IBigDriveFileInfo,
         IBigDriveFileData,
         IBigDriveFileOperations,
-        IBigDriveDriveInfo
+        IBigDriveDriveInfo,
+        IBigDriveCapabilities
     {
         /// <summary>
         /// The trace source for logging.

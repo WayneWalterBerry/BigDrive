@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="BigDriveAuthenticationRequiredException.cs" />
     <Compile Include="IBigDriveAuthentication.cs" />
+    <Compile Include="IBigDriveCapabilities.cs" />
     <Compile Include="IBigDriveDriveInfo.cs" />
     <Compile Include="IBigDriveFileInfo.cs" />
     <Compile Include="IBigDriveFileOperations.cs" />
@@ -51,6 +52,7 @@
     <Compile Include="IBigDriveFileData.cs" />
     <Compile Include="Model\DriveParameterDefinition.cs" />
     <Compile Include="Model\DriveParameterType.cs" />
+    <Compile Include="Model\FileInfoCapabilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization\DriveParameterSerializer.cs" />
   </ItemGroup>
